@@ -1,0 +1,131 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Quản Lý Trung Tâm Tiếng Anh</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="~/css/admin-style.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="d-flex" id="wrapper">
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar-wrapper">
+            <div class="sidebar-heading">
+                <i class="fa-solid fa-graduation-cap text-primary fs-4"></i>
+                <span>ENGLISH CENTER</span>
+            </div>
+            <div class="sidebar-menu">
+                <a href="/" class="sidebar-link">
+                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                </a>
+                <!-- Module F02: Quản lý tài khoản & phân quyền -->
+                <a href="/Account" class="sidebar-link">
+                    <i class="fa-solid fa-user-shield"></i> Tài khoản & Phân quyền
+                </a>
+                <a href="/KhoaHoc" class="sidebar-link">
+                    <i class="fa-solid fa-book-open"></i> Khóa học
+                </a>
+                <a href="/LopHoc" class="sidebar-link">
+                    <i class="fa-solid fa-chalkboard-user"></i> Lớp học
+                </a>
+                <a href="/LichHoc" class="sidebar-link">
+                    <i class="fa-solid fa-calendar-days"></i> Lịch học & Phòng
+                </a>
+                <a href="/HocVien" class="sidebar-link">
+                    <i class="fa-solid fa-user-graduate"></i> Quản lý Học viên
+                </a>
+                <a href="/DiemDanh" class="sidebar-link">
+                    <i class="fa-solid fa-clipboard-check"></i> Điểm danh
+                </a>
+                <a href="/BaiTap/NopBai" class="sidebar-link">
+                    <i class="fa-solid fa-file-pen"></i> Bài tập & Chấm thi
+                </a>
+                <a href="/NhanSu" class="sidebar-link">
+                    <i class="fa-solid fa-id-card-clip"></i> Nhân sự & Giảng viên
+                </a>
+                <a href="/HoaDon" class="sidebar-link">
+                    <i class="fa-solid fa-receipt"></i> Học phí & Hóa đơn
+                </a>
+                <a href="/BangLuong" class="sidebar-link">
+                    <i class="fa-solid fa-money-bill-wave"></i> Bảng lương
+                </a>
+                <!-- Bổ sung F03 & F05: Quản lý Cơ sở & Điều chuyển -->
+                <a href="/CoSo" class="sidebar-link">
+                    <i class="fa-solid fa-building"></i> Cơ sở & Điều chuyển
+                </a>
+                <a href="/KhoaHoc" class="sidebar-link">
+                    <i class="fa-solid fa-book-open"></i> Khóa học
+                </a>
+            </div>
+        </aside>
+
+        <!-- Page Content Wrapper -->
+        <div id="page-content-wrapper">
+            <!-- Top Navbar -->
+            <header class="top-navbar">
+                <button class="btn btn-outline-secondary btn-sm" id="menu-toggle">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="dropdown">
+                        <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" id="userMenu" data-bs-toggle="dropdown">
+                            <!-- Đọc vai trò và tên người dùng từ Session đã lưu lúc Login -->
+                            <span class="badge bg-primary me-2">@(Context.Session.GetString("UserRole") ?? "Admin")</span>
+                            <span class="fw-semibold">@(Context.Session.GetString("UserFullName") ?? "Ban Quản Trị")</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                            <li><a class="dropdown-item" href="/Account"><i class="fa-solid fa-user-shield me-2"></i> Phân quyền</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <!-- Đường dẫn xử lý đăng xuất xóa Session -->
+                            <li><a class="dropdown-item text-danger" href="/Account/Logout"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Đăng xuất</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Container: dùng container-fluid và w-100 để tràn toàn bộ chiều ngang -->
+            <main class="container-fluid px-4 py-4 w-100 flex-grow-1">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts CDN -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.1.0/classic/ckeditor.js"></script>
+
+    <script>
+        $("#menu-toggle").click(function (e) {
+            e.preventDefault();
+            if ($(window).width() > 768) {
+                $("#sidebar-wrapper").toggleClass("collapsed");
+                $("#page-content-wrapper").toggleClass("expanded");
+            } else {
+                $("#sidebar-wrapper").toggleClass("toggled");
+            }
+        });
+
+        // Tự động tô sáng (active) liên kết Sidebar tương ứng với đường dẫn URL hiện tại
+        $(document).ready(function () {
+            const currentPath = window.location.pathname.toLowerCase();
+            $('.sidebar-menu a').each(function () {
+                const linkHref = $(this).attr('href').toLowerCase();
+                if ((linkHref === '/' && currentPath === '/') || (linkHref !== '/' && currentPath.startsWith(linkHref))) {
+                    $('.sidebar-menu a').removeClass('active');
+                    $(this).addClass('active');
+                }
+            });
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

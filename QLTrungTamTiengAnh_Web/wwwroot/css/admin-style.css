@@ -1,0 +1,154 @@
+﻿:root {
+    --sidebar-width: 260px;
+    --primary-color: #2563eb;
+    --sidebar-bg: #0f172a;
+    --sidebar-text: #94a3b8;
+    --sidebar-hover: #1e293b;
+    --topbar-height: 64px;
+}
+
+body {
+    background-color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow-x: hidden;
+}
+
+/* Sidebar */
+#sidebar-wrapper {
+    min-height: 100vh;
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.sidebar-heading {
+    padding: 1.25rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+    border-bottom: 1px solid #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sidebar-menu {
+    padding: 1rem 0;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    gap: 0.75rem;
+}
+
+    .sidebar-link:hover, .sidebar-link.active {
+        color: #ffffff;
+        background-color: var(--sidebar-hover);
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .sidebar-link i {
+        width: 20px;
+        text-align: center;
+    }
+
+/* Page Content */
+/* Page Content Wrapper: chiếm toàn bộ phần còn lại của màn hình */
+#page-content-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    width: calc(100% - var(--sidebar-width)); /* Chiếm trọn chiều ngang còn lại */
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Khi Sidebar thu gọn: phần nội dung mở rộng ra 100% full màn hình */
+#sidebar-wrapper.collapsed {
+    margin-left: calc(-1 * var(--sidebar-width));
+}
+
+#page-content-wrapper.expanded {
+    margin-left: 0;
+    width: 100% !important; /* Tràn viền toàn màn hình */
+}
+
+/* Đảm bảo các card và bảng luôn chiếm 100% chiều rộng khung chứa */
+.card {
+    width: 100%;
+}
+
+/* Top Navbar */
+.top-navbar {
+    height: var(--topbar-height);
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+}
+
+/* Card & Table */
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.table th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #sidebar-wrapper {
+        margin-left: calc(-1 * var(--sidebar-width));
+    }
+
+        #sidebar-wrapper.toggled {
+            margin-left: 0;
+        }
+
+    #page-content-wrapper {
+        margin-left: 0;
+    }
+}
+/* Trạng thái thu gọn trên màn hình Desktop */
+#sidebar-wrapper.collapsed {
+    margin-left: calc(-1 * var(--sidebar-width));
+}
+
+#page-content-wrapper.expanded {
+    margin-left: 0;
+}
+
+/* Hiệu ứng chuyển động mượt mà */
+#sidebar-wrapper, #page-content-wrapper {
+    transition: all 0.3s ease-in-out;
+}
+.schedule-card {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+    .schedule-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }

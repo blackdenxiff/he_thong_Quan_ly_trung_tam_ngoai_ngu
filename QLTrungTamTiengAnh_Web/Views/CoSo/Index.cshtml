@@ -1,0 +1,421 @@
+﻿@{
+    ViewData["Title"] = "Quản lý Cơ sở & Điều chuyển";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 text-dark fw-bold">Quản Lý Chi Nhánh & Điều Chuyển Công Tác</h4>
+        <p class="text-muted small mb-0">Hệ thống mạng lưới cơ sở trung tâm và lịch sử luân chuyển nhân sự</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary" type="button" id="btnOpenTransferModal">
+            <i class="fa-solid fa-arrows-split-up-and-left me-1"></i> Điều Chuyển Nhân Sự
+        </button>
+        <button class="btn btn-primary" type="button" id="btnOpenCreateBranch">
+            <i class="fa-solid fa-plus me-1"></i> Thêm Cơ Sở Mới
+        </button>
+    </div>
+</div>
+
+<!-- Tabs chuyển đổi giữa Danh sách cơ sở và Lịch sử điều chuyển -->
+<ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-semibold" id="pills-branch-tab" data-bs-toggle="pill" data-bs-target="#pills-branch" type="button" role="tab">
+            <i class="fa-solid fa-building me-1"></i> Danh Sách Cơ Sở
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="pills-transfer-tab" data-bs-toggle="pill" data-bs-target="#pills-transfer" type="button" role="tab">
+            <i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch Sử Điều Chuyển Nhân Sự
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="pills-tabContent">
+    <!-- TAB 1: DANH SÁCH CƠ SỞ -->
+    <div class="tab-pane fade show active" id="pills-branch" role="tabpanel">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3">MÃ CƠ SỞ</th>
+                                <th>TÊN CƠ SỞ / CHI NHÁNH</th>
+                                <th>ĐỊA CHỈ TRỤ SỞ</th>
+                                <th>HOTLINE LIÊN HỆ</th>
+                                <th>QUY MÔ ĐÀO TẠO</th>
+                                <th>TRẠNG THÁI</th>
+                                <th class="text-end pe-3">THAO TÁC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="branchTableBody">
+                            <!-- Cơ sở 1 -->
+                            <tr id="row_branch_1" data-id="1" data-code="CS-CG" data-name="Cơ sở Cầu Giấy (Trụ sở chính)" data-address="123 Đường Cầu Giấy, Q. Cầu Giấy, Hà Nội" data-phone="024 3888 9999" data-status="Hoạt động">
+                                <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold">CS-CG</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark branch-name">Cơ sở Cầu Giấy (Trụ sở chính)</div>
+                                    <small class="text-muted"><i class="fa-solid fa-star text-warning me-1"></i>Trụ sở điều hành</small>
+                                </td>
+                                <td class="branch-address">123 Đường Cầu Giấy, Q. Cầu Giấy, Hà Nội</td>
+                                <td class="branch-phone">024 3888 9999</td>
+                                <td><span class="badge bg-info-subtle text-info border">6 Phòng Lab • 12 Nhân sự</span></td>
+                                <td><span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span></td>
+                                <td class="text-end pe-3">
+                                    <button class="btn btn-sm btn-outline-primary me-1 btn-edit-branch" title="Sửa thông tin"><i class="fa-solid fa-pen"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger btn-delete-branch" title="Tạm ngưng"><i class="fa-solid fa-ban"></i></button>
+                                </td>
+                            </tr>
+
+                            <!-- Cơ sở 2 -->
+                            <tr id="row_branch_2" data-id="2" data-code="CS-TX" data-name="Cơ sở Thanh Xuân" data-address="456 Đường Nguyễn Trãi, Q. Thanh Xuân, Hà Nội" data-phone="024 3777 6666" data-status="Hoạt động">
+                                <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold">CS-TX</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark branch-name">Cơ sở Thanh Xuân</div>
+                                    <small class="text-muted">Chi nhánh đào tạo</small>
+                                </td>
+                                <td class="branch-address">456 Đường Nguyễn Trãi, Q. Thanh Xuân, Hà Nội</td>
+                                <td class="branch-phone">024 3777 6666</td>
+                                <td><span class="badge bg-info-subtle text-info border">4 Phòng học • 8 Nhân sự</span></td>
+                                <td><span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span></td>
+                                <td class="text-end pe-3">
+                                    <button class="btn btn-sm btn-outline-primary me-1 btn-edit-branch" title="Sửa thông tin"><i class="fa-solid fa-pen"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger btn-delete-branch" title="Tạm ngưng"><i class="fa-solid fa-ban"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: LỊCH SỬ ĐIỀU CHUYỂN NHÂN SỰ -->
+    <div class="tab-pane fade" id="pills-transfer" role="tabpanel">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3">MÃ ĐIỀU CHUYỂN</th>
+                                <th>NHÂN SỰ / GIẢNG VIÊN</th>
+                                <th>CƠ SỞ XUẤT PHÁT</th>
+                                <th>CƠ SỞ ĐIỀU CHUYỂN ĐẾN</th>
+                                <th>LÝ DO ĐIỀU ĐỘNG</th>
+                                <th>NGƯỜI PHÊ DUYỆT</th>
+                                <th>THỜI GIAN DUYỆT</th>
+                                <th>TRẠNG THÁI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transferTableBody">
+                            <tr>
+                                <td class="ps-3"><span class="badge bg-light text-dark border font-monospace">DC-2026-01</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark">Trần Thị Giảng Viên</div>
+                                    <small class="text-muted">GV-001 • TOEIC Specialist</small>
+                                </td>
+                                <td><span class="badge bg-secondary-subtle text-secondary border">Cơ sở Thanh Xuân</span></td>
+                                <td><span class="badge bg-primary-subtle text-primary border">Cơ sở Cầu Giấy (Trụ sở chính)</span></td>
+                                <td><small class="text-muted">Tăng cường giáo viên đứng lớp TOEIC 500 cấp tốc</small></td>
+                                <td><span class="fw-semibold text-dark">Nguyễn Quản Lý</span></td>
+                                <td><small class="text-muted">01/10/2026 09:30</small></td>
+                                <td><span class="badge bg-success-subtle text-success border border-success-subtle">Đã phê duyệt</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 1: Thêm / Sửa Cơ Sở -->
+<div class="modal fade" id="modalBranch" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalBranchTitle">
+                    <i class="fa-solid fa-building me-2 text-primary"></i>Thêm Cơ Sở Đào Tạo Mới
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formBranch">
+                    <input type="hidden" id="hiddenBranchId" value="0" />
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mã Cơ Sở <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control font-monospace" id="txtBranchCode" placeholder="VD: CS-HBT" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên Cơ Sở / Chi Nhánh <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="txtBranchName" placeholder="VD: Cơ sở Hai Bà Trưng" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Địa Chỉ Chi Tiết <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="txtBranchAddress" placeholder="VD: 789 Đường Bạch Mai, Q. Hai Bà Trưng, Hà Nội" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Hotline Liên Hệ</label>
+                        <input type="tel" class="form-control" id="txtBranchPhone" placeholder="VD: 024 3999 8888" />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveBranch">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Cơ Sở
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Đề Xuất & Duyệt Điều Chuyển Nhân Sự -->
+<div class="modal fade" id="modalTransfer" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-arrows-split-up-and-left me-2 text-primary"></i>Đề Xuất & Phê Duyệt Điều Chuyển</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formTransfer">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Chọn Nhân Sự / Giáo Viên <span class="text-danger">*</span></label>
+                        <select class="form-select" id="selectTransferStaff" required>
+                            <option value="">-- Chọn nhân sự điều chuyển --</option>
+                            <option value="1" data-name="Trần Thị Giảng Viên" data-branch="Cơ sở Cầu Giấy (Trụ sở chính)">GV-001: Trần Thị Giảng Viên (Hiện tại: Cầu Giấy)</option>
+                            <option value="2" data-name="Nguyễn Quản Lý" data-branch="Cơ sở Cầu Giấy (Trụ sở chính)">GV-002: Nguyễn Quản Lý (Hiện tại: Cầu Giấy)</option>
+                            <option value="3" data-name="Lê Thị Tư Vấn" data-branch="Cơ sở Thanh Xuân">NV-003: Lê Thị Tư Vấn (Hiện tại: Thanh Xuân)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Cơ Sở Hiện Tại</label>
+                        <input type="text" class="form-control bg-light" id="txtCurrentBranch" readonly placeholder="Tự động nhận diện..." />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Điều Chuyển Sang Cơ Sở Mới <span class="text-danger">*</span></label>
+                        <select class="form-select" id="selectNewBranch" required>
+                            <option value="Cơ sở Cầu Giấy (Trụ sở chính)">Cơ sở Cầu Giấy (Trụ sở chính)</option>
+                            <option value="Cơ sở Thanh Xuân" selected>Cơ sở Thanh Xuân</option>
+                        </select>
+                        <small class="text-muted">Lưu ý: Cơ sở chuyển đến phải khác với cơ sở hiện tại.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Lý Do Điều Động Công Tác <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="txtTransferReason" rows="2" placeholder="VD: Tăng cường giáo viên luyện thi cho đợt tuyển sinh mới..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnExecuteTransfer">
+                    <i class="fa-solid fa-check me-1"></i> Phê Duyệt Điều Chuyển
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let activeBranchRow = null;
+            const branchModal = new bootstrap.Modal(document.getElementById('modalBranch'));
+            const transferModal = new bootstrap.Modal(document.getElementById('modalTransfer'));
+
+            // 1. Mở modal thêm cơ sở mới
+            $('#btnOpenCreateBranch').click(function () {
+                activeBranchRow = null;
+                $('#hiddenBranchId').val('0');
+                $('#formBranch')[0].reset();
+                $('#modalBranchTitle').html('<i class="fa-solid fa-building me-2 text-primary"></i>Thêm Cơ Sở Đào Tạo Mới');
+                branchModal.show();
+            });
+
+            // 2. Mở modal sửa cơ sở
+            $(document).on('click', '.btn-edit-branch', function () {
+                activeBranchRow = $(this).closest("tr");
+                const id = activeBranchRow.data('id');
+                const code = activeBranchRow.data('code');
+                const name = activeBranchRow.data('name');
+                const address = activeBranchRow.data('address');
+                const phone = activeBranchRow.data('phone');
+
+                $('#hiddenBranchId').val(id);
+                $('#txtBranchCode').val(code);
+                $('#txtBranchName').val(name);
+                $('#txtBranchAddress').val(address);
+                $('#txtBranchPhone').val(phone);
+
+                $('#modalBranchTitle').html('<i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Chỉnh Sửa Cơ Sở: ' + code);
+                branchModal.show();
+            });
+
+            // 3. Lưu cơ sở
+            $('#btnSaveBranch').click(function () {
+                const code = $('#txtBranchCode').val().trim();
+                const name = $('#txtBranchName').val().trim();
+                const address = $('#txtBranchAddress').val().trim();
+                const phone = $('#txtBranchPhone').val().trim();
+                const branchId = parseInt($('#hiddenBranchId').val()) || 0;
+
+                if (!code || !name || !address) {
+                    Swal.fire('Lỗi nhập liệu', 'Vui lòng nhập đầy đủ mã, tên và địa chỉ cơ sở!', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    coSoId: branchId,
+                    maCoSo: code,
+                    tenCoSo: name,
+                    diaChi: address,
+                    soDienThoai: phone,
+                    trangThai: 'Hoạt động'
+                };
+
+                $.ajax({
+                    url: '/CoSo/LuuCoSo',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            branchModal.hide();
+                            Swal.fire('Thành công', res.message, 'success');
+
+                            if (activeBranchRow) {
+                                activeBranchRow.data('code', code).data('name', name).data('address', address).data('phone', phone);
+                                activeBranchRow.find("td:nth-child(1) span").text(code);
+                                activeBranchRow.find(".branch-name").text(name);
+                                activeBranchRow.find(".branch-address").text(address);
+                                activeBranchRow.find(".branch-phone").text(phone);
+                                activeBranchRow.addClass("table-warning");
+                                setTimeout(() => activeBranchRow.removeClass("table-warning"), 600);
+                            } else {
+                                const randomId = Math.floor(Math.random() * 800) + 10;
+                                const newTr = `
+                                    <tr id="row_branch_${randomId}" data-id="${randomId}" data-code="${code}" data-name="${name}" data-address="${address}" data-phone="${phone}" data-status="Hoạt động">
+                                        <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold">${code}</span></td>
+                                        <td>
+                                            <div class="fw-bold text-dark branch-name">${name}</div>
+                                            <small class="text-muted">Chi nhánh mới</small>
+                                        </td>
+                                        <td class="branch-address">${address}</td>
+                                        <td class="branch-phone">${phone}</td>
+                                        <td><span class="badge bg-info-subtle text-info border">Chưa có phòng</span></td>
+                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span></td>
+                                        <td class="text-end pe-3">
+                                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-branch" title="Sửa thông tin"><i class="fa-solid fa-pen"></i></button>
+                                            <button class="btn btn-sm btn-outline-danger btn-delete-branch" title="Tạm ngưng"><i class="fa-solid fa-ban"></i></button>
+                                        </td>
+                                    </tr>
+                                `;
+                                $('#branchTableBody').prepend(newTr);
+                            }
+                        }
+                    }
+                });
+            });
+
+            // 4. Mở modal điều chuyển nhân sự
+            $('#btnOpenTransferModal').click(function () {
+                $('#formTransfer')[0].reset();
+                $('#txtCurrentBranch').val('');
+                transferModal.show();
+            });
+
+            // Nhận diện cơ sở hiện tại khi chọn nhân sự
+            $('#selectTransferStaff').change(function () {
+                const currentBranch = $(this).find(':selected').data('branch');$('#txtCurrentBranch').val(currentBranch || '');
+            });
+
+            // 5. Phê duyệt điều chuyển
+            $('#btnExecuteTransfer').click(function () {
+                const staffId = $('#selectTransferStaff').val();
+                const staffName = $('#selectTransferStaff option:selected').data('name');
+                const currentBranch = $('#txtCurrentBranch').val();
+                const newBranch = $('#selectNewBranch').val();
+                const reason = $('#txtTransferReason').val().trim();
+
+                if (!staffId) {
+                    Swal.fire('Lỗi', 'Vui lòng chọn nhân sự cần điều chuyển!', 'warning');
+                    return;
+                }
+                if (currentBranch === newBranch) {
+                    Swal.fire('Cảnh báo', 'Cơ sở chuyển đến phải khác với cơ sở hiện tại!', 'error');
+                    return;
+                }
+                if (!reason) {
+                    Swal.fire('Lỗi', 'Vui lòng nhập lý do điều động công tác!', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    nhanSuId: parseInt(staffId),
+                    hoTen: staffName,
+                    coSoHienTai: currentBranch,
+                    coSoMoi: newBranch,
+                    lyDo: reason,
+                    nguoiDuyet: 'Ban Quản Trị'
+                };
+
+                $.ajax({
+                    url: '/CoSo/DieuChuyenNhanSu',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            transferModal.hide();
+                            Swal.fire('Đã phê duyệt!', res.message, 'success');
+
+                            const randomId = Math.floor(Math.random() * 800) + 10;
+                            const newTransferTr = `
+                                <tr class="table-success">
+                                    <td class="ps-3"><span class="badge bg-light text-dark border font-monospace">DC-2026-${randomId}</span></td>
+                                    <td>
+                                        <div class="fw-bold text-dark">${staffName}</div>
+                                        <small class="text-muted">NV-00${staffId}</small>
+                                    </td>
+                                    <td><span class="badge bg-secondary-subtle text-secondary border">${currentBranch}</span></td>
+                                    <td><span class="badge bg-primary-subtle text-primary border">${newBranch}</span></td>
+                                    <td><small class="text-muted">${reason}</small></td>
+                                    <td><span class="fw-semibold text-dark">Ban Quản Trị</span></td>
+                                    <td><small class="text-muted">${res.ngayDuyet}</small></td>
+                                    <td><span class="badge bg-success-subtle text-success border border-success-subtle">Đã phê duyệt</span></td>
+                                </tr>
+                            `;
+                            $('#transferTableBody').prepend(newTransferTr);
+                            $('#pills-transfer-tab').tab('show');
+                        } else {
+                            Swal.fire('Từ chối', res.message, 'error');
+                        }
+                    }
+                });
+            });
+
+            // 6. Tạm ngưng cơ sở
+            $(document).on('click', '.btn-delete-branch', function () {
+                const tr = $(this).closest("tr");
+                const name = tr.data('name');
+
+                Swal.fire({
+                    title: `Tạm ngưng hoạt động [${name}]?`,
+                    text: "Cơ sở này sẽ chuyển sang trạng thái tạm dừng đón học viên mới.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'Tạm ngưng',
+                    cancelButtonText: 'Đóng'
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        tr.find('.status-badge').attr('class', 'badge bg-secondary-subtle text-secondary border border-secondary-subtle status-badge').text('Tạm ngưng');
+                        Swal.fire('Thành công', 'Đã chuyển trạng thái cơ sở sang tạm ngưng!', 'success');
+                    }
+                });
+            });
+        });
+    </script>
+}

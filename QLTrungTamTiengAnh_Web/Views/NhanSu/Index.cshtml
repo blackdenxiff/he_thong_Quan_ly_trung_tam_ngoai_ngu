@@ -1,0 +1,434 @@
+﻿@{
+    ViewData["Title"] = "Quản lý Nhân sự & Giảng viên";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 text-dark fw-bold">Hồ Sơ Nhân Sự & Giảng Viên</h4>
+        <p class="text-muted small mb-0">Quản lý đội ngũ giảng dạy, phân loại chuyên môn và quản lý hợp đồng công tác</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalStaff" onclick="openCreateStaffModal()">
+        <i class="fa-solid fa-user-plus me-1"></i> Thêm Nhân Sự Mới
+    </button>
+</div>
+
+<!-- 4 Thẻ thống kê nhân sự -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-muted small fw-semibold">TỔNG NHÂN SỰ</span>
+            <h4 class="fw-bold mb-0 text-dark" id="statTotalStaff">12</h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-primary small fw-semibold">GIẢNG VIÊN ĐỨNG LỚP</span>
+            <h4 class="fw-bold mb-0 text-primary">8</h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-success small fw-semibold">ĐANG CÔNG TÁC</span>
+            <h4 class="fw-bold mb-0 text-success">11</h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-warning small fw-semibold">TẠM NGHỈ / THỬ VIỆC</span>
+            <h4 class="fw-bold mb-0 text-warning">1</h4>
+        </div>
+    </div>
+</div>
+
+<!-- Bộ lọc tìm kiếm nhân sự -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-5">
+                <input type="text" class="form-control" id="searchStaffKw" placeholder="Tìm theo tên, email, số điện thoại..." />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterRole">
+                    <option value="">-- Tất cả vai trò --</option>
+                    <option value="Giảng viên">Giảng viên</option>
+                    <option value="Giáo vụ">Giáo vụ</option>
+                    <option value="Tư vấn tuyển sinh">Tư vấn tuyển sinh</option>
+                    <option value="Kế toán">Kế toán</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" id="filterStaffStatus">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="Đang làm việc">Đang làm việc</option>
+                    <option value="Tạm nghỉ">Tạm nghỉ</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="button" class="btn btn-secondary w-100" id="btnFilterStaff">
+                    <i class="fa-solid fa-filter me-1"></i> Lọc
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="btnResetStaffFilter">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bảng danh sách nhân sự -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">MÃ NV</th>
+                        <th>HỌ VÀ TÊN</th>
+                        <th>VAI TRÒ / CHỨC VỤ</th>
+                        <th>CHUYÊN MÔN CHÍNH</th>
+                        <th>LIÊN HỆ</th>
+                        <th>LƯƠNG CƠ BẢN</th>
+                        <th>TRẠNG THÁI</th>
+                        <th class="text-end pe-3">THAO TÁC</th>
+                    </tr>
+                </thead>
+                <tbody id="staffTableBody">
+                    <!-- Nhân viên 1: Giảng viên TOEIC -->
+                    <tr id="row_staff_1" data-id="1">
+                        <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">GV-001</span></td>
+                        <td>
+                            <div class="fw-bold text-dark">Trần Thị Giảng Viên</div>
+                            <small class="text-muted"><i class="fa-solid fa-certificate text-warning me-1"></i>TOEIC 950 • TESOL</small>
+                        </td>
+                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">Giảng viên</span></td>
+                        <td>
+                            <span class="fw-semibold text-dark">Chuyên sâu TOEIC 4 kỹ năng</span>
+                            <div class="small text-muted">Đang phụ trách: 2 lớp</div>
+                        </td>
+                        <td>
+                            <div>0900000002</div>
+                            <small class="text-muted">giangvien@example.com</small>
+                        </td>
+                        <td class="fw-semibold text-dark">12,000,000 đ</td>
+                        <td><span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Đang làm việc</span></td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa" onclick="openEditStaffModal(1, 'Trần Thị Giảng Viên', 'Giảng viên', 'Chuyên sâu TOEIC 4 kỹ năng', '0900000002', 'giangvien@example.com', 12000000, 'Đang làm việc', this)">
+                                <i class="fa-solid fa-user-pen"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="confirmDeleteStaff(this, 1)">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Nhân viên 2: Quản lý / Giảng viên IELTS -->
+                    <tr id="row_staff_2" data-id="2">
+                        <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">GV-002</span></td>
+                        <td>
+                            <div class="fw-bold text-dark">Nguyễn Quản Lý</div>
+                            <small class="text-muted"><i class="fa-solid fa-certificate text-warning me-1"></i>IELTS 8.5 • ThS Ngôn Ngữ</small>
+                        </td>
+                        <td><span class="badge bg-info-subtle text-info border border-info-subtle">Giảng viên</span></td>
+                        <td>
+                            <span class="fw-semibold text-dark">Luyện thi IELTS Intensive</span>
+                            <div class="small text-muted">Đang phụ trách: 1 lớp</div>
+                        </td>
+                        <td>
+                            <div>0900000001</div>
+                            <small class="text-muted">quanly@example.com</small>
+                        </td>
+                        <td class="fw-semibold text-dark">18,000,000 đ</td>
+                        <td><span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Đang làm việc</span></td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa" onclick="openEditStaffModal(2, 'Nguyễn Quản Lý', 'Giảng viên', 'Luyện thi IELTS Intensive', '0900000001', 'quanly@example.com', 18000000, 'Đang làm việc', this)">
+                                <i class="fa-solid fa-user-pen"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="confirmDeleteStaff(this, 2)">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Nhân viên 3: Tư vấn tuyển sinh -->
+                    <tr id="row_staff_3" data-id="3">
+                        <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">NV-003</span></td>
+                        <td>
+                            <div class="fw-bold text-dark">Lê Thị Tư Vấn</div>
+                            <small class="text-muted">Tuyển sinh & CSKH</small>
+                        </td>
+                        <td><span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Tư vấn tuyển sinh</span></td>
+                        <td>
+                            <span class="text-dark">Tư vấn lộ trình học viên</span>
+                        </td>
+                        <td>
+                            <div>0912999888</div>
+                            <small class="text-muted">tuvan@example.com</small>
+                        </td>
+                        <td class="fw-semibold text-dark">8,500,000 đ</td>
+                        <td><span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Đang làm việc</span></td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa" onclick="openEditStaffModal(3, 'Lê Thị Tư Vấn', 'Tư vấn tuyển sinh', 'Tư vấn lộ trình học viên', '0912999888', 'tuvan@example.com', 8500000, 'Đang làm việc', this)">
+                                <i class="fa-solid fa-user-pen"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="confirmDeleteStaff(this, 3)">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Thêm / Sửa Nhân sự -->
+<div class="modal fade" id="modalStaff" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalStaffTitle">
+                    <i class="fa-solid fa-user-plus me-2 text-primary"></i>Thêm Hồ Sơ Nhân Sự
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formStaff">
+                    <input type="hidden" id="hiddenStaffId" value="0" />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Họ và Tên <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="txtStaffName" placeholder="VD: Hoàng Văn Minh" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Vai Trò / Vị Trí <span class="text-danger">*</span></label>
+                            <select class="form-select" id="selectStaffRole">
+                                <option value="Giảng viên">Giảng viên đứng lớp</option>
+                                <option value="Tư vấn tuyển sinh">Tư vấn tuyển sinh</option>
+                                <option value="Giáo vụ">Giáo vụ học vụ</option>
+                                <option value="Kế toán">Kế toán trung tâm</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Số Điện Thoại <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="txtStaffPhone" placeholder="VD: 0988776655" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email Liên Hệ <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="txtStaffEmail" placeholder="VD: minh@example.com" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Chuyên Môn / Bằng Cấp Chính</label>
+                            <input type="text" class="form-control" id="txtStaffSkill" placeholder="VD: IELTS 8.0, TESOL, Giao tiếp..." />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Lương Cơ Bản (VNĐ)</label>
+                            <input type="number" class="form-control" id="txtStaffSalary" value="10000000" step="500000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Trạng Thái</label>
+                            <select class="form-select" id="selectStaffStatus">
+                                <option value="Đang làm việc">Đang làm việc</option>
+                                <option value="Tạm nghỉ">Tạm nghỉ</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveStaff">
+                    <i class="fa-solid fa-save me-1"></i> Lưu Hồ Sơ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let currentEditRow = null;
+
+            // 1. Mở modal thêm mới
+            window.openCreateStaffModal = function () {
+                currentEditRow = null;
+                $('#hiddenStaffId').val(0);
+                $('#formStaff')[0].reset();
+                $('#txtStaffSalary').val(10000000);
+                $('#selectStaffStatus').val('Đang làm việc');
+                $('#modalStaffTitle').html('<i class="fa-solid fa-user-plus me-2 text-primary"></i>Thêm Hồ Sơ Nhân Sự');
+            };
+
+            // 2. Mở modal chỉnh sửa
+            window.openEditStaffModal = function (id, name, role, skill, phone, email, salary, status, btnElement) {
+                currentEditRow = $(btnElement).closest("tr");
+                $('#hiddenStaffId').val(id);
+                $('#txtStaffName').val(name);
+                $('#selectStaffRole').val(role);
+                $('#txtStaffSkill').val(skill);
+                $('#txtStaffPhone').val(phone);
+                $('#txtStaffEmail').val(email);
+                $('#txtStaffSalary').val(salary);
+                $('#selectStaffStatus').val(status);
+
+                $('#modalStaffTitle').html('<i class="fa-solid fa-user-pen me-2 text-primary"></i>Chỉnh Sửa Nhân Sự: ' + name);
+                $('#modalStaff').modal('show');
+            };
+
+            // 3. Xử lý Thêm mới / Cập nhật bằng AJAX
+            $('#btnSaveStaff').click(function () {
+                const name = $('#txtStaffName').val().trim();
+                const role = $('#selectStaffRole').val();
+                const skill = $('#txtStaffSkill').val().trim();
+                const phone = $('#txtStaffPhone').val().trim();
+                const email = $('#txtStaffEmail').val().trim();
+                const salary = parseFloat($('#txtStaffSalary').val()) || 0;
+                const status = $('#selectStaffStatus').val();
+                const staffId = parseInt($('#hiddenStaffId').val()) || 0;
+
+                if (!name) {
+                    Swal.fire('Lỗi nhập liệu', 'Vui lòng nhập họ tên nhân sự!', 'warning');
+                    return;
+                }
+                if (!phone || phone.length < 10) {
+                    Swal.fire('Lỗi số điện thoại', 'Số điện thoại phải từ 10 số trở lên!', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    nhanVienId: staffId,
+                    hoTen: name,
+                    vaiTro: role,
+                    chuyenMon: skill,
+                    soDienThoai: phone,
+                    email: email,
+                    luongCoBan: salary,
+                    trangThai: status
+                };
+
+                $.ajax({
+                    url: '/NhanSu/LuuNhanSu',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            $('#modalStaff').modal('hide');
+                            Swal.fire('Thành công!', res.message, 'success');
+
+                            const statusBadge = status === 'Đang làm việc'
+                                ? 'bg-success-subtle text-success border-success-subtle'
+                                : 'bg-warning-subtle text-warning border-warning-subtle';
+
+                            if (currentEditRow && currentEditRow.length > 0) {
+                                // Cập nhật hàng đang sửa
+                                currentEditRow.find("td:nth-child(2) .fw-bold").text(name);
+                                currentEditRow.find("td:nth-child(3) span").text(role);
+                                currentEditRow.find("td:nth-child(4) .fw-semibold").text(skill);
+                                currentEditRow.find("td:nth-child(5) div").text(phone);
+                                currentEditRow.find("td:nth-child(5) small").text(email);
+                                currentEditRow.find("td:nth-child(6)").text(salary.toLocaleString() + ' đ');
+                                currentEditRow.find("td:nth-child(7)").html(`<span class="badge ${statusBadge} border status-badge">${status}</span>`);
+
+                                currentEditRow.addClass("table-warning");
+                                setTimeout(() => currentEditRow.removeClass("table-warning"), 600);
+                            } else {
+                                // Thêm hàng mới
+                                const randomId = Math.floor(Math.random() * 800) + 10;
+                                const newTr = `
+                                    <tr id="row_staff_${randomId}" data-id="${randomId}">
+                                        <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">NV-0${randomId}</span></td>
+                                        <td>
+                                            <div class="fw-bold text-dark">${name}</div>
+                                            <small class="text-muted"><i class="fa-solid fa-user-check text-success me-1"></i>Mới tiếp nhận</small>
+                                        </td>
+                                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">${role}</span></td>
+                                        <td>
+                                            <span class="fw-semibold text-dark">${skill || 'Chưa cập nhật'}</span>
+                                        </td>
+                                        <td>
+                                            <div>${phone}</div>
+                                            <small class="text-muted">${email}</small>
+                                        </td>
+                                        <td class="fw-semibold text-dark">${salary.toLocaleString()} đ</td>
+                                        <td><span class="badge ${statusBadge} border status-badge">${status}</span></td>
+                                        <td class="text-end pe-3">
+                                            <button class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa" onclick="openEditStaffModal(${randomId}, '${name}', '${role}', '${skill}', '${phone}', '${email}', ${salary}, '${status}', this)">
+                                                <i class="fa-solid fa-user-pen"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="confirmDeleteStaff(this, ${randomId})">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `;
+                                $('#staffTableBody').prepend(newTr);
+                            }
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi kết nối', 'Không thể kết nối đến máy chủ để lưu hồ sơ!', 'error');
+                    }
+                });
+            });
+
+            // 4. Xóa nhân sự
+            window.confirmDeleteStaff = function (btnElement, staffId) {
+                const tr = $(btnElement).closest("tr");
+                Swal.fire({
+                    title: 'Xóa hồ sơ nhân sự?',
+                    text: "Lưu ý: Không thể xóa nếu giảng viên đang có lớp đứng hoặc có hợp đồng còn hiệu lực!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy'
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        tr.fadeOut(250, function () {
+                            $(this).remove();
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'Đã xóa hồ sơ thành công',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                        });
+                    }
+                });
+            };
+
+            // 5. Lọc tìm kiếm
+            $('#btnFilterStaff').click(function () {
+                const kw = $('#searchStaffKw').val().toLowerCase().trim();
+                const role = $('#filterRole').val();
+                const status = $('#filterStaffStatus').val();
+
+                $('#staffTableBody tr').each(function () {
+                    const text = $(this).text().toLowerCase();
+                    const rowRole = $(this).find("td:nth-child(3)").text().trim();
+                    const rowStatus = $(this).find('.status-badge').text().trim();
+
+                    const matchKw = kw === '' || text.includes(kw);
+                    const matchRole = role === '' || rowRole.includes(role);
+                    const matchStatus = status === '' || rowStatus === status;
+
+                    $(this).toggle(matchKw && matchRole && matchStatus);
+                });
+            });
+
+            $('#btnResetStaffFilter').click(function () {
+                $('#searchStaffKw').val('');
+                $('#filterRole').val('');
+                $('#filterStaffStatus').val('');
+                $('#staffTableBody tr').show();
+            });
+        });
+    </script>
+}

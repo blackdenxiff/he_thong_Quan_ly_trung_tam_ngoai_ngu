@@ -1,0 +1,244 @@
+﻿@{
+    ViewData["Title"] = "Bảng điều khiển - Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 text-dark fw-bold">Trung Tâm Điều Hành & Giám Sát</h4>
+        <p class="text-muted small mb-0">Tổng quan tình hình đào tạo, tuyển sinh và tài chính trung tâm</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/HocVien" class="btn btn-outline-primary btn-sm">
+            <i class="fa-solid fa-user-plus me-1"></i> Tiếp nhận học viên
+        </a>
+        <a href="/HoaDon" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-file-invoice-dollar me-1"></i> Lập hóa đơn
+        </a>
+    </div>
+</div>
+
+<!-- 4 Thẻ chỉ số tổng quan (KPIs) -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold">TỔNG HỌC VIÊN</span>
+                    <h3 class="fw-bold mb-0 text-dark mt-1">110</h3>
+                    <small class="text-success"><i class="fa-solid fa-arrow-trend-up me-1"></i>+12% tháng này</small>
+                </div>
+                <div class="rounded-circle bg-primary-subtle text-primary p-3 fs-4">
+                    <i class="fa-solid fa-user-graduate"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold">LỚP ĐANG MỞ</span>
+                    <h3 class="fw-bold mb-0 text-dark mt-1">8</h3>
+                    <small class="text-muted">3 ca sáng, 5 ca tối</small>
+                </div>
+                <div class="rounded-circle bg-success-subtle text-success p-3 fs-4">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold">DOANH THU THỰC THU</span>
+                    <h3 class="fw-bold mb-0 text-primary mt-1">85,000,000 đ</h3>
+                    <small class="text-success"><i class="fa-solid fa-arrow-trend-up me-1"></i>+15% so với T9</small>
+                </div>
+                <div class="rounded-circle bg-warning-subtle text-warning p-3 fs-4">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold">TỶ LỆ CHUYÊN CẦN</span>
+                    <h3 class="fw-bold mb-0 text-success mt-1">94.8%</h3>
+                    <small class="text-muted">Dựa trên 240 lượt điểm danh</small>
+                </div>
+                <div class="rounded-circle bg-info-subtle text-info p-3 fs-4">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2 Biểu đồ thống kê (Chart.js) -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-chart-line text-primary me-2"></i>Biểu Đồ Doanh Thu 6 Tháng Gần Nhất</h6>
+                <span class="badge bg-light text-dark border">Năm 2026</span>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart" style="max-height: 280px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-chart-pie text-info me-2"></i>Cơ Cấu Học Viên Theo Trình Độ</h6>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <canvas id="levelChart" style="max-height: 260px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Danh sách hoạt động gần đây -->
+<div class="row g-4">
+    <!-- Lịch học hôm nay -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold text-dark mb-0"><i class="fa-regular fa-calendar-check text-success me-2"></i>Lớp Học Diễn Ra Hôm Nay</h6>
+                <a href="/LichHoc" class="small text-decoration-none">Xem thời khóa biểu &rarr;</a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <span class="fw-bold text-dark">TOEIC500-K01</span>
+                            <div class="text-muted">GV: Trần Thị Giảng Viên • P.101</div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-primary">18:00 - 20:00</span>
+                            <div><a href="/DiemDanh" class="small text-decoration-none">Điểm danh ngay</a></div>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <span class="fw-bold text-dark">IELTS6.5-K02</span>
+                            <div class="text-muted">GV: Nguyễn Quản Lý • P.102</div>
+                        </div>
+                        <span class="badge bg-secondary">08:00 - 10:00 (Đã kết thúc)</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Giao dịch học phí mới nhất -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-receipt text-warning me-2"></i>Thu Học Phí Gần Đây</h6>
+                <a href="/HoaDon" class="small text-decoration-none">Xem tất cả hóa đơn &rarr;</a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <span class="fw-bold text-dark">Lê Văn Học Viên</span>
+                            <div class="text-muted">Hóa đơn HD-001 • Chuyển khoản QR</div>
+                        </div>
+                        <div class="text-end">
+                            <span class="fw-bold text-success">+2,000,000 đ</span>
+                            <div class="text-muted">07/10/2026</div>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <span class="fw-bold text-dark">Trần Thị Mai Phương</span>
+                            <div class="text-muted">Hóa đơn HD-002 • Tiền mặt tại quầy</div>
+                        </div>
+                        <div class="text-end">
+                            <span class="fw-bold text-success">+4,500,000 đ</span>
+                            <div class="text-muted">02/10/2026</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Thư viện Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Gọi AJAX lấy dữ liệu biểu đồ từ HomeController
+            $.ajax({
+                url: '/Home/GetChartData',
+                type: 'GET',
+                success: function (res) {
+                    if (res.success) {
+                        // 1. Biểu đồ đường Doanh thu
+                        const ctxRev = document.getElementById('revenueChart').getContext('2d');
+                        new Chart(ctxRev, {
+                            type: 'line',
+                            data: {
+                                labels: res.revenue.months,
+                                datasets: [{
+                                    label: 'Doanh thu (VNĐ)',
+                                    data: res.revenue.revenues,
+                                    borderColor: '#2563eb',
+                                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                    fill: true,
+                                    tension: 0.35,
+                                    borderWidth: 2,
+                                    pointBackgroundColor: '#2563eb',
+                                    pointRadius: 4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        ticks: {
+                                            callback: function (val) {
+                                                return (val / 1000000) + ' Tr';
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+
+                        // 2. Biểu đồ tròn Trình độ học viên
+                        const ctxLevel = document.getElementById('levelChart').getContext('2d');
+                        new Chart(ctxLevel, {
+                            type: 'doughnut',
+                            data: {
+                                labels: res.levels.labels,
+                                datasets: [{
+                                    data: res.levels.counts,
+                                    backgroundColor: ['#94a3b8', '#0ea5e9', '#2563eb', '#10b981'],
+                                    borderWidth: 0
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'bottom'
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+        });
+    </script>
+}
