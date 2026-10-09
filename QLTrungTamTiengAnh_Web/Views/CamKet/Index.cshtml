@@ -1,0 +1,427 @@
+﻿@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Cam kết Đầu ra & Học lại Miễn phí";
+    var userRole = Context.Session.GetString("UserRole") ?? "Admin";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 text-dark fw-bold">Quản Lý Cam Kết Đầu Ra & Quyền Học Lại</h4>
+        <p class="text-muted small mb-0">Theo dõi hợp đồng cam kết chất lượng, nghiệm thu kết quả thi cuối khóa và xét duyệt học lại 0đ</p>
+    </div>
+    @if (userRole == "Admin" || userRole == "Giáo viên")
+    {
+        <button class="btn btn-primary" type="button" id="btnOpenCreateCommitment">
+            <i class="fa-solid fa-file-contract me-1"></i> Lập Thỏa Thuận Cam Kết Mới
+        </button>
+    }
+</div>
+
+<!-- Tabs chuyển đổi giữa Danh sách cam kết và Danh sách cấp quyền học lại -->
+<ul class="nav nav-pills mb-4" id="commitmentTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-semibold" id="tab-commit-list" data-bs-toggle="pill" data-bs-target="#pane-commit-list" type="button" role="tab">
+            <i class="fa-solid fa-award me-1"></i> Danh Sách Cam Kết Đầu Ra
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="tab-relearn-list" data-bs-toggle="pill" data-bs-target="#pane-relearn-list" type="button" role="tab">
+            <i class="fa-solid fa-rotate-left me-1"></i> Quyền Học Lại Miễn Phí (0đ)
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="commitmentTabsContent">
+    <!-- TAB 1: DANH SÁCH CAM KẾT ĐẦU RA -->
+    <div class="tab-pane fade show active" id="pane-commit-list" role="tabpanel">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3">MÃ CAM KẾT</th>
+                                <th>HỌC VIÊN</th>
+                                <th>KHÓA HỌC</th>
+                                <th>ĐIỂM ĐẦU VÀO</th>
+                                <th>MỤC TIÊU CAM KẾT</th>
+                                <th>TRẠNG THÁI DUYỆT</th>
+                                <th>KẾT QUẢ CUỐI KHÓA</th>
+                                <th class="text-end pe-3">THAO TÁC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="commitmentTableBody">
+                            <!-- Cam kết 1: Đã duyệt, chưa thi cuối khóa -->
+                            <tr id="row_ck_1" data-id="1" data-student="Lê Văn Học Viên" data-course="TOEIC 500 Mục Tiêu" data-in="55" data-out="70" data-attend="100">
+                                <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold font-monospace">CK-101</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark">Lê Văn Học Viên</div>
+                                    <small class="text-muted">HV-001 • Lớp TOEIC500-K01</small>
+                                </td>
+                                <td>TOEIC 500 Mục Tiêu</td>
+                                <td><span class="badge bg-light text-dark border">55 / 100</span></td>
+                                <td><span class="badge bg-primary fs-6">70 / 100 (B1)</span></td>
+                                <td><span class="badge bg-success-subtle text-success border border-success-subtle commit-status">Đã duyệt</span></td>
+                                <td><span class="badge bg-light text-muted border exam-result">Chưa có điểm thi</span></td>
+                                <td class="text-end pe-3">
+                                    <button class="btn btn-sm btn-outline-primary btn-input-final-score" title="Nhập điểm cuối khóa">
+                                        <i class="fa-solid fa-graduation-cap me-1"></i>Xét kết quả
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <!-- Cam kết 2: Đang chờ duyệt -->
+                            <tr id="row_ck_2" data-id="2" data-student="Trần Thị Mai Phương" data-course="IELTS Intensive 6.5+" data-in="78" data-out="85" data-attend="92">
+                                <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold font-monospace">CK-102</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark">Trần Thị Mai Phương</div>
+                                    <small class="text-muted">HV-002 • Lớp IELTS6.5-K02</small>
+                                </td>
+                                <td>IELTS Intensive 6.5+</td>
+                                <td><span class="badge bg-light text-dark border">78 / 100</span></td>
+                                <td><span class="badge bg-primary fs-6">85 / 100 (B2+)</span></td>
+                                <td><span class="badge bg-warning-subtle text-warning border border-warning-subtle commit-status">Chờ duyệt</span></td>
+                                <td><span class="badge bg-light text-muted border exam-result">Chưa có điểm thi</span></td>
+                                <td class="text-end pe-3">
+                                    @if (userRole == "Admin" || userRole == "Quản lý")
+                                    {
+                                        <button class="btn btn-sm btn-outline-success me-1 btn-approve-commit" title="Duyệt cam kết">
+                                            <i class="fa-solid fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger btn-reject-commit" title="Từ chối">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted">Chờ Quản lý duyệt</small>
+                                    }
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: QUYỀN HỌC LẠI MIỄN PHÍ (F22) -->
+    <div class="tab-pane fade" id="pane-relearn-list" role="tabpanel">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3">MÃ HỒ SƠ</th>
+                                <th>HỌC VIÊN ĐƯỢC CẤP QUYỀN</th>
+                                <th>KHÓA HỌC ÁP DỤNG</th>
+                                <th>KẾT QUẢ KHÓA CŨ</th>
+                                <th>CHUYÊN CẦN</th>
+                                <th>CHÍNH SÁCH HỌC PHÍ</th>
+                                <th>TRẠNG THÁI BẢO LƯU</th>
+                            </tr>
+                        </thead>
+                        <tbody id="relearnTableBody">
+                            <tr>
+                                <td class="ps-3"><span class="badge bg-light text-danger border font-monospace">HL-2026-01</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark">Nguyễn Hữu Nam</div>
+                                    <small class="text-muted">HV-003 • 0911223344</small>
+                                </td>
+                                <td>TOEIC 500 Mục Tiêu</td>
+                                <td><span class="badge bg-danger-subtle text-danger border">Thi đạt 48/100 (Cam kết: 60)</span></td>
+                                <td><span class="text-success fw-bold">95%</span></td>
+                                <td><span class="badge bg-success fs-6">MIỄN PHÍ 100% (0 VNĐ)</span></td>
+                                <td><span class="badge bg-success-subtle text-success border">Đang xếp lớp khóa sau</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 1: Lập Thỏa Thuận Cam Kết Mới (F18) -->
+<div class="modal fade" id="modalCreateCommitment" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-contract me-2 text-primary"></i>Lập Đề Xuất Thỏa Thuận Cam Kết Đầu Ra</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCommitment">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Chọn Đợt Ghi Danh Học Viên <span class="text-danger">*</span></label>
+                            <select class="form-select" id="selectCommitRegistration" required>
+                                <option value="">-- Chọn đợt ghi danh --</option>
+                                <option value="1" data-student="Lê Văn Học Viên" data-course="TOEIC 500 Mục Tiêu" data-score="55">DK-1001: Lê Văn Học Viên (Điểm test: 55/100)</option>
+                                <option value="2" data-student="Trần Thị Mai Phương" data-course="IELTS Intensive 6.5+" data-score="78">DK-1002: Trần Thị Mai Phương (Điểm test: 78/100)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Khóa Học Thuộc Về</label>
+                            <input type="text" class="form-control bg-light" id="txtCommitCourse" readonly placeholder="Tự động nhận diện..." />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Điểm Kiểm Tra Đầu Vào</label>
+                            <input type="number" class="form-control bg-light fw-bold" id="txtCommitInScore" readonly value="0" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Mục Tiêu Cam Kết (Thang 100) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control fw-bold fs-5 text-primary" id="txtCommitOutScore" min="1" max="100" value="70" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Giáo Viên Phụ Trách Đề Xuất</label>
+                            <input type="text" class="form-control bg-light" id="txtCommitTeacher" value="Trần Thị Giảng Viên" readonly />
+                        </div>
+
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded small text-muted border">
+                                <i class="fa-solid fa-circle-info text-primary me-1"></i>
+                                <strong>Điều khoản cam kết (RN07, RN12):</strong> Học viên cần duy trì tỷ lệ chuyên cần từ 80% trở lên và hoàn thành đầy đủ bài tập. Nếu kết quả thi cuối khóa không đạt mục tiêu, học viên được bảo lưu và hưởng quyền <strong>Học lại miễn phí 100%</strong> trong khóa tiếp theo.
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitCommitment">
+                    <i class="fa-solid fa-check me-1"></i> Gửi Đề Xuất Phê Duyệt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Nghiệm Thu Kết Quả Cuối Khóa & Xét Học Lại (F21 & F22) -->
+<div class="modal fade" id="modalFinalExam" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-graduation-cap me-2 text-primary"></i>Nghiệm Thu Kết Quả Cuối Khóa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formFinalExam">
+                    <input type="hidden" id="hiddenFinalExamCommitId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Học Viên</label>
+                        <input type="text" class="form-control bg-light fw-bold" id="txtFinalStudent" readonly />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Ngưỡng Cam Kết</label>
+                            <input type="text" class="form-control bg-light fw-bold text-primary" id="txtFinalTargetScore" readonly />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Chuyên Cần Khóa Học</label>
+                            <input type="text" class="form-control bg-light fw-bold text-success" id="txtFinalAttendance" readonly />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Điểm Thi Cuối Khóa Đạt Được (Thang 0 - 100) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control fw-bold fs-5 text-dark" id="txtFinalScore" min="0" max="100" value="65" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nhận Xét Của Hội Đồng Khảo Thí</label>
+                        <textarea class="form-control" id="txtFinalComments" rows="2" placeholder="Ghi chú nhận xét đánh giá sự tiến bộ..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveFinalExam">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Xác Nhận Kết Quả
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let activeRow = null;
+            const commitModal = new bootstrap.Modal(document.getElementById('modalCreateCommitment'));
+            const examModal = new bootstrap.Modal(document.getElementById('modalFinalExam'));
+
+            // 1. Mở modal tạo cam kết
+            $('#btnOpenCreateCommitment').click(function () {
+                $('#formCommitment')[0].reset();
+                $('#txtCommitCourse').val('');
+                $('#txtCommitInScore').val(0);
+                $('#txtCommitOutScore').val(70);
+                commitModal.show();
+            });
+
+            // Tự động nhận diện khóa và điểm vào khi chọn đợt đăng ký
+            $('#selectCommitRegistration').change(function () {
+                const opt = $(this).find(':selected');
+                const course = opt.data('course') || '';
+                const score = parseFloat(opt.data('score')) || 0;
+
+                $('#txtCommitCourse').val(course);
+                $('#txtCommitInScore').val(score);
+                $('#txtCommitOutScore').val(Math.min(score + 15, 100));
+            });
+
+            // 2. Gửi đề xuất cam kết (AJAX)
+            $('#btnSubmitCommitment').click(function () {
+                const regId = $('#selectCommitRegistration').val();
+                const studentName = $('#selectCommitRegistration option:selected').data('student');
+                const courseName = $('#txtCommitCourse').val();
+                const inScore = parseFloat($('#txtCommitInScore').val()) || 0;
+                const outScore = parseFloat($('#txtCommitOutScore').val()) || 0;
+
+                if (!regId) {
+                    Swal.fire('Lỗi', 'Vui lòng chọn đợt ghi danh!', 'warning');
+                    return;
+                }
+                if (outScore <= inScore) {
+                    Swal.fire('Lỗi mục tiêu', 'Điểm cam kết đầu ra phải cao hơn điểm kiểm tra đầu vào!', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    dangKyId: parseInt(regId),
+                    hoTenHocVien: studentName,
+                    tenKhoaHoc: courseName,
+                    diemDauVao: inScore,
+                    diemYeuCau: outScore,
+                    nguoiDeXuat: 'Trần Thị Giảng Viên',
+                    trangThai: 'Chờ duyệt'
+                };
+
+                $.ajax({
+                    url: '/CamKet/LapCamKet',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            commitModal.hide();
+                            Swal.fire('Thành công', res.message, 'success');
+
+                            const randomId = Math.floor(Math.random() * 800) + 100;
+                            const newTr = `
+                                <tr id="row_ck_${randomId}" data-id="${randomId}" data-student="${studentName}" data-course="${courseName}" data-in="${inScore}" data-out="${outScore}" data-attend="100">
+                                    <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold font-monospace">CK-${randomId}</span></td>
+                                    <td>
+                                        <div class="fw-bold text-dark">${studentName}</div>
+                                        <small class="text-muted">Học viên mới</small>
+                                    </td>
+                                    <td>${courseName}</td>
+                                    <td><span class="badge bg-light text-dark border">${inScore} / 100</span></td>
+                                    <td><span class="badge bg-primary fs-6">${outScore} / 100</span></td>
+                                    <td><span class="badge bg-warning-subtle text-warning border border-warning-subtle commit-status">Chờ duyệt</span></td>
+                                    <td><span class="badge bg-light text-muted border exam-result">Chưa có điểm thi</span></td>
+                                    <td class="text-end pe-3">
+                                        <button class="btn btn-sm btn-outline-success me-1 btn-approve-commit" title="Duyệt"><i class="fa-solid fa-check"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger btn-reject-commit" title="Từ chối"><i class="fa-solid fa-xmark"></i></button>
+                                    </td>
+                                </tr>
+                            `;
+                            $('#commitmentTableBody').prepend(newTr);
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    }
+                });
+            });
+
+            // 3. Phê duyệt cam kết (Quản lý)
+            $(document).on('click', '.btn-approve-commit', function () {
+                const tr = $(this).closest("tr");
+                const id = tr.data('id');
+
+                $.ajax({
+                    url: `/CamKet/DuyetCamKet?camKetId=${id}&dongY=true`,
+                    type: 'POST',
+                    success: function (res) {
+                        Swal.fire('Đã phê duyệt', res.message, 'success');
+                        tr.find('.commit-status').attr('class', 'badge bg-success-subtle text-success border border-success-subtle commit-status').text('Đã duyệt');
+                        tr.find('td:last-child').html(`
+                            <button class="btn btn-sm btn-outline-primary btn-input-final-score" title="Nhập điểm cuối khóa">
+                                <i class="fa-solid fa-graduation-cap me-1"></i>Xét kết quả
+                            </button>
+                        `);
+                    }
+                });
+            });
+
+            // 4. Mở modal nhập điểm thi cuối khóa
+            $(document).on('click', '.btn-input-final-score', function () {
+                activeRow = $(this).closest("tr");
+                $('#hiddenFinalExamCommitId').val(activeRow.data('id'));
+                $('#txtFinalStudent').val(activeRow.data('student'));
+                $('#txtFinalTargetScore').val(activeRow.data('out') + ' / 100');
+                $('#txtFinalAttendance').val(activeRow.data('attend') + '%');
+                $('#txtFinalScore').val(activeRow.data('out'));
+                examModal.show();
+            });
+
+            // 5. Xác nhận điểm cuối khóa & Kích hoạt học lại miễn phí (AJAX F21, F22)
+            $('#btnSaveFinalExam').click(function () {
+                const commitId = parseInt($('#hiddenFinalExamCommitId').val());
+                const finalScore = parseFloat($('#txtFinalScore').val());
+                const targetScore = parseFloat(activeRow.data('out'));
+                const attendRate = parseFloat(activeRow.data('attend'));
+                const studentName = activeRow.data('student');
+                const courseName = activeRow.data('course');
+
+                const payload = {
+                    camKetId: commitId,
+                    diemCuoiKhoa: finalScore,
+                    diemCamKet: targetScore,
+                    tyLeChuyenCan: attendRate,
+                    nhanXet: $('#txtFinalComments').val()
+                };
+
+                $.ajax({
+                    url: '/CamKet/XetKetQuaCuoiKhoa',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        examModal.hide();
+                        Swal.fire({
+                            title: res.datChuan ? 'Chúc mừng ĐẠT chuẩn!' : 'Kết quả KHÔNG ĐẠT',
+                            text: res.message,
+                            icon: res.datChuan ? 'success' : (res.duocHocLai ? 'warning' : 'error')
+                        });
+
+                        // Cập nhật kết quả trên bảng
+                        activeRow.find('.exam-result')
+                            .attr('class', `badge ${res.datChuan ? 'bg-success' : 'bg-danger'} exam-result`)
+                            .text(`${finalScore}/100 (${res.datChuan ? 'ĐẠT' : 'KHÔNG ĐẠT'})`);
+
+                        // Nếu không đạt nhưng đủ điều kiện học lại -> Tự động thêm vào Tab Quyền học lại
+                        if (res.duocHocLai) {
+                            const relearnTr = `
+                                <tr class="table-warning">
+                                    <td class="ps-3"><span class="badge bg-light text-danger border font-monospace">HL-2026-NEW</span></td>
+                                    <td>
+                                        <div class="fw-bold text-dark">${studentName}</div>
+                                        <small class="text-muted">Được cấp quyền theo Cam kết</small>
+                                    </td>
+                                    <td>${courseName}</td>
+                                    <td><span class="badge bg-danger-subtle text-danger border">Thi đạt ${finalScore}/100 (Mục tiêu: ${targetScore})</span></td>
+                                    <td><span class="text-success fw-bold">${attendRate}%</span></td>
+                                    <td><span class="badge bg-success fs-6">MIỄN PHÍ 100% (0 VNĐ)</span></td>
+                                    <td><span class="badge bg-warning-subtle text-warning border">Chờ đăng ký lớp mới</span></td>
+                                </tr>
+                            `;
+                            $('#relearnTableBody').prepend(relearnTr);
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}

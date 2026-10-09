@@ -1,4 +1,10 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Http
+@{
+    // 1. Đọc vai trò và họ tên người dùng từ Session
+    var currentRole = Context.Session.GetString("UserRole") ?? "Admin";
+    var currentUser = Context.Session.GetString("UserFullName") ?? "Ban Quản Trị";
+}
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
@@ -21,51 +27,86 @@
                 <span>ENGLISH CENTER</span>
             </div>
             <div class="sidebar-menu">
+                <!-- 1. MỤC DÙNG CHUNG CHO TẤT CẢ VAI TRÒ -->
                 <a href="/" class="sidebar-link">
                     <i class="fa-solid fa-chart-pie"></i> Dashboard
                 </a>
-                <!-- Module F02: Quản lý tài khoản & phân quyền -->
-                <a href="/Account" class="sidebar-link">
-                    <i class="fa-solid fa-user-shield"></i> Tài khoản & Phân quyền
-                </a>
-                <a href="/KhoaHoc" class="sidebar-link">
-                    <i class="fa-solid fa-book-open"></i> Khóa học
-                </a>
-                <a href="/LopHoc" class="sidebar-link">
-                    <i class="fa-solid fa-chalkboard-user"></i> Lớp học
-                </a>
-                <!-- Bổ sung module Đăng ký & Khảo thí đầu vào -->
-                <a href="/DangKy" class="sidebar-link">
-                    <i class="fa-solid fa-address-book"></i> Đăng ký & Khảo thí
-                </a>
-                <a href="/LichHoc" class="sidebar-link">
-                    <i class="fa-solid fa-calendar-days"></i> Lịch học & Phòng
-                </a>
-                <a href="/HocVien" class="sidebar-link">
-                    <i class="fa-solid fa-user-graduate"></i> Quản lý Học viên
-                </a>
-                <a href="/DiemDanh" class="sidebar-link">
-                    <i class="fa-solid fa-clipboard-check"></i> Điểm danh
-                </a>
-                <a href="/BaiTap/NopBai" class="sidebar-link">
-                    <i class="fa-solid fa-file-pen"></i> Bài tập & Chấm thi
-                </a>
-                <a href="/NhanSu" class="sidebar-link">
-                    <i class="fa-solid fa-id-card-clip"></i> Nhân sự & Giảng viên
-                </a>
-                <a href="/HoaDon" class="sidebar-link">
-                    <i class="fa-solid fa-receipt"></i> Học phí & Hóa đơn
-                </a>
-                <a href="/BangLuong" class="sidebar-link">
-                    <i class="fa-solid fa-money-bill-wave"></i> Bảng lương
-                </a>
-                <!-- Bổ sung F03 & F05: Quản lý Cơ sở & Điều chuyển -->
-                <a href="/CoSo" class="sidebar-link">
-                    <i class="fa-solid fa-building"></i> Cơ sở & Điều chuyển
-                </a>
-                <a href="/KhoaHoc" class="sidebar-link">
-                    <i class="fa-solid fa-book-open"></i> Khóa học
-                </a>
+
+                <!-- 2. KHỐI QUẢN TRỊ CAO CẤP: CHỈ ADMIN VÀ QUẢN LÝ (ACT-01, ACT-05) -->
+                @if (currentRole == "Admin" || currentRole == "Quản lý")
+                {
+                    <div class="sidebar-label px-3 pt-2 text-uppercase text-muted small fw-bold" style="font-size: 0.72rem;">Hệ thống & Chi nhánh</div>
+
+                    @if (currentRole == "Admin")
+                    {
+                        <a href="/Account" class="sidebar-link">
+                            <i class="fa-solid fa-user-shield"></i> Tài khoản & Phân quyền
+                        </a>
+                    }
+                    <a href="/CoSo" class="sidebar-link">
+                        <i class="fa-solid fa-building"></i> Cơ sở & Điều chuyển
+                    </a>
+                    <a href="/BangLuong" class="sidebar-link">
+                        <i class="fa-solid fa-money-bill-wave"></i> Bảng lương nhân sự
+                    </a>
+                }
+
+                <!-- 3. KHỐI VẬN HÀNH ĐÀO TẠO & TUYỂN SINH: ADMIN, QUẢN LÝ, NHÂN VIÊN (ACT-01, ACT-02, ACT-05) -->
+                @if (currentRole == "Admin" || currentRole == "Quản lý" || currentRole == "Nhân viên")
+                {
+                    <div class="sidebar-label px-3 pt-2 text-uppercase text-muted small fw-bold" style="font-size: 0.72rem;">Nghiệp vụ Trung tâm</div>
+                    <a href="/KhoaHoc" class="sidebar-link">
+                        <i class="fa-solid fa-book-open"></i> Khóa học
+                    </a>
+                    <a href="/LopHoc" class="sidebar-link">
+                        <i class="fa-solid fa-chalkboard-user"></i> Lớp học
+                    </a>
+                    <a href="/DangKy" class="sidebar-link">
+                        <i class="fa-solid fa-address-book"></i> Đăng ký & Khảo thí
+                    </a>
+                    <a href="/CamKet" class="sidebar-link">
+                        <i class="fa-solid fa-award"></i> Cam kết & Học lại
+                    </a>
+                    <a href="/HocVien" class="sidebar-link">
+                        <i class="fa-solid fa-user-graduate"></i> Quản lý Học viên
+                    </a>
+                    <a href="/NhanSu" class="sidebar-link">
+                        <i class="fa-solid fa-id-card-clip"></i> Nhân sự & Giảng viên
+                    </a>
+                    <a href="/HoaDon" class="sidebar-link">
+                        <i class="fa-solid fa-receipt"></i> Học phí & Hóa đơn
+                    </a>
+                }
+
+                <!-- 4. KHỐI GIẢNG DẠY: GIÁO VIÊN VÀ ADMIN (ACT-03) -->
+                @if (currentRole == "Giáo viên" || currentRole == "Admin")
+                {
+                    <div class="sidebar-label px-3 pt-2 text-uppercase text-muted small fw-bold" style="font-size: 0.72rem;">Giảng dạy & Học vụ</div>
+                    <a href="/LichHoc" class="sidebar-link">
+                        <i class="fa-solid fa-calendar-days"></i> Lịch dạy & Phòng học
+                    </a>
+                    <a href="/DiemDanh" class="sidebar-link">
+                        <i class="fa-solid fa-clipboard-check"></i> Điểm danh lớp dạy
+                    </a>
+                    <a href="/BaiTap/NopBai" class="sidebar-link">
+                        <i class="fa-solid fa-marker"></i> Chấm bài tập lớp
+                    </a>
+                }
+
+                <!-- 5. KHỐI CỔNG THÔNG TIN HỌC VIÊN: DÀNH RIÊNG CHO HỌC VIÊN (ACT-04) -->
+                @if (currentRole == "Học viên")
+                {
+                    <div class="sidebar-label px-3 pt-2 text-uppercase text-muted small fw-bold" style="font-size: 0.72rem;">Cổng Học Viên</div>
+                    <a href="/LichHoc" class="sidebar-link">
+                        <i class="fa-solid fa-calendar-days"></i> Lịch học của tôi
+                    </a>
+                    <a href="/BaiTap/NopBai" class="sidebar-link">
+                        <i class="fa-solid fa-file-pen"></i> Bài tập cần nộp
+                    </a>
+                    <a href="/DangKy" class="sidebar-link">
+                        <i class="fa-solid fa-certificate"></i> Kết quả test & Khóa học
+                    </a>
+                }
             </div>
         </aside>
 

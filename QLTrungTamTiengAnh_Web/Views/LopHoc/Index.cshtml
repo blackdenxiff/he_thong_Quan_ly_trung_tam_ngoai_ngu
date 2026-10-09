@@ -1,25 +1,37 @@
-﻿@{
+﻿@using Microsoft.AspNetCore.Http
+@{
     ViewData["Title"] = "Quản lý Lớp học";
+    var userRole = Context.Session.GetString("UserRole") ?? "Admin";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="mb-1 text-dark fw-bold">Danh Mục Lớp Học Đào Tạo</h4>
-        <p class="text-muted small mb-0">Điều phối danh sách lớp, theo dõi sĩ số thực tế và phân công giảng viên</p>
+        <p class="text-muted small mb-0">Điều phối danh sách lớp theo chi nhánh, theo dõi sĩ số thực tế và phân công giảng viên</p>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalClass" onclick="openCreateClassModal()">
-        <i class="fa-solid fa-chalkboard-user me-1"></i> Mở Lớp Học Mới
-    </button>
+    @if (userRole == "Admin" || userRole == "Quản lý" || userRole == "Nhân viên")
+    {
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalClass" onclick="openCreateClassModal()">
+            <i class="fa-solid fa-chalkboard-user me-1"></i> Mở Lớp Học Mới
+        </button>
+    }
 </div>
 
 <!-- Bộ lọc Lớp học -->
 <div class="card mb-4 shadow-sm border-0">
     <div class="card-body">
         <div class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <input type="text" class="form-control" id="searchClassKeyword" placeholder="Nhập tên lớp, tên giảng viên..." />
             </div>
             <div class="col-md-3">
+                <select class="form-select" id="filterBranchSelect">
+                    <option value="">-- Tất cả cơ sở --</option>
+                    <option value="Cơ sở Cầu Giấy (Trụ sở chính)">Cơ sở Cầu Giấy (Trụ sở chính)</option>
+                    <option value="Cơ sở Thanh Xuân">Cơ sở Thanh Xuân</option>
+                </select>
+            </div>
+            <div class="col-md-2">
                 <select class="form-select" id="filterCourseSelect">
                     <option value="">-- Tất cả khóa học --</option>
                     <option value="TOEIC">Chương trình TOEIC</option>
@@ -27,9 +39,9 @@
                     <option value="GIAOTIEP">Tiếng Anh Giao Tiếp</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <select class="form-select" id="filterClassStatus">
-                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="">-- Trạng thái --</option>
                     <option value="Đang diễn ra">Đang diễn ra</option>
                     <option value="Sắp mở">Sắp mở</option>
                     <option value="Đã kết thúc">Đã kết thúc</option>
@@ -56,6 +68,7 @@
                     <tr>
                         <th class="ps-3">MÃ LỚP</th>
                         <th>KHÓA HỌC</th>
+                        <th>CƠ SỞ ĐÀO TẠO</th>
                         <th>GIẢNG VIÊN & PHÒNG</th>
                         <th>LỊCH HỌC TRONG TUẦN</th>
                         <th style="min-width: 170px;">TỶ LỆ SĨ SỐ</th>
@@ -68,18 +81,23 @@
                     <!-- Bản ghi lớp 1 -->
                     <tr id="row_class_1" data-id="1">
                         <td class="ps-3">
-                            <span class="badge bg-light text-primary border border-primary fw-bold">TOEIC500-K01</span>
+                            <span class="badge bg-light text-primary border border-primary fw-bold font-monospace">TOEIC500-K01</span>
                         </td>
                         <td>
-                            <div class="fw-bold text-dark">TOEIC 500 Mục Tiêu</div>
+                            <div class="fw-bold text-dark course-title">TOEIC 500 Mục Tiêu</div>
                             <small class="text-muted">24 buổi • B1</small>
                         </td>
                         <td>
-                            <div class="fw-semibold"><i class="fa-solid fa-user-tie text-secondary me-1"></i>Trần Thị Giảng Viên</div>
-                            <span class="badge bg-secondary">P.101</span>
+                            <span class="badge bg-light text-dark border branch-name">
+                                <i class="fa-solid fa-location-dot text-danger me-1"></i>Cơ sở Cầu Giấy (Trụ sở chính)
+                            </span>
                         </td>
                         <td>
-                            <span class="text-dark small fw-semibold">T2 - T4 - T6 (18:00 - 20:00)</span>
+                            <div class="fw-semibold"><i class="fa-solid fa-user-tie text-secondary me-1"></i><span class="teacher-name">Trần Thị Giảng Viên</span></div>
+                            <span class="badge bg-secondary room-badge">P.101</span>
+                        </td>
+                        <td>
+                            <span class="text-dark small fw-semibold schedule-desc">T2 - T4 - T6 (18:00 - 20:00)</span>
                         </td>
                         <td>
                             <div class="d-flex justify-content-between small mb-1">
@@ -90,7 +108,7 @@
                                 <div class="progress-bar bg-success" style="width: 10%"></div>
                             </div>
                         </td>
-                        <td><small class="text-muted">2026-10-01</small></td>
+                        <td><small class="text-muted start-date">2026-10-01</small></td>
                         <td>
                             <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Đang diễn ra</span>
                         </td>
@@ -98,7 +116,7 @@
                             <a href="/DiemDanh" class="btn btn-sm btn-outline-success me-1" title="Điểm danh lớp">
                                 <i class="fa-solid fa-clipboard-check"></i>
                             </a>
-                            <button class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa" onclick="openEditClassModal(1, 'TOEIC500-K01', 'Trần Thị Giảng Viên', 'P.101', 20, '2026-10-01', 'Đang diễn ra', 'T2 - T4 - T6 (18:00 - 20:00)', this)">
+                            <button class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa" onclick="openEditClassModal(1, 'TOEIC500-K01', 1, 1, 'Trần Thị Giảng Viên', 'P.101', 20, '2026-10-01', 'Đang diễn ra', 'T2 - T4 - T6 (18:00 - 20:00)', this)">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger" title="Xóa lớp" onclick="confirmDeleteClass(this, 1)">
@@ -110,18 +128,23 @@
                     <!-- Bản ghi lớp 2 -->
                     <tr id="row_class_2" data-id="2">
                         <td class="ps-3">
-                            <span class="badge bg-light text-primary border border-primary fw-bold">IELTS6.5-K02</span>
+                            <span class="badge bg-light text-primary border border-primary fw-bold font-monospace">IELTS6.5-K02</span>
                         </td>
                         <td>
-                            <div class="fw-bold text-dark">IELTS Intensive 6.5+</div>
+                            <div class="fw-bold text-dark course-title">IELTS Intensive 6.5+</div>
                             <small class="text-muted">36 buổi • B2</small>
                         </td>
                         <td>
-                            <div class="fw-semibold"><i class="fa-solid fa-user-tie text-secondary me-1"></i>Nguyễn Quản Lý</div>
-                            <span class="badge bg-secondary">P.102</span>
+                            <span class="badge bg-light text-dark border branch-name">
+                                <i class="fa-solid fa-location-dot text-danger me-1"></i>Cơ sở Thanh Xuân
+                            </span>
                         </td>
                         <td>
-                            <span class="text-dark small fw-semibold">T2 - T4 - T6 (08:00 - 10:00)</span>
+                            <div class="fw-semibold"><i class="fa-solid fa-user-tie text-secondary me-1"></i><span class="teacher-name">Nguyễn Quản Lý</span></div>
+                            <span class="badge bg-secondary room-badge">P.102</span>
+                        </td>
+                        <td>
+                            <span class="text-dark small fw-semibold schedule-desc">T2 - T4 - T6 (08:00 - 10:00)</span>
                         </td>
                         <td>
                             <div class="d-flex justify-content-between small mb-1">
@@ -132,7 +155,7 @@
                                 <div class="progress-bar bg-primary" style="width: 7%"></div>
                             </div>
                         </td>
-                        <td><small class="text-muted">2026-10-15</small></td>
+                        <td><small class="text-muted start-date">2026-10-15</small></td>
                         <td>
                             <span class="badge bg-warning-subtle text-warning border border-warning-subtle status-badge">Sắp mở</span>
                         </td>
@@ -140,7 +163,7 @@
                             <a href="/DiemDanh" class="btn btn-sm btn-outline-success me-1" title="Điểm danh lớp">
                                 <i class="fa-solid fa-clipboard-check"></i>
                             </a>
-                            <button class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa" onclick="openEditClassModal(2, 'IELTS6.5-K02', 'Nguyễn Quản Lý', 'P.102', 15, '2026-10-15', 'Sắp mở', 'T2 - T4 - T6 (08:00 - 10:00)', this)">
+                            <button class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa" onclick="openEditClassModal(2, 'IELTS6.5-K02', 2, 2, 'Nguyễn Quản Lý', 'P.102', 15, '2026-10-15', 'Sắp mở', 'T2 - T4 - T6 (08:00 - 10:00)', this)">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger" title="Xóa lớp" onclick="confirmDeleteClass(this, 2)">
@@ -178,7 +201,7 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Mã Lớp Học <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="txtClassName" placeholder="VD: TOEIC500-K03" required />
+                            <input type="text" class="form-control font-monospace" id="txtClassName" placeholder="VD: TOEIC500-K03" required />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Khóa Học Thuộc Về <span class="text-danger">*</span></label>
@@ -189,6 +212,16 @@
                             </select>
                         </div>
 
+                        <!-- Bổ sung trường CoSoID chuẩn theo ERD & RN01 -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Cơ Sở Đào Tạo (Chi Nhánh) <span class="text-danger">*</span></label>
+                            <select class="form-select" id="selectBranch" required>
+                                <option value="1" data-name="Cơ sở Cầu Giấy (Trụ sở chính)">Cơ sở Cầu Giấy (Trụ sở chính)</option>
+                                <option value="2" data-name="Cơ sở Thanh Xuân">Cơ sở Thanh Xuân</option>
+                            </select>
+                            <small class="text-muted">Mỗi lớp học bắt buộc gắn với một cơ sở địa bàn cụ thể.</small>
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Giảng Viên Phụ Trách</label>
                             <select class="form-select" id="selectTeacher">
@@ -197,7 +230,8 @@
                                 <option value="Lê Văn Hướng Dẫn">Lê Văn Hướng Dẫn (Giao tiếp bản ngữ)</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Phòng Học Phân Bổ</label>
                             <select class="form-select" id="selectRoom">
                                 <option value="P.101">Phòng 101 (Sức chứa 25)</option>
@@ -205,7 +239,6 @@
                                 <option value="P.103">Phòng 103 (Sức chứa 20)</option>
                             </select>
                         </div>
-
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Sĩ Số Tối Đa (Max 40) <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="txtMaxStudents" min="5" max="40" value="20" required />
@@ -214,7 +247,8 @@
                             <label class="form-label fw-semibold">Ngày Khai Giảng <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" id="txtStartDate" value="2026-10-15" required />
                         </div>
-                        <div class="col-md-4">
+
+                        <div class="col-md-6">
                             <label class="form-label fw-semibold">Trạng Thái Đào Tạo</label>
                             <select class="form-select" id="selectStatus">
                                 <option value="Sắp mở">Sắp mở</option>
@@ -222,8 +256,7 @@
                                 <option value="Đã kết thúc">Đã kết thúc</option>
                             </select>
                         </div>
-
-                        <div class="col-12">
+                        <div class="col-md-6">
                             <label class="form-label fw-semibold">Lịch Học Định Kỳ</label>
                             <input type="text" class="form-control" id="txtScheduleDesc" placeholder="VD: T2 - T4 - T6 (18:00 - 20:00)" value="T2 - T4 - T6 (18:00 - 20:00)" />
                         </div>
@@ -246,7 +279,7 @@
             let currentEditRow = null;
 
             // Mở modal tạo mới
-            window.openCreateClassModal = function() {
+            window.openCreateClassModal = function () {
                 currentEditRow = null;
                 $('#hiddenClassId').val(0);
                 $('#formClass')[0].reset();
@@ -256,11 +289,13 @@
                 $('#modalClassTitle').html('<i class="fa-solid fa-chalkboard-user me-2 text-primary"></i>Mở Lớp Học Đào Tạo Mới');
             };
 
-            // Mở modal chỉnh sửa lớp học (Nạp đủ thông tin & Trạng thái)
-            window.openEditClassModal = function (id, className, teacher, room, maxStudents, startDate, status, schedule, btnElement) {
+            // Mở modal chỉnh sửa lớp học (Nạp đủ thông tin, Cơ sở & Trạng thái)
+            window.openEditClassModal = function (id, className, courseId, branchId, teacher, room, maxStudents, startDate, status, schedule, btnElement) {
                 currentEditRow = $(btnElement).closest("tr");
                 $('#hiddenClassId').val(id);
                 $('#txtClassName').val(className);
+                $('#selectCourse').val(courseId);
+                $('#selectBranch').val(branchId);
                 $('#selectTeacher').val(teacher);
                 $('#selectRoom').val(room);
                 $('#txtMaxStudents').val(maxStudents);
@@ -276,7 +311,10 @@
             $('#btnSaveClass').click(function () {
                 const className = $('#txtClassName').val().trim();
                 const maxStudents = parseInt($('#txtMaxStudents').val()) || 20;
+                const courseId = parseInt($('#selectCourse').val()) || 1;
                 const courseName = $('#selectCourse option:selected').data('name');
+                const branchId = parseInt($('#selectBranch').val()) || 1;
+                const branchName = $('#selectBranch option:selected').data('name');
                 const teacher = $('#selectTeacher').val();
                 const room = $('#selectRoom').val();
                 const schedule = $('#txtScheduleDesc').val();
@@ -291,9 +329,12 @@
 
                 const payload = {
                     lopHocId: classId,
+                    maLop: className,
                     tenLop: className,
-                    khoaHocId: parseInt($('#selectCourse').val()) || 1,
+                    khoaHocId: courseId,
                     tenKhoaHoc: courseName,
+                    coSoId: branchId,
+                    tenCoSo: branchName,
                     giangVien: teacher,
                     phongHoc: room,
                     siSoToiDa: maxStudents,
@@ -322,21 +363,21 @@
                             if (currentEditRow && currentEditRow.length > 0) {
                                 // 1. CẬP NHẬT DÒNG ĐANG SỬA
                                 currentEditRow.find("td:nth-child(1) span").text(className);
-                                currentEditRow.find("td:nth-child(3)").html(`
-                                    <div class="fw-semibold"><i class="fa-solid fa-user-tie text-secondary me-1"></i>${teacher}</div>
-                                    <span class="badge bg-secondary">${room}</span>
-                                `);
-                                currentEditRow.find("td:nth-child(4) span").text(schedule);
-                                currentEditRow.find("td:nth-child(5) strong").text(`0/${maxStudents}`);
-                                currentEditRow.find("td:nth-child(6) small").text(startDate);
-                                currentEditRow.find("td:nth-child(7)").html(`
+                                currentEditRow.find("td:nth-child(2) .course-title").text(courseName);
+                                currentEditRow.find("td:nth-child(3) .branch-name").html(`<i class="fa-solid fa-location-dot text-danger me-1"></i>${branchName}`);
+                                currentEditRow.find("td:nth-child(4) .teacher-name").text(teacher);
+                                currentEditRow.find("td:nth-child(4) .room-badge").text(room);
+                                currentEditRow.find("td:nth-child(5) .schedule-desc").text(schedule);
+                                currentEditRow.find("td:nth-child(6) strong").text(`0/${maxStudents}`);
+                                currentEditRow.find("td:nth-child(7) small").text(startDate);
+                                currentEditRow.find("td:nth-child(8)").html(`
                                     <span class="badge ${statusBadgeClass} border status-badge">${status}</span>
                                 `);
 
                                 // Cập nhật lại thuộc tính onclick của nút sửa
                                 currentEditRow.find("button[title='Chỉnh sửa']").attr(
-                                    "onclick", 
-                                    `openEditClassModal(${classId}, '${className}', '${teacher}', '${room}', ${maxStudents}, '${startDate}', '${status}', '${schedule}', this)`
+                                    "onclick",
+                                    `openEditClassModal(${classId}, '${className}', ${courseId}, ${branchId}, '${teacher}', '${room}', ${maxStudents}, '${startDate}', '${status}', '${schedule}', this)`
                                 );
 
                                 currentEditRow.addClass("table-warning");
@@ -347,18 +388,23 @@
                                 const newTr = `
                                     <tr id="row_class_${randomId}" data-id="${randomId}">
                                         <td class="ps-3">
-                                            <span class="badge bg-light text-primary border border-primary fw-bold">${className}</span>
+                                            <span class="badge bg-light text-primary border border-primary fw-bold font-monospace">${className}</span>
                                         </td>
                                         <td>
-                                            <div class="fw-bold text-dark">${courseName}</div>
+                                            <div class="fw-bold text-dark course-title">${courseName}</div>
                                             <small class="text-muted">24 buổi</small>
                                         </td>
                                         <td>
-                                            <div class="fw-semibold"><i class="fa-solid fa-user-tie text-secondary me-1"></i>${teacher}</div>
-                                            <span class="badge bg-secondary">${room}</span>
+                                            <span class="badge bg-light text-dark border branch-name">
+                                                <i class="fa-solid fa-location-dot text-danger me-1"></i>${branchName}
+                                            </span>
                                         </td>
                                         <td>
-                                            <span class="text-dark small fw-semibold">${schedule}</span>
+                                            <div class="fw-semibold"><i class="fa-solid fa-user-tie text-secondary me-1"></i><span class="teacher-name">${teacher}</span></div>
+                                            <span class="badge bg-secondary room-badge">${room}</span>
+                                        </td>
+                                        <td>
+                                            <span class="text-dark small fw-semibold schedule-desc">${schedule}</span>
                                         </td>
                                         <td>
                                             <div class="d-flex justify-content-between small mb-1">
@@ -369,7 +415,7 @@
                                                 <div class="progress-bar bg-primary" style="width: 0%"></div>
                                             </div>
                                         </td>
-                                        <td><small class="text-muted">${startDate}</small></td>
+                                        <td><small class="text-muted start-date">${startDate}</small></td>
                                         <td>
                                             <span class="badge ${statusBadgeClass} border status-badge">${status}</span>
                                         </td>
@@ -377,7 +423,7 @@
                                             <a href="/DiemDanh" class="btn btn-sm btn-outline-success me-1" title="Điểm danh lớp">
                                                 <i class="fa-solid fa-clipboard-check"></i>
                                             </a>
-                                            <button class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa" onclick="openEditClassModal(${randomId}, '${className}', '${teacher}', '${room}', ${maxStudents}, '${startDate}', '${status}', '${schedule}', this)">
+                                            <button class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa" onclick="openEditClassModal(${randomId}, '${className}', ${courseId}, ${branchId}, '${teacher}', '${room}', ${maxStudents}, '${startDate}', '${status}', '${schedule}', this)">
                                                 <i class="fa-solid fa-pen"></i>
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger" title="Xóa lớp" onclick="confirmDeleteClass(this, ${randomId})">
@@ -430,24 +476,28 @@
                 });
             };
 
-            // Tìm kiếm và lọc
+            // Tìm kiếm và lọc (kết hợp cả Từ khóa, Cơ sở và Trạng thái)
             $('#btnFilterClass').click(function () {
                 const kw = $('#searchClassKeyword').val().toLowerCase().trim();
+                const branch = $('#filterBranchSelect').val();
                 const status = $('#filterClassStatus').val();
 
                 $('#classTableBody tr').each(function () {
                     const text = $(this).text().toLowerCase();
+                    const rowBranch = $(this).find('.branch-name').text().trim();
                     const rowStatus = $(this).find('.status-badge').text().trim();
 
                     const matchKw = kw === '' || text.includes(kw);
+                    const matchBranch = branch === '' || rowBranch.includes(branch);
                     const matchStatus = status === '' || rowStatus === status;
 
-                    $(this).toggle(matchKw && matchStatus);
+                    $(this).toggle(matchKw && matchBranch && matchStatus);
                 });
             });
 
             $('#btnResetClassFilter').click(function () {
                 $('#searchClassKeyword').val('');
+                $('#filterBranchSelect').val('');
                 $('#filterClassStatus').val('');
                 $('#filterCourseSelect').val('');
                 $('#classTableBody tr').show();
