@@ -1,9 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using QuanLyTrungTamNgoaiNgu.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
     public class AccountController : Controller
     {
+        private readonly ApplicationDbContext _context;
+
+        public AccountController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
         // ==========================================
         // PHẦN F01: ĐĂNG NHẬP / ĐĂNG XUẤT (AUTHENTICATION)
         // ==========================================
@@ -32,31 +40,66 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             // Dữ liệu tài khoản mẫu đại diện cho các vai trò chuẩn theo tài liệu đặc tả (ACT-01 -> ACT-05)
             string role = "";
             string fullName = "";
+            int? userId = null;       // NguoiDungID từ database
+            int? nhanSuId = null;     // NhanSuID (giáo viên, nhân viên)
+            int? hocVienId = null;    // HocVienID (học viên)
 
             if (model.Username.ToLower() == "admin" && model.Password == "admin123")
             {
                 role = "Admin";
                 fullName = "Ban Quản Trị Hệ Thống";
+                // Admin không có NhanSuID hay HocVienID cụ thể
             }
             else if (model.Username.ToLower() == "quanly" && model.Password == "ql123")
             {
                 role = "Quản lý";
                 fullName = "Nguyễn Quản Lý";
+                // Quản lý cũng là người dùng hệ thống, có thể có NhanSuID
             }
             else if (model.Username.ToLower() == "gv01" && model.Password == "gv123")
             {
                 role = "Giáo viên";
-                fullName = "Trần Thị Giảng Viên";
+                // Tìm NhanSu theo tên hoặc ID từ database
+                var nhanSu = _context.NhanSus.FirstOrDefault(ns => ns.HoTen.Contains("Giảng") || ns.LoaiNhanSu.Contains("Giáo viên"));
+                if (nhanSu != null)
+                {
+                    nhanSuId = nhanSu.NhanSuID;
+                    fullName = nhanSu.HoTen;
+                }
+                else
+                {
+                    fullName = "Trần Thị Giảng Viên";
+                }
             }
             else if (model.Username.ToLower() == "nv01" && model.Password == "nv123")
             {
                 role = "Nhân viên";
-                fullName = "Lê Thị Tư Vấn";
+                // Tìm NhanSu nhân viên từ database
+                var nhanSu = _context.NhanSus.FirstOrDefault(ns => ns.LoaiNhanSu.Contains("Nhân viên"));
+                if (nhanSu != null)
+                {
+                    nhanSuId = nhanSu.NhanSuID;
+                    fullName = nhanSu.HoTen;
+                }
+                else
+                {
+                    fullName = "Lê Thị Tư Vấn";
+                }
             }
             else if (model.Username.ToLower() == "hv01" && model.Password == "hv123")
             {
                 role = "Học viên";
-                fullName = "Lê Văn Học Viên";
+                // Tìm HocVien từ database
+                var hocVien = _context.HocViens.FirstOrDefault(hv => hv.HoTen.Contains("Văn"));
+                if (hocVien != null)
+                {
+                    hocVienId = hocVien.HocVienID;
+                    fullName = hocVien.HoTen;
+                }
+                else
+                {
+                    fullName = "Lê Văn Học Viên";
+                }
             }
             else
             {
@@ -68,7 +111,21 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             HttpContext.Session.SetString("UserRole", role);
             HttpContext.Session.SetString("UserFullName", fullName);
 
-            // 2. Ghi nhận Cookie nếu người dùng tích chọn "Ghi nhớ đăng nhập"
+            // 2. Lưu ID cho phép kiểm chứng quyền hạn trên server-side
+            if (nhanSuId.HasValue)
+            {
+                HttpContext.Session.SetInt32("NhanSuID", nhanSuId.Value);
+            }
+            if (hocVienId.HasValue)
+            {
+                HttpContext.Session.SetInt32("HocVienID", hocVienId.Value);
+            }
+            if (userId.HasValue)
+            {
+                HttpContext.Session.SetInt32("NguoiDungID", userId.Value);
+            }
+
+            // 3. Ghi nhớ Cookie nếu người dùng tích chọn "Ghi nhớ đăng nhập"
             if (model.RememberMe)
             {
                 CookieOptions cookieOpts = new CookieOptions

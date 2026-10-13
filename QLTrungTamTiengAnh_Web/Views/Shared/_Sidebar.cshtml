@@ -1,0 +1,131 @@
+@{
+    var role = Context.Session.GetString("UserRole") ?? "Admin";
+    var currentPath = Context.Request.Path.Value?.ToLowerInvariant() ?? "/";
+    var menuGroups = new List<(string Title, (string Label, string Icon, string Url, bool Available)[] Items)>();
+
+    (string Label, string Icon, string Url, bool Available) Item(string label, string icon, string url, bool available = true)
+        => (label, icon, url, available);
+
+    void AddGroup(string title, params (string Label, string Icon, string Url, bool Available)[] items)
+        => menuGroups.Add((title, items));
+
+    AddGroup("TỔNG QUAN", Item("Dashboard", "fa-chart-pie", "/"));
+
+    switch (role)
+    {
+        case "Nhân viên":
+            AddGroup("VẬN HÀNH HỌC VIÊN",
+                Item("Hồ sơ Học viên", "fa-user-graduate", "/HocVien"),
+                Item("Khảo thí đầu vào & Xếp lớp", "fa-file-signature", "/DangKy"),
+                Item("Ghi nhận Học lại miễn phí", "fa-rotate-left", "#", false));
+            AddGroup("VẬN HÀNH ĐÀO TẠO",
+                Item("Danh sách Lớp học", "fa-chalkboard-user", "/LopHoc"),
+                Item("Lịch học & Phòng học", "fa-calendar-days", "/LichHoc"));
+            AddGroup("TÀI CHÍNH & HỌC PHÍ",
+                Item("Quản lý Hóa đơn", "fa-receipt", "/HoaDon"),
+                Item("Phiếu thu & Thanh toán", "fa-money-check-dollar", "/HoaDon"));
+            AddGroup("TRA CỨU & BÁO CÁO",
+                Item("Tra cứu thông tin", "fa-magnifying-glass", "#", false));
+            break;
+
+        case "Giáo viên":
+            AddGroup("CÔNG TÁC GIẢNG DẠY",
+                Item("Lịch dạy của tôi", "fa-calendar-days", "/LichHoc"),
+                Item("Lớp học phụ trách", "fa-chalkboard-user", "/LopHoc"),
+                Item("Điểm danh học viên", "fa-clipboard-check", "/DiemDanh"));
+            AddGroup("HỌC THUẬT & ĐÁNH GIÁ",
+                Item("Quản lý Tài liệu", "fa-folder-open", "#", false),
+                Item("Bài tập & Chấm thi", "fa-file-pen", "/BaiTap/NopBai"),
+                Item("Quản lý Cam kết & Đề xuất điểm", "fa-award", "/CamKet/Index"));
+            break;
+
+        case "Học viên":
+            AddGroup("GÓC HỌC TẬP",
+                Item("Lịch học của tôi", "fa-calendar-days", "/LichHoc"),
+                Item("Tài liệu khóa học", "fa-folder-open", "#", false),
+                Item("Bài tập & Nộp bài", "fa-file-arrow-up", "/BaiTap/NopBai"));
+            AddGroup("THÔNG TIN CÁ NHÂN",
+                Item("Điểm danh & Kết quả", "fa-clipboard-check", "/DiemDanh"),
+                Item("Cam kết đầu ra", "fa-award", "/CamKet/Index"));
+            AddGroup("HỌC PHÍ",
+                Item("Thông tin Hóa đơn & Thanh toán", "fa-receipt", "/HoaDon"));
+            break;
+
+        case "Admin":
+        case "Quản lý":
+        default:
+            AddGroup("QUẢN TRỊ HỆ THỐNG",
+                Item("Tài khoản & Phân quyền", "fa-user-shield", "/Account"),
+                Item("Cơ sở & Phòng học", "fa-building", "/CoSo"));
+            AddGroup("QUẢN TRỊ NHÂN SỰ",
+                Item("Hồ sơ Nhân sự & Giáo viên", "fa-id-card-clip", "/NhanSu"),
+                Item("Điều chuyển công tác", "fa-arrows-left-right", "/CoSo"),
+                Item("Bảng lương & Chấm công", "fa-money-bill-wave", "/BangLuong"));
+            AddGroup("VẬN HÀNH ĐÀO TẠO",
+                Item("Khóa học & Tài liệu", "fa-book-open", "/KhoaHoc"),
+                Item("Lớp học & Phân công", "fa-chalkboard-user", "/LopHoc"),
+                Item("Lịch học", "fa-calendar-days", "/LichHoc"));
+            AddGroup("VẬN HÀNH HỌC VIÊN",
+                Item("Quản lý Học viên", "fa-user-graduate", "/HocVien"),
+                Item("Đăng ký & Khảo thí", "fa-address-book", "/DangKy"),
+                Item("Cam kết & Kết quả", "fa-award", "/CamKet/Index"));
+            AddGroup("TÀI CHÍNH & KẾ TOÁN",
+                Item("Hóa đơn & Học phí", "fa-receipt", "/HoaDon"),
+                Item("Quản lý Thanh toán", "fa-money-check-dollar", "/HoaDon"));
+            AddGroup("BÁO CÁO & THỐNG KÊ",
+                Item("Báo cáo tổng hợp", "fa-chart-line", "#", false));
+            break;
+    }
+}
+
+@{
+    // Biến để xác định xem có hiển thị phụ đề sidebar hay không
+    var currentRole = Context.Session.GetString("UserRole") ?? "Admin";
+    var shouldShowSubtitle = currentRole == "Admin" || currentRole == "Quản lý";
+}
+
+<aside id="sidebar-wrapper" aria-label="Điều hướng chính">
+    <div class="sidebar-heading">
+        <i class="fa-solid fa-graduation-cap text-primary fs-4"></i>
+        <div class="sidebar-heading-text">
+            <div class="sidebar-heading-title">ENGLISH CENTER</div>
+            @if (shouldShowSubtitle)
+            {
+                <div class="sidebar-heading-subtitle">Quản lý trung tâm</div>
+            }
+        </div>
+        <button type="button" class="sidebar-close d-md-none" id="sidebar-close" aria-label="Đóng menu">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    <nav class="sidebar-menu">
+        @foreach (var group in menuGroups)
+        {
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">@group.Title</div>
+                @foreach (var item in group.Items)
+                {
+                    var isActive = item.Available && (item.Url == "/"
+                        ? currentPath == "/"
+                        : currentPath.StartsWith(item.Url.ToLowerInvariant()));
+
+                    if (item.Available)
+                    {
+                        <a href="@item.Url" class="sidebar-link@(isActive ? " active" : "")" aria-current="@(isActive ? "page" : null)">
+                            <i class="fa-solid @item.Icon" aria-hidden="true"></i>
+                            <span>@item.Label</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="sidebar-link sidebar-link-disabled" aria-disabled="true" title="Chưa triển khai trong solution hiện tại">
+                            <i class="fa-solid @item.Icon" aria-hidden="true"></i>
+                            <span>@item.Label</span>
+                            <small class="sidebar-coming-soon">Chưa triển khai</small>
+                        </span>
+                    }
+                }
+            </div>
+        }
+    </nav>
+</aside>

@@ -14,66 +14,14 @@
 </head>
 <body>
     <div class="d-flex" id="wrapper">
-        <!-- Sidebar Navigation -->
-        <aside id="sidebar-wrapper">
-            <div class="sidebar-heading">
-                <i class="fa-solid fa-graduation-cap text-primary fs-4"></i>
-                <span>ENGLISH CENTER</span>
-            </div>
-            <div class="sidebar-menu">
-                <a href="/" class="sidebar-link">
-                    <i class="fa-solid fa-chart-pie"></i> Dashboard
-                </a>
-                <!-- Module F02: Quản lý tài khoản & phân quyền -->
-                <a href="/Account" class="sidebar-link">
-                    <i class="fa-solid fa-user-shield"></i> Tài khoản & Phân quyền
-                </a>
-                <a href="/KhoaHoc" class="sidebar-link">
-                    <i class="fa-solid fa-book-open"></i> Khóa học
-                </a>
-                <a href="/LopHoc" class="sidebar-link">
-                    <i class="fa-solid fa-chalkboard-user"></i> Lớp học
-                </a>
-                <!-- Bổ sung module Đăng ký & Khảo thí đầu vào -->
-                <a href="/DangKy" class="sidebar-link">
-                    <i class="fa-solid fa-address-book"></i> Đăng ký & Khảo thí
-                </a>
-                <a href="/LichHoc" class="sidebar-link">
-                    <i class="fa-solid fa-calendar-days"></i> Lịch học & Phòng
-                </a>
-                <a href="/HocVien" class="sidebar-link">
-                    <i class="fa-solid fa-user-graduate"></i> Quản lý Học viên
-                </a>
-                <a href="/DiemDanh" class="sidebar-link">
-                    <i class="fa-solid fa-clipboard-check"></i> Điểm danh
-                </a>
-                <a href="/BaiTap/NopBai" class="sidebar-link">
-                    <i class="fa-solid fa-file-pen"></i> Bài tập & Chấm thi
-                </a>
-                <a href="/NhanSu" class="sidebar-link">
-                    <i class="fa-solid fa-id-card-clip"></i> Nhân sự & Giảng viên
-                </a>
-                <a href="/HoaDon" class="sidebar-link">
-                    <i class="fa-solid fa-receipt"></i> Học phí & Hóa đơn
-                </a>
-                <a href="/BangLuong" class="sidebar-link">
-                    <i class="fa-solid fa-money-bill-wave"></i> Bảng lương
-                </a>
-                <!-- Bổ sung F03 & F05: Quản lý Cơ sở & Điều chuyển -->
-                <a href="/CoSo" class="sidebar-link">
-                    <i class="fa-solid fa-building"></i> Cơ sở & Điều chuyển
-                </a>
-                <a href="/KhoaHoc" class="sidebar-link">
-                    <i class="fa-solid fa-book-open"></i> Khóa học
-                </a>
-            </div>
-        </aside>
+        @await Html.PartialAsync("_Sidebar")
+        <div id="sidebar-backdrop" aria-hidden="true"></div>
 
         <!-- Page Content Wrapper -->
         <div id="page-content-wrapper">
             <!-- Top Navbar -->
             <header class="top-navbar">
-                <button class="btn btn-outline-secondary btn-sm" id="menu-toggle">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="menu-toggle" aria-label="Mở hoặc thu gọn menu">
                     <i class="fa-solid fa-bars"></i>
                 </button>
                 <div class="d-flex align-items-center gap-3">
@@ -106,29 +54,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.ckeditor.com/ckeditor5/41.1.0/classic/ckeditor.js"></script>
 
-    <script>
-        $("#menu-toggle").click(function (e) {
-            e.preventDefault();
-            if ($(window).width() > 768) {
-                $("#sidebar-wrapper").toggleClass("collapsed");
-                $("#page-content-wrapper").toggleClass("expanded");
-            } else {
-                $("#sidebar-wrapper").toggleClass("toggled");
-            }
-        });
-
-        // Tự động tô sáng (active) liên kết Sidebar tương ứng với đường dẫn URL hiện tại
-        $(document).ready(function () {
-            const currentPath = window.location.pathname.toLowerCase();
-            $('.sidebar-menu a').each(function () {
-                const linkHref = $(this).attr('href').toLowerCase();
-                if ((linkHref === '/' && currentPath === '/') || (linkHref !== '/' && currentPath.startsWith(linkHref))) {
-                    $('.sidebar-menu a').removeClass('active');
-                    $(this).addClass('active');
-                }
-            });
-        });
-    </script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
