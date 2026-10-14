@@ -1,33 +1,108 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using QuanLyTrungTamNgoaiNgu.Models;
+using QuanLyTrungTamNgoaiNgu.Data;
+using System;
+using System.Linq;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
     public class DiemDanhController : Controller
     {
-        // GET: /DiemDanh
-        public IActionResult Index()
+        private readonly ApplicationDbContext _context;
+
+        public DiemDanhController(ApplicationDbContext context)
         {
-            return View();
+            _context = context;
         }
 
-        // Action nhận yêu cầu AJAX cập nhật trạng thái điểm danh
+        // GET: /DiemDanh?lopHocId=1&lichHocId=1
+        public IActionResult Index(int? lopHocId, int? lichHocId)
+        {
+            try
+            {
+                // 1. Lấy danh sách tất cả lớp học từ SQL
+                var danhSachLop = _context.LopHocs.ToList();
+                ViewBag.DanhSachLop = danhSachLop;
+
+                // Xác định lớp đang chọn (mặc định lấy lớp đầu tiên)
+                int selectedLopId = lopHocId ?? (danhSachLop.FirstOrDefault()?.LopHocID ?? 0);
+                ViewBag.SelectedLopId = selectedLopId;
+
+                // 2. Lấy danh sách lịch học (buổi học) CHỈ THUỘC LỚP ĐƯỢC CHỌN
+                var danhSachLich = _context.LichHocs
+                    .Where(l => l.LopHocID == selectedLopId)
+                    .ToList();
+                ViewBag.DanhSachLich = danhSachLich;
+
+                int selectedLichId = lichHocId ?? (danhSachLich.FirstOrDefault()?.LichHocID ?? 0);
+                ViewBag.SelectedLichId = selectedLichId;
+
+                // 3. Lấy danh sách học viên THUỘC LỚP ĐÓ thông qua bảng trung gian DangKy
+                var listHocVienId = _context.DangKys
+                    .Where(dk => dk.LopHocID == selectedLopId)
+                    .Select(dk => dk.HocVienID)
+                    .ToList();
+
+                var danhSachHocVien = _context.HocViens
+                    .Where(hv => listHocVienId.Contains(hv.HocVienID))
+                    .ToList();
+                ViewBag.DanhSachHocVien = danhSachHocVien;
+
+                // 4. Lấy dữ liệu điểm danh cũ của buổi học này (nếu có)
+                var duLieuDiemDanh = _context.DiemDanhs
+                    .Where(d => d.LichHocID == selectedLichId)
+                    .ToList();
+                ViewBag.DuLieuDiemDanh = duLieuDiemDanh;
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                return Content("Lỗi tải trang điểm danh: " + ex.Message);
+            }
+        }
+
+        // Action nhận yêu cầu AJAX cập nhật trạng thái điểm danh và lưu vào SQL Server
         [HttpPost]
         public IActionResult UpdateAttendance([FromBody] AttendanceUpdateDto model)
         {
-            if (model == null)
+            if (model == null || model.StudentId <= 0 || model.ScheduleId <= 0)
             {
-                return Json(new { success = false, message = "Dữ liệu không hợp lệ!" });
+                return Json(new { success = false, message = "Dữ liệu điểm danh không hợp lệ!" });
             }
 
-            // TODO: Kết nối Entity Framework để cập nhật bảng DiemDanh trong CSDL
-            // Tạm thời trả về JSON thành công để kiểm thử giao diện Frontend
-            return Json(new
+            try
             {
-                success = true,
-                message = "Cập nhật điểm danh thành công!",
-                studentId = model.StudentId,
-                status = model.Status
-            });
+                var diemDanhItem = _context.DiemDanhs
+                    .FirstOrDefault(d => d.LichHocID == model.ScheduleId && d.HocVienID == model.StudentId);
+
+                if (diemDanhItem == null)
+                {
+                    var diemDanhMoi = new DiemDanh
+                    {
+                        LichHocID = model.ScheduleId,
+                        HocVienID = model.StudentId,
+                        TrangThai = model.Status,
+                        GhiChu = model.Note
+                    };
+                    _context.DiemDanhs.Add(diemDanhMoi);
+                }
+                else
+                {
+                    diemDanhItem.TrangThai = model.Status;
+                    diemDanhItem.GhiChu = model.Note;
+                }
+
+                _context.SaveChanges();
+
+                return Json(new { success = true, message = "Đã lưu điểm danh thành công!" });
+            }
+            catch (Exception ex)
+            {
+                string err = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = "Lỗi lưu SQL: " + err });
+            }
         }
     }
 

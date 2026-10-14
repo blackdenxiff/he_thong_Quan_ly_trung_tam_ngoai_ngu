@@ -1,11 +1,18 @@
 ﻿@{
     ViewData["Title"] = "Điểm danh Lớp học";
+    var danhSachLop = ViewBag.DanhSachLop as List<QuanLyTrungTamNgoaiNgu.Models.LopHoc> ?? new();
+    var danhSachLich = ViewBag.DanhSachLich as List<QuanLyTrungTamNgoaiNgu.Models.LichHoc> ?? new();
+    var danhSachHocVien = ViewBag.DanhSachHocVien as List<QuanLyTrungTamNgoaiNgu.Models.HocVien> ?? new();
+    var duLieuDiemDanh = ViewBag.DuLieuDiemDanh as List<QuanLyTrungTamNgoaiNgu.Models.DiemDanh> ?? new();
+
+    int selectedLopId = ViewBag.SelectedLopId ?? 0;
+    int selectedLichId = ViewBag.SelectedLichId ?? 0;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="mb-1 text-dark fw-bold">Điểm Danh Học Viên</h4>
-        <p class="text-muted small mb-0">Quản lý và ghi nhận chuyên cần theo từng buổi học</p>
+        <h4 class="mb-1 text-dark fw-bold">Điểm Danh Học Viên Theo Lớp</h4>
+        <p class="text-muted small mb-0">Quản lý và ghi nhận chuyên cần theo từng buổi học từ SQL Server</p>
     </div>
     <div class="d-flex gap-2">
         <button class="btn btn-outline-success" id="btnQuickPresent">
@@ -14,25 +21,50 @@
     </div>
 </div>
 
-<!-- Bộ lọc Lớp học và Buổi học -->
+<!-- Bộ lọc Lớp học và Buổi học động từ SQL -->
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
         <div class="row g-3 align-items-end">
+            <!-- Dropdown chọn Lớp học -->
             <div class="col-md-5">
-                <label class="form-label fw-semibold small text-muted">LỚP HỌC</label>
+                <label class="form-label fw-semibold small text-muted">CHỌN LỚP HỌC</label>
                 <select class="form-select" id="selectClass">
-                    <option value="1">TOEIC500-K01 (GV: Trần Thị Giảng Viên - P.101)</option>
-                    <option value="2">IELTS6.5-K02 (GV: Nguyễn Văn Quản Lý - P.102)</option>
+                    @if (danhSachLop.Any())
+                    {
+                        foreach (var lop in danhSachLop)
+                        {
+                            <option value="@lop.LopHocID" selected="@(lop.LopHocID == selectedLopId ? "selected" : null)">
+                                Lớp: @lop.TenLop (ID: @lop.LopHocID)
+                            </option>
+                        }
+                    }
+                    else
+                    {
+                        <option value="0">-- Chưa có lớp học trong SQL --</option>
+                    }
                 </select>
             </div>
+
+            <!-- Dropdown chọn Buổi học theo lớp -->
             <div class="col-md-5">
                 <label class="form-label fw-semibold small text-muted">BUỔI HỌC THEO THỜI KHÓA BIỂU</label>
                 <select class="form-select" id="selectSchedule">
-                    <option value="1">Buổi 1: 05/10/2026 (18:30 - 20:30) - Giới thiệu & Định hướng</option>
-                    <option value="2">Buổi 2: 07/10/2026 (18:30 - 20:30) - Reading Part 5</option>
-                    <option value="3">Buổi 3: 09/10/2026 (18:30 - 20:30) - Listening Part 1</option>
+                    @if (danhSachLich.Any())
+                    {
+                        foreach (var lich in danhSachLich)
+                        {
+                            <option value="@lich.LichHocID" selected="@(lich.LichHocID == selectedLichId ? "selected" : null)">
+                                Buổi học ID: @lich.LichHocID - Ngày: @lich.NgayHoc.ToString("dd/MM/yyyy")
+                            </option>
+                        }
+                    }
+                    else
+                    {
+                        <option value="0">-- Lớp này chưa có lịch học --</option>
+                    }
                 </select>
             </div>
+
             <div class="col-md-2">
                 <button type="button" class="btn btn-primary w-100" id="btnLoadList">
                     <i class="fa-solid fa-arrows-rotate me-1"></i> Tải danh sách
@@ -47,13 +79,13 @@
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
             <span class="text-muted small fw-semibold">TỔNG SĨ SỐ</span>
-            <h4 class="fw-bold mb-0 text-dark" id="statTotal">3</h4>
+            <h4 class="fw-bold mb-0 text-dark" id="statTotal">0</h4>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
             <span class="text-success small fw-semibold">CÓ MẶT</span>
-            <h4 class="fw-bold mb-0 text-success" id="statPresent">2</h4>
+            <h4 class="fw-bold mb-0 text-success" id="statPresent">0</h4>
         </div>
     </div>
     <div class="col-6 col-md-3">
@@ -65,12 +97,12 @@
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
             <span class="text-warning small fw-semibold">ĐI MUỘN / PHÉP</span>
-            <h4 class="fw-bold mb-0 text-warning" id="statLate">1</h4>
+            <h4 class="fw-bold mb-0 text-warning" id="statLate">0</h4>
         </div>
     </div>
 </div>
 
-<!-- Bảng danh sách điểm danh -->
+<!-- Bảng danh sách học viên động theo lớp -->
 <div class="card shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -80,102 +112,79 @@
                         <th class="ps-3" style="width: 80px;">STT</th>
                         <th>MÃ HỌC VIÊN</th>
                         <th>HỌ VÀ TÊN</th>
-                        <th>TRÌNH ĐỘ ĐẦU VÀO</th>
+                        <th>EMAIL</th>
                         <th class="text-center" style="width: 380px;">TRẠNG THÁI ĐIỂM DANH (LƯU TỰ ĐỘNG)</th>
                         <th>GHI CHÚ</th>
                     </tr>
                 </thead>
                 <tbody id="attendanceTableBody">
-                    <!-- Dữ liệu mẫu khớp CSDL HocVien -->
-                    <tr data-student-id="1">
-                        <td class="ps-3 fw-bold">1</td>
-                        <td><span class="badge bg-light text-dark border">HV-001</span></td>
-                        <td>
-                            <div class="fw-semibold">Lê Văn Học Viên</div>
-                            <small class="text-muted">hocvien@example.com</small>
-                        </td>
-                        <td><span class="badge bg-info text-dark">A2 (65 điểm)</span></td>
-                        <td class="text-center">
-                            <div class="btn-group w-100" role="group">
-                                <input type="radio" class="btn-check btn-status" name="status_1" id="p_1" value="Có mặt" checked>
-                                <label class="btn btn-outline-success btn-sm" for="p_1">Có mặt</label>
+                    @{
+                        int stt = 1;
+                    }
+                    @if (danhSachHocVien.Any())
+                    {
+                        foreach (var hv in danhSachHocVien)
+                        {
+                            var record = duLieuDiemDanh.FirstOrDefault(d => d.HocVienID == hv.HocVienID);
+                            string currentStatus = record?.TrangThai ?? "Có mặt";
+                            string currentNote = record?.GhiChu ?? "";
 
-                                <input type="radio" class="btn-check btn-status" name="status_1" id="l_1" value="Đi muộn">
-                                <label class="btn btn-outline-warning btn-sm" for="l_1">Đi muộn</label>
+                            <tr data-student-id="@hv.HocVienID">
+                                <td class="ps-3 fw-bold">@(stt++)</td>
+                                <td><span class="badge bg-light text-dark border">HV-00@hv.HocVienID</span></td>
+                                <td>
+                                    <div class="fw-semibold">@hv.HoTen</div>
+                                </td>
+                                <td><small class="text-muted">@hv.Email</small></td>
+                                <td class="text-center">
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check btn-status" name="status_@hv.HocVienID" id="p_@hv.HocVienID" value="Có mặt" @(currentStatus == "Có mặt" ? "checked" : "")>
+                                        <label class="btn btn-outline-success btn-sm" for="p_@hv.HocVienID">Có mặt</label>
 
-                                <input type="radio" class="btn-check btn-status" name="status_1" id="e_1" value="Nghỉ phép">
-                                <label class="btn btn-outline-info btn-sm" for="e_1">Có phép</label>
+                                        <input type="radio" class="btn-check btn-status" name="status_@hv.HocVienID" id="l_@hv.HocVienID" value="Đi muộn" @(currentStatus == "Đi muộn" ? "checked" : "")>
+                                        <label class="btn btn-outline-warning btn-sm" for="l_@hv.HocVienID">Đi muộn</label>
 
-                                <input type="radio" class="btn-check btn-status" name="status_1" id="a_1" value="Vắng">
-                                <label class="btn btn-outline-danger btn-sm" for="a_1">Vắng</label>
-                            </div>
-                        </td>
-                        <td>
-                            <input type="text" class="form-control form-control-sm txt-note" placeholder="Nhập ghi chú..." value="Tham gia đúng giờ" />
-                        </td>
-                    </tr>
-                    <tr data-student-id="2">
-                        <td class="ps-3 fw-bold">2</td>
-                        <td><span class="badge bg-light text-dark border">HV-002</span></td>
-                        <td>
-                            <div class="fw-semibold">Trần Thị Mai Phương</div>
-                            <small class="text-muted">maiphuong@example.com</small>
-                        </td>
-                        <td><span class="badge bg-info text-dark">B1 (70 điểm)</span></td>
-                        <td class="text-center">
-                            <div class="btn-group w-100" role="group">
-                                <input type="radio" class="btn-check btn-status" name="status_2" id="p_2" value="Có mặt">
-                                <label class="btn btn-outline-success btn-sm" for="p_2">Có mặt</label>
+                                        <input type="radio" class="btn-check btn-status" name="status_@hv.HocVienID" id="e_@hv.HocVienID" value="Nghỉ phép" @(currentStatus == "Nghỉ phép" ? "checked" : "")>
+                                        <label class="btn btn-outline-info btn-sm" for="e_@hv.HocVienID">Có phép</label>
 
-                                <input type="radio" class="btn-check btn-status" name="status_2" id="l_2" value="Đi muộn" checked>
-                                <label class="btn btn-outline-warning btn-sm" for="l_2">Đi muộn</label>
-
-                                <input type="radio" class="btn-check btn-status" name="status_2" id="e_2" value="Nghỉ phép">
-                                <label class="btn btn-outline-info btn-sm" for="e_2">Có phép</label>
-
-                                <input type="radio" class="btn-check btn-status" name="status_2" id="a_2" value="Vắng">
-                                <label class="btn btn-outline-danger btn-sm" for="a_2">Vắng</label>
-                            </div>
-                        </td>
-                        <td>
-                            <input type="text" class="form-control form-control-sm txt-note" placeholder="Nhập ghi chú..." value="Vào muộn 15 phút kẹt xe" />
-                        </td>
-                    </tr>
-                    <tr data-student-id="3">
-                        <td class="ps-3 fw-bold">3</td>
-                        <td><span class="badge bg-light text-dark border">HV-003</span></td>
-                        <td>
-                            <div class="fw-semibold">Nguyễn Hữu Nam</div>
-                            <small class="text-muted">huunam@example.com</small>
-                        </td>
-                        <td><span class="badge bg-info text-dark">A2 (60 điểm)</span></td>
-                        <td class="text-center">
-                            <div class="btn-group w-100" role="group">
-                                <input type="radio" class="btn-check btn-status" name="status_3" id="p_3" value="Có mặt" checked>
-                                <label class="btn btn-outline-success btn-sm" for="p_3">Có mặt</label>
-
-                                <input type="radio" class="btn-check btn-status" name="status_3" id="l_3" value="Đi muộn">
-                                <label class="btn btn-outline-warning btn-sm" for="l_3">Đi muộn</label>
-
-                                <input type="radio" class="btn-check btn-status" name="status_3" id="e_3" value="Nghỉ phép">
-                                <label class="btn btn-outline-info btn-sm" for="e_3">Có phép</label>
-
-                                <input type="radio" class="btn-check btn-status" name="status_3" id="a_3" value="Vắng">
-                                <label class="btn btn-outline-danger btn-sm" for="a_3">Vắng</label>
-                            </div>
-                        </td>
-                        <td>
-                            <input type="text" class="form-control form-control-sm txt-note" placeholder="Nhập ghi chú..." />
-                        </td>
-                    </tr>
+                                        <input type="radio" class="btn-check btn-status" name="status_@hv.HocVienID" id="a_@hv.HocVienID" value="Vắng" @(currentStatus == "Vắng" ? "checked" : "")>
+                                        <label class="btn btn-outline-danger btn-sm" for="a_@hv.HocVienID">Vắng</label>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm txt-note" placeholder="Nhập ghi chú..." value="@currentNote" />
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">Không có học viên nào đăng ký trong lớp học này.</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
 @section Scripts {
     <script>
         $(document).ready(function() {
+
+            // Khi thay đổi Lớp học -> Tự động load lại trang theo Lớp mới
+            $("#selectClass").change(function() {
+                const lopId = $(this).val();
+                window.location.href = '/DiemDanh?lopHocId=' + lopId;
+            });
+
+            // Khi bấm nút "Tải danh sách" -> Gửi cả Lớp và Buổi học đang chọn
+            $("#btnLoadList").click(function() {
+                const lopId = $("#selectClass").val();
+                const lichId = $("#selectSchedule").val();
+                window.location.href = '/DiemDanh?lopHocId=' + lopId + '&lichHocId=' + lichId;
+            });
 
             // Hàm tự động đếm và cập nhật các ô thống kê sĩ số trên đầu
             function updateAttendanceStatistics() {
@@ -184,7 +193,6 @@
                 let absentCount = 0;
                 let lateCount = 0;
 
-                // Lặp qua từng học viên và kiểm tra radio đang được chọn
                 $("#attendanceTableBody tr").each(function() {
                     const status = $(this).find(".btn-status:checked").val();
                     if (status === "Có mặt") {
@@ -196,17 +204,15 @@
                     }
                 });
 
-                // Cập nhật số liệu hiển thị lên giao diện
                 $("#statTotal").text(totalStudents);
                 $("#statPresent").text(presentCount);
                 $("#statAbsent").text(absentCount);
                 $("#statLate").text(lateCount);
             }
 
-            // Gọi hàm tính toán 1 lần ngay khi tải trang xong
             updateAttendanceStatistics();
 
-            // Khi người dùng bấm đổi nút trạng thái thủ công
+            // Khi tích chọn trạng thái điểm danh -> Gửi AJAX lưu tự động xuống SQL
             $(document).on("change", ".btn-status", function() {
                 const tr = $(this).closest("tr");
                 const studentId = tr.data("student-id");
@@ -214,25 +220,27 @@
                 const note = tr.find(".txt-note").val();
                 const scheduleId = $("#selectSchedule").val();
 
-                // Cập nhật lại số liệu thống kê ngay lập tức
-                updateAttendanceStatistics();
+                if (!scheduleId || scheduleId == "0") {
+                    Swal.fire('Cảnh báo', 'Vui lòng chọn buổi học trước khi điểm danh!', 'warning');
+                    return;
+                }
 
-                // Gửi AJAX lưu xuống Controller
+                updateAttendanceStatistics();
                 sendAttendanceAjax(scheduleId, studentId, status, note, tr);
             });
 
-            // Khi rời chuột khỏi ô nhập ghi chú
-            $(".txt-note").blur(function() {
+            // Khi rời chuột khỏi ô ghi chú -> Lưu tự động
+            $(document).on("blur", ".txt-note", function() {
                 const tr = $(this).closest("tr");
                 const studentId = tr.data("student-id");
                 const status = tr.find(".btn-status:checked").val();
                 const note = $(this).val();
                 const scheduleId = $("#selectSchedule").val();
 
+                if (!scheduleId || scheduleId == "0") return;
                 sendAttendanceAjax(scheduleId, studentId, status, note, tr);
             });
 
-            // Hàm gửi AJAX
             function sendAttendanceAjax(scheduleId, studentId, status, note, rowElement) {
                 const payload = {
                     scheduleId: parseInt(scheduleId),
@@ -249,41 +257,35 @@
                     success: function(res) {
                         if (res.success) {
                             rowElement.addClass("table-success");
-                            setTimeout(() => {
-                                rowElement.removeClass("table-success");
-                            }, 500);
+                            setTimeout(() => { rowElement.removeClass("table-success"); }, 500);
                         } else {
                             Swal.fire('Lỗi', res.message, 'error');
                         }
                     },
                     error: function() {
-                        // Vẫn giữ phản hồi mượt mà cho demo nếu server chưa map Database
-                        rowElement.addClass("table-success");
-                        setTimeout(() => {
-                            rowElement.removeClass("table-success");
-                        }, 500);
+                        Swal.fire('Lỗi', 'Không thể kết nối lưu dữ liệu điểm danh!', 'error');
                     }
                 });
             }
 
-            // Nút bấm nhanh: ĐIỂM DANH TẤT CẢ CÓ MẶT
+            // Nút điểm danh tất cả Có mặt
             $("#btnQuickPresent").click(function() {
-                // Tích chọn toàn bộ radio "Có mặt"
-                $("input[value='Có mặt']").prop("checked", true);
+                const scheduleId = $("#selectSchedule").val();
+                if (!scheduleId || scheduleId == "0") {
+                    Swal.fire('Cảnh báo', 'Vui lòng chọn buổi học trước!', 'warning');
+                    return;
+                }
 
-                // Cập nhật lại toàn bộ bảng thống kê ngay lập tức
+                $("input[value='Có mặt']").prop("checked", true);
                 updateAttendanceStatistics();
 
-                // Gửi AJAX lưu điểm danh hàng loạt cho tất cả các dòng
                 $("#attendanceTableBody tr").each(function() {
                     const tr = $(this);
                     const studentId = tr.data("student-id");
                     const note = tr.find(".txt-note").val();
-                    const scheduleId = $("#selectSchedule").val();
                     sendAttendanceAjax(scheduleId, studentId, "Có mặt", note, tr);
                 });
 
-                // Thông báo popup góc phải
                 Swal.fire({
                     toast: true,
                     position: 'top-end',
@@ -293,7 +295,6 @@
                     timer: 1500
                 });
             });
-
         });
     </script>
 }
