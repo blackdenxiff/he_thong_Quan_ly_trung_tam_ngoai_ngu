@@ -1,16 +1,22 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using QuanLyTrungTamNgoaiNgu.Data;
+using QuanLyTrungTamNgoaiNgu.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
     public class AccountController : Controller
     {
+
         private readonly ApplicationDbContext _context;
 
         public AccountController(ApplicationDbContext context)
         {
-            _context = context;
+            _context = context; 
         }
         // ==========================================
         // PHẦN F01: ĐĂNG NHẬP / ĐĂNG XUẤT (AUTHENTICATION)
@@ -19,6 +25,9 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         // GET: /Account/Login
         public IActionResult Login()
         {
+            var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<QuanLyTrungTamNgoaiNgu.Models.NguoiDung>();
+            string sampleHash = hasher.HashPassword(null, "123456"); // "123456" là mật khẩu bạn muốn đặt cho tài khoản
+            System.Diagnostics.Debug.WriteLine("=== CHUOI HASH CUA BAN: " + sampleHash + " ===");
             // Kiểm tra nếu đã có Cookie ghi nhớ thì nạp sẵn tên đăng nhập
             if (Request.Cookies.TryGetValue("RememberedUser", out string rememberedUser))
             {
@@ -30,100 +39,54 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
         // POST: /Account/Login (Xử lý xác thực, Session và Cookie)
         [HttpPost]
-        public IActionResult Login([FromBody] LoginRequestDto model)
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto model)
         {
             if (model == null || string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
             {
                 return Json(new { success = false, message = "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!" });
             }
 
-            // Dữ liệu tài khoản mẫu đại diện cho các vai trò chuẩn theo tài liệu đặc tả (ACT-01 -> ACT-05)
-            string role = "";
-            string fullName = "";
-            int? userId = null;       // NguoiDungID từ database
-            int? nhanSuId = null;     // NhanSuID (giáo viên, nhân viên)
-            int? hocVienId = null;    // HocVienID (học viên)
+            // Tìm người dùng trong bảng NguoiDungs
+            var user = await _context.NguoiDungs
+                .Include(u => u.VaiTro)
+                .Include(u => u.HocVien)
+                .Include(u => u.NhanSu)
+                .FirstOrDefaultAsync(u => u.TenDangNhap == model.Username && u.TrangThai);
 
-            if (model.Username.ToLower() == "admin" && model.Password == "admin123")
-            {
-                role = "Admin";
-                fullName = "Ban Quản Trị Hệ Thống";
-                // Admin không có NhanSuID hay HocVienID cụ thể
-            }
-            else if (model.Username.ToLower() == "quanly" && model.Password == "ql123")
-            {
-                role = "Quản lý";
-                fullName = "Nguyễn Quản Lý";
-                // Quản lý cũng là người dùng hệ thống, có thể có NhanSuID
-            }
-            else if (model.Username.ToLower() == "gv01" && model.Password == "gv123")
-            {
-                role = "Giáo viên";
-                // Tìm NhanSu theo tên hoặc ID từ database
-                var nhanSu = _context.NhanSus.FirstOrDefault(ns => ns.HoTen.Contains("Giảng") || ns.LoaiNhanSu.Contains("Giáo viên"));
-                if (nhanSu != null)
-                {
-                    nhanSuId = nhanSu.NhanSuID;
-                    fullName = nhanSu.HoTen;
-                }
-                else
-                {
-                    fullName = "Trần Thị Giảng Viên";
-                }
-            }
-            else if (model.Username.ToLower() == "nv01" && model.Password == "nv123")
-            {
-                role = "Nhân viên";
-                // Tìm NhanSu nhân viên từ database
-                var nhanSu = _context.NhanSus.FirstOrDefault(ns => ns.LoaiNhanSu.Contains("Nhân viên"));
-                if (nhanSu != null)
-                {
-                    nhanSuId = nhanSu.NhanSuID;
-                    fullName = nhanSu.HoTen;
-                }
-                else
-                {
-                    fullName = "Lê Thị Tư Vấn";
-                }
-            }
-            else if (model.Username.ToLower() == "hv01" && model.Password == "hv123")
-            {
-                role = "Học viên";
-                // Tìm HocVien từ database
-                var hocVien = _context.HocViens.FirstOrDefault(hv => hv.HoTen.Contains("Văn"));
-                if (hocVien != null)
-                {
-                    hocVienId = hocVien.HocVienID;
-                    fullName = hocVien.HoTen;
-                }
-                else
-                {
-                    fullName = "Lê Văn Học Viên";
-                }
-            }
-            else
+            if (user == null)
             {
                 return Json(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác!" });
             }
 
-            // 1. Lưu thông tin người dùng vào Session
+            var hasher = new PasswordHasher<NguoiDung>();
+            var verify = hasher.VerifyHashedPassword(user, user.MatKhauHash, model.Password);
+            if (verify == PasswordVerificationResult.Failed)
+            {
+                return Json(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác!" });
+            }
+
+            string role = user.VaiTro?.TenVaiTro ?? "User";
+            string fullName = user.HocVien?.HoTen ?? user.NhanSu?.HoTen ?? user.TenDangNhap;
+
+            // 1. Lưu thông tin người dùng vào Session (giữ tương thích với mã hiện tại)
             HttpContext.Session.SetString("Username", model.Username);
             HttpContext.Session.SetString("UserRole", role);
             HttpContext.Session.SetString("UserFullName", fullName);
 
             // 2. Lưu ID cho phép kiểm chứng quyền hạn trên server-side
-            if (nhanSuId.HasValue)
+            if (user.NhanSu != null)
             {
-                HttpContext.Session.SetInt32("NhanSuID", nhanSuId.Value);
+                HttpContext.Session.SetInt32("NhanSuID", user.NhanSu.NhanSuID);
+                var bytes = System.BitConverter.GetBytes(user.NhanSu.NhanSuID);
+                HttpContext.Session.Set("NhanSuID", bytes);
             }
-            if (hocVienId.HasValue)
+            if (user.HocVien != null)
             {
-                HttpContext.Session.SetInt32("HocVienID", hocVienId.Value);
+                HttpContext.Session.SetInt32("HocVienID", user.HocVien.HocVienID);
+                var bytes = System.BitConverter.GetBytes(user.HocVien.HocVienID);
+                HttpContext.Session.Set("HocVienID", bytes);
             }
-            if (userId.HasValue)
-            {
-                HttpContext.Session.SetInt32("NguoiDungID", userId.Value);
-            }
+            HttpContext.Session.SetInt32("NguoiDungID", user.NguoiDungID);
 
             // 3. Ghi nhớ Cookie nếu người dùng tích chọn "Ghi nhớ đăng nhập"
             if (model.RememberMe)
@@ -140,6 +103,20 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             {
                 Response.Cookies.Delete("RememberedUser");
             }
+
+            // 4. Tạo claims và đăng nhập bằng Cookie authentication để hỗ trợ [Authorize]
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.NguoiDungID.ToString()),
+                new Claim(ClaimTypes.Name, fullName),
+                new Claim(ClaimTypes.Role, role)
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
+                new AuthenticationProperties { IsPersistent = model.RememberMe });
 
             return Json(new
             {

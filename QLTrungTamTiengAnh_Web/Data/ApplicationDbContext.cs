@@ -55,6 +55,11 @@ namespace QuanLyTrungTamNgoaiNgu.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<NguoiDung>().ToTable("NguoiDung");
+            modelBuilder.Entity<VaiTro>().ToTable("VaiTro");
+            modelBuilder.Entity<HocVien>().ToTable("HocVien");
+            modelBuilder.Entity<NhanSu>().ToTable("NhanSu");
+
             // CoSoCuID -> CoSo
             modelBuilder.Entity<LichSuDieuChuyen>()
                 .HasOne(x => x.CoSoCu)
@@ -82,6 +87,8 @@ namespace QuanLyTrungTamNgoaiNgu.Data
                 .WithMany()
                 .HasForeignKey(x => x.NguoiDuyetID)
                 .OnDelete(DeleteBehavior.Restrict);
+
+
         }
     }
 }
