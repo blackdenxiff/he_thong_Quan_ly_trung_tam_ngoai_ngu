@@ -19,6 +19,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         }
 
         // GET: /HoaDon (Hiển thị danh sách hóa đơn từ CSDL)
+        // GET: /HoaDon (Hiển thị danh sách hóa đơn và danh sách học viên từ CSDL)
         public async Task<IActionResult> Index(string searchString, string statusFilter)
         {
             var query = _context.HoaDons
@@ -34,6 +35,12 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             }
 
             var listHoaDon = await query.OrderByDescending(h => h.NgayLap).ToListAsync();
+
+            // Lấy danh sách học viên từ SQL Server để đổ vào dropdown lập hóa đơn
+            ViewBag.DanhSachHocVien = await _context.HocViens
+                .OrderBy(hv => hv.HoTen)
+                .ToListAsync();
+
             return View(listHoaDon);
         }
 

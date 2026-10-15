@@ -211,9 +211,15 @@
                             <label class="form-label fw-semibold">Chọn Học Viên <span class="text-danger">*</span></label>
                             <select class="form-select" id="selectStudent" required>
                                 <option value="">-- Chọn học viên cần lập hóa đơn --</option>
-                                <option value="1" data-name="Lê Văn Học Viên" data-class="TOEIC500-K01" data-fee="4500000">HV-001: Lê Văn Học Viên (Lớp: TOEIC500-K01)</option>
-                                <option value="2" data-name="Trần Thị Mai Phương" data-class="TOEIC500-K01" data-fee="4500000">HV-002: Trần Thị Mai Phương (Lớp: TOEIC500-K01)</option>
-                                <option value="3" data-name="Nguyễn Hữu Nam" data-class="IELTS6.5-K02" data-fee="7500000">HV-003: Nguyễn Hữu Nam (Lớp: IELTS6.5-K02)</option>
+                                @if (ViewBag.DanhSachHocVien != null)
+                                {
+                                    foreach (var hv in ViewBag.DanhSachHocVien as List<QuanLyTrungTamNgoaiNgu.Models.HocVien>)
+                                    {
+                                        <option value="@hv.HocVienID" data-name="@hv.HoTen" data-class="Khóa học ngoại ngữ chuẩn" data-fee="4500000">
+                                            HV-0@(hv.HocVienID): @hv.HoTen (@hv.SoDienThoai)
+                                        </option>
+                                    }
+                                }
                             </select>
                         </div>
                         <div class="col-md-6">
