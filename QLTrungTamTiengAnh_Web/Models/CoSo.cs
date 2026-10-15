@@ -8,6 +8,10 @@ namespace QuanLyTrungTamNgoaiNgu.Models
         public int CoSoID { get; set; }
 
         [Required]
+        [StringLength(30)]
+        public string MaCoSo { get; set; } = string.Empty;
+
+        [Required]
         [StringLength(100)]
         public string TenCoSo { get; set; }
 

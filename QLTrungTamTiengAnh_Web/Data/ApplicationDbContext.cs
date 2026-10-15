@@ -60,6 +60,20 @@ namespace QuanLyTrungTamNgoaiNgu.Data
             modelBuilder.Entity<VaiTro>().ToTable("VaiTro");
             modelBuilder.Entity<HocVien>().ToTable("HocVien");
             modelBuilder.Entity<NhanSu>().ToTable("NhanSu");
+            modelBuilder.Entity<CoSo>().ToTable("CoSo");
+            modelBuilder.Entity<PhongHoc>().ToTable("PhongHoc");
+            modelBuilder.Entity<LichSuDieuChuyen>().ToTable("LichSuDieuChuyen");
+            modelBuilder.Entity<LopHoc>().ToTable("LopHoc");
+            modelBuilder.Entity<LichHoc>().ToTable("LichHoc");
+
+            modelBuilder.Entity<CoSo>()
+                .HasIndex(x => x.MaCoSo)
+                .IsUnique()
+                .HasFilter("[IsDeleted] = 0");
+            modelBuilder.Entity<PhongHoc>()
+                .HasIndex(x => new { x.CoSoID, x.TenPhong })
+                .IsUnique()
+                .HasFilter("[IsDeleted] = 0");
 
             // CoSoCuID -> CoSo
             modelBuilder.Entity<LichSuDieuChuyen>()
@@ -85,7 +99,7 @@ namespace QuanLyTrungTamNgoaiNgu.Data
             // NguoiDuyetID -> NguoiDung
             modelBuilder.Entity<LichSuDieuChuyen>()
                 .HasOne(x => x.NguoiDuyet)
-                .WithMany()
+                .WithMany(x => x.LichSuDieuChuyensDuyet)
                 .HasForeignKey(x => x.NguoiDuyetID)
                 .OnDelete(DeleteBehavior.Restrict);
 
