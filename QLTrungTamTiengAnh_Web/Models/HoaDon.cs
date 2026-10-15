@@ -2,7 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-    public class HoaDon
+    public class HoaDon : BaseEntity
     {
         [Key]
         public int HoaDonID { get; set; }

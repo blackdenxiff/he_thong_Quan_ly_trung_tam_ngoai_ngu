@@ -1,0 +1,57 @@
+@{
+    ViewData["Title"] = "Đổi mật khẩu";
+}
+
+<div class="card shadow-sm border-0 mx-auto" style="max-width:540px;">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Đổi mật khẩu cá nhân</h5>
+        <form id="formChangePwd">
+            <div class="mb-3">
+                <label class="form-label small">Mật khẩu hiện tại</label>
+                <input type="password" class="form-control" id="oldPwd" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label small">Mật khẩu mới</label>
+                <input type="password" class="form-control" id="newPwd" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label small">Xác nhận mật khẩu mới</label>
+                <input type="password" class="form-control" id="confirmNewPwd" required />
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                <a href="/" class="btn btn-outline-secondary">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    $(function(){
+        $('#formChangePwd').submit(function(e){
+            e.preventDefault();
+            var oldPwd = $('#oldPwd').val();
+            var newPwd = $('#newPwd').val();
+            var confirmNew = $('#confirmNewPwd').val();
+            if(newPwd !== confirmNew){
+                Swal.fire('Lỗi','Mật khẩu mới không khớp','error');
+                return;
+            }
+            $.ajax({
+                url: '/Account/DoiMatKhau',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ OldPassword: oldPwd, NewPassword: newPwd, ConfirmNewPassword: confirmNew }),
+                success: function(res){
+                    if(res.success){
+                        Swal.fire('Thành công', res.message, 'success').then(()=> location.href = '/');
+                    } else {
+                        Swal.fire('Lỗi', res.message, 'error');
+                    }
+                }
+            });
+        });
+    });
+</script>

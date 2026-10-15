@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using QuanLyTrungTamNgoaiNgu.Models;
+using System.Linq.Expressions;
 
 namespace QuanLyTrungTamNgoaiNgu.Data
 {
@@ -88,6 +89,22 @@ namespace QuanLyTrungTamNgoaiNgu.Data
                 .HasForeignKey(x => x.NguoiDuyetID)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Apply global query filter for soft-delete on all entities that inherit BaseEntity
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                var clrType = entityType.ClrType;
+                if (clrType == null)
+                    continue;
+
+                if (typeof(QuanLyTrungTamNgoaiNgu.Models.BaseEntity).IsAssignableFrom(clrType))
+                {
+                    var parameter = Expression.Parameter(clrType, "e");
+                    var property = Expression.Property(parameter, nameof(BaseEntity.IsDeleted));
+                    var compare = Expression.Equal(property, Expression.Constant(false));
+                    var lambda = Expression.Lambda(compare, parameter);
+                    modelBuilder.Entity(clrType).HasQueryFilter(lambda);
+                }
+            }
 
         }
     }

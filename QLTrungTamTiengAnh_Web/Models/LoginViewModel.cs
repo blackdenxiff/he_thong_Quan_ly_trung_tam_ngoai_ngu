@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-    public class LoginViewModel
+    public class LoginViewModel : BaseEntity
     {
         [Required]
         [Display(Name = "Tên đăng nhập")]

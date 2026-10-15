@@ -2,14 +2,65 @@
     ViewData["Title"] = "Quản lý Tài khoản & Phân quyền";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="mb-1 text-dark fw-bold">Quản Lý Tài Khoản & Phân Quyền Người Dùng</h4>
         <p class="text-muted small mb-0">Quản trị danh sách đăng nhập, cấp quyền vai trò hệ thống và kiểm soát bảo mật</p>
     </div>
-    <button class="btn btn-primary" type="button" id="btnOpenCreateUser">
-        <i class="fa-solid fa-user-plus me-1"></i> Cấp Tài Khoản Mới
-    </button>
+    <div class="btn-group">
+        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fa-solid fa-user-plus me-1"></i> Cấp Tài Khoản Mới
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" id="menuCreateSingle" data-bs-toggle="modal" data-bs-target="#modalCreateUser"><i class="fa-solid fa-user-plus me-2"></i> Cấp tài khoản đơn lẻ (Theo hồ sơ)</a></li>
+            <li><a class="dropdown-item" href="#" id="menuCreateBulk"><i class="fa-solid fa-layer-group me-2"></i> Cấp tài khoản hàng loạt</a></li>
+            <li><a class="dropdown-item" href="#" id="menuRecycleBin"><i class="fa-solid fa-trash-can me-2"></i> Quản lý Thùng rác (Tài khoản đã xóa)</a></li>
+        </ul>
+    </div>
+</div>
+
+<!-- Modal: Cấp Tài Khoản Hàng Loạt -->
+<div class="modal fade" id="modalBulkCreate" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fa-solid fa-people-group me-2"></i> Cấp Tài Khoản Tự Động Hàng Loạt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted">Hệ thống sẽ quét toàn bộ danh sách chưa có tài khoản và tự động tạo tài khoản với Tên đăng nhập chuẩn và Mật khẩu mặc định là Ngày sinh (ddMMyyyy) đã được băm an toàn.</p>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">1. Chọn nhóm đối tượng cần cấp</label>
+                    <select class="form-select" id="bulkType">
+                        <option value="HocVien">Toàn bộ Học viên chưa có tài khoản</option>
+                        <option value="NhanSu">Toàn bộ Nhân sự / Giảng viên chưa có tài khoản</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">2. Xác nhận Vai Trò hệ thống cần gán</label>
+                    <select class="form-select" id="bulkRole">
+                        <option value="">-- Chọn vai trò --</option>
+                        @if (ViewBag.VaiTros != null)
+                        {
+                            foreach (var r in (IEnumerable<dynamic>)ViewBag.VaiTros)
+                            {
+                                <option value="@r.VaiTroID">@r.TenVaiTro</option>
+                            }
+                        }
+                    </select>
+                    <div class="form-text small text-muted">Vai trò này được gán cho tất cả tài khoản tạo mới. Bạn có thể để trống để dùng vai trò mặc định.</div>
+                </div>
+
+                <div class="alert alert-info small"><i class="fa-solid fa-info-circle me-1"></i> Sau khi tạo, cờ 'DoiMatKhauLanDau' sẽ được bật cho tất cả tài khoản mới.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-success" id="btnDoBulkCreate"><i class="fa-solid fa-play me-1"></i> Tiến Hành Cấp Hàng Loạt</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- 4 Thẻ chỉ số tổng quan vai trò -->
@@ -17,7 +68,7 @@
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
             <span class="text-muted small fw-semibold">TỔNG TÀI KHOẢN</span>
-            <h4 class="fw-bold mb-0 text-dark" id="statTotalUsers">5</h4>
+            <h4 class="fw-bold mb-0 text-dark" id="statTotalUsersTop">5</h4>
         </div>
     </div>
     <div class="col-6 col-md-3">
@@ -92,158 +143,215 @@
                     </tr>
                 </thead>
                 <tbody id="userTableBody">
-                    <!-- User 1: Admin -->
-                    <tr id="row_user_1" data-id="1" data-username="admin" data-fullname="Ban Quản Trị Hệ Thống" data-email="admin@englishcenter.edu.vn" data-role="Admin" data-status="Hoạt động">
-                        <td class="ps-3">
-                            <span class="badge bg-light text-primary border border-primary fw-bold font-monospace">admin</span>
-                        </td>
-                        <td class="fw-bold text-dark user-name">Ban Quản Trị Hệ Thống</td>
-                        <td class="text-muted small user-email">admin@englishcenter.edu.vn</td>
-                        <td>
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle role-badge">Admin</span>
-                        </td>
-                        <td>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span>
-                        </td>
-                        <td class="text-end pe-3">
-                            <span class="badge bg-light text-muted border">Toàn quyền hệ thống</span>
-                        </td>
-                    </tr>
-
-                    <!-- User 2: Quản lý -->
-                    <tr id="row_user_2" data-id="2" data-username="quanly_nguyen" data-fullname="Nguyễn Quản Lý" data-email="quanly@englishcenter.edu.vn" data-role="Quản lý" data-status="Hoạt động">
-                        <td class="ps-3">
-                            <span class="badge bg-light text-dark border fw-bold font-monospace">quanly_nguyen</span>
-                        </td>
-                        <td class="fw-bold text-dark user-name">Nguyễn Quản Lý</td>
-                        <td class="text-muted small user-email">quanly@englishcenter.edu.vn</td>
-                        <td>
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle role-badge">Quản lý</span>
-                        </td>
-                        <td>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span>
-                        </td>
-                        <td class="text-end pe-3">
-                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-role" title="Gán vai trò">
-                                <i class="fa-solid fa-user-shield me-1"></i>Phân quyền
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning btn-toggle-lock" title="Khóa tài khoản">
-                                <i class="fa-solid fa-lock"></i>
-                            </button>
-                        </td>
-                    </tr>
-
-                    <!-- User 3: Giáo viên -->
-                    <tr id="row_user_3" data-id="3" data-username="gv_tranthi" data-fullname="Trần Thị Giảng Viên" data-email="giangvien@englishcenter.edu.vn" data-role="Giáo viên" data-status="Hoạt động">
-                        <td class="ps-3">
-                            <span class="badge bg-light text-dark border fw-bold font-monospace">gv_tranthi</span>
-                        </td>
-                        <td class="fw-bold text-dark user-name">Trần Thị Giảng Viên</td>
-                        <td class="text-muted small user-email">giangvien@englishcenter.edu.vn</td>
-                        <td>
-                            <span class="badge bg-info-subtle text-info border border-info-subtle role-badge">Giáo viên</span>
-                        </td>
-                        <td>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span>
-                        </td>
-                        <td class="text-end pe-3">
-                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-role" title="Gán vai trò">
-                                <i class="fa-solid fa-user-shield me-1"></i>Phân quyền
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning btn-toggle-lock" title="Khóa tài khoản">
-                                <i class="fa-solid fa-lock"></i>
-                            </button>
-                        </td>
-                    </tr>
-
-                    <!-- User 4: Nhân viên -->
-                    <tr id="row_user_4" data-id="4" data-username="nv_tuvan" data-fullname="Lê Thị Tư Vấn" data-email="tuvan@englishcenter.edu.vn" data-role="Nhân viên" data-status="Hoạt động">
-                        <td class="ps-3">
-                            <span class="badge bg-light text-dark border fw-bold font-monospace">nv_tuvan</span>
-                        </td>
-                        <td class="fw-bold text-dark user-name">Lê Thị Tư Vấn</td>
-                        <td class="text-muted small user-email">tuvan@englishcenter.edu.vn</td>
-                        <td>
-                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle role-badge">Nhân viên</span>
-                        </td>
-                        <td>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span>
-                        </td>
-                        <td class="text-end pe-3">
-                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-role" title="Gán vai trò">
-                                <i class="fa-solid fa-user-shield me-1"></i>Phân quyền
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning btn-toggle-lock" title="Khóa tài khoản">
-                                <i class="fa-solid fa-lock"></i>
-                            </button>
-                        </td>
-                    </tr>
-
-                    <!-- User 5: Học viên (Bị khóa) -->
-                    <tr id="row_user_5" data-id="5" data-username="hv_levan" data-fullname="Lê Văn Học Viên" data-email="levan@gmail.com" data-role="Học viên" data-status="Đã khóa">
-                        <td class="ps-3">
-                            <span class="badge bg-light text-dark border fw-bold font-monospace">hv_levan</span>
-                        </td>
-                        <td class="fw-bold text-dark user-name">Lê Văn Học Viên</td>
-                        <td class="text-muted small user-email">levan@gmail.com</td>
-                        <td>
-                            <span class="badge bg-light text-dark border role-badge">Học viên</span>
-                        </td>
-                        <td>
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle status-badge">Đã khóa</span>
-                        </td>
-                        <td class="text-end pe-3">
-                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-role" title="Gán vai trò">
-                                <i class="fa-solid fa-user-shield me-1"></i>Phân quyền
-                            </button>
-                            <button class="btn btn-sm btn-outline-success btn-toggle-lock" title="Mở khóa tài khoản">
-                                <i class="fa-solid fa-lock-open"></i>
-                            </button>
-                        </td>
-                    </tr>
+                    <!-- Dynamic user rows will be injected here via AJAX -->
+                    <!-- Keep this tbody empty on server render to allow client-side population -->
                 </tbody>
+            </table>
+        </div>
+        <div class="p-3 d-flex justify-content-between align-items-center">
+            <div>
+                <small class="text-muted">Hiển thị <span id="displayRange">0</span> / <span id="statTotalUsers">0</span> người dùng</small>
+            </div>
+            <nav>
+                <ul class="pagination mb-0" id="usersPagination"></ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(function(){
+        const pageSize = 10;
+        let currentPage = 1;
+
+        function renderRows(items){
+            const tbody = $('#userTableBody');
+            tbody.empty();
+            items.forEach(item=>{
+                const bc = badgeClassForRole(item.vaiTro);
+                const statusClass = item.trangThai === 'Hoạt động' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger';
+                const row = `
+                    <tr data-id="${item.nguoiDungId}" data-username="${item.tenDangNhap}" data-fullname="${item.hoTen}" data-role="${item.vaiTro}" data-status="${item.trangThai}">
+                        <td class="ps-3"><span class="badge bg-light text-dark border fw-bold font-monospace">${item.tenDangNhap}</span></td>
+                        <td class="fw-bold text-dark">${item.hoTen || ''}</td>
+                        <td class="text-muted small">${item.email || ''}</td>
+                        <td><span class="badge ${bc} role-badge">${item.vaiTro || ''}</span></td>
+                        <td><span class="badge ${statusClass} status-badge">${item.trangThai || ''}</span></td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-primary me-1 btn-edit-role"><i class="fa-solid fa-user-shield me-1"></i>Phân quyền</button>
+                            <button class="btn btn-sm btn-warning me-1 btn-toggle-lock"><i class="fa-solid fa-lock"></i> Khóa</button>
+                            <button class="btn btn-sm btn-danger btn-soft-delete"><i class="fa-solid fa-trash me-1"></i> Xóa</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+
+        // Bulk create confirm button
+        $('#btnDoBulkCreate').click(function(){
+            const loai = $('#bulkType').val();
+            const vaiTroId = parseInt($('#bulkRole').val() || 0);
+            Swal.fire({ title: 'Xác nhận', text: `Tạo tài khoản cho tất cả ${loai === 'HocVien' ? 'Học viên' : 'Nhân sự'} chưa có tài khoản?`, icon: 'warning', showCancelButton: true }).then(res=>{
+                if(!res.isConfirmed) return;
+                const payload = { loai: loai, vaiTroId: vaiTroId };
+                $.ajax({ url: '/Account/CapTaiKhoanHangLoat', type: 'POST', contentType: 'application/json', data: JSON.stringify(payload), success: function(r){ if(r && r.success){ Swal.fire('Hoàn tất', `Đã tạo ${r.created || 0} tài khoản`, 'success'); $('#modalBulkCreate').modal('hide'); loadUsers(1); } else Swal.fire('Lỗi', r.message||'Thất bại','error'); }, error: function(){ Swal.fire('Lỗi','Không thể kết nối tới máy chủ','error'); } });
+            });
+        });
+        }
+
+        function renderPagination(current, total){
+            const ul = $('#usersPagination');
+            ul.empty();
+            for(let i=1;i<=total;i++){
+                const active = i===current ? 'active' : '';
+                ul.append(`<li class="page-item ${active}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`);
+            }
+        }
+
+        function loadUsers(page){
+            const kw = $('#searchUserKw').val().trim();
+            const role = $('#filterUserRole').val();
+            const status = $('#filterUserStatus').val();
+            $.get('/Account/GetAccounts',{ keyword: kw, role: role, trangThai: status, page: page, pageSize: pageSize }, function(res){
+                if(res.success){
+                    renderRows(res.items);
+                    renderPagination(res.currentPage, res.totalPages);
+                    $('#statTotalUsers').text(res.totalItems);
+                    const start = (res.currentPage -1) * pageSize + 1;
+                    const end = Math.min(res.currentPage * pageSize, res.totalItems);
+                    $('#displayRange').text(`${start}-${end}`);
+                    currentPage = res.currentPage;
+                }
+            });
+        }
+
+        // initial load
+        loadUsers(1);
+
+        // menu handlers
+        $('#menuCreateSingle').click(function(e){
+            e.preventDefault();
+            try{ if(document.getElementById('formCreateUser')) document.getElementById('formCreateUser').reset(); }catch(e){}
+            $('#txtPassword').val('123456');
+            // load persons for current group
+            loadUnlinkedPersons($('#selectGroup').val());
+            // use bootstrap helper to get or create modal instance and show
+            try{
+                const modalEl = document.getElementById('modalCreateUser');
+                if(!modalEl){ console.error('modalCreateUser element not found'); alert('Modal không tồn tại trong DOM'); return; }
+                const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+                m.show();
+            } catch(err){ console.error('Error showing modal', err); alert('Không thể mở modal: ' + err.message); }
+        });
+        $('#menuCreateBulk').click(function(e){
+            e.preventDefault();
+            // open bulk create modal
+            const modalEl = document.getElementById('modalBulkCreate');
+            if(!modalEl){ alert('Modal bulk không tồn tại'); return; }
+            const mb = bootstrap.Modal.getOrCreateInstance(modalEl);
+            // reset defaults
+            $('#bulkType').val('HocVien');
+            $('#bulkRole').val('');
+            mb.show();
+        });
+        $('#menuRecycleBin').click(function(e){ e.preventDefault();
+            // open recycle bin modal (build simple list)
+            $.get('/Account/Trash', function(res){ if(res && res.success){ let html=''; res.data.forEach(function(u){ html += `<tr data-id="${u.NguoiDungID}"><td>${u.TenDangNhap}</td><td>${u.VaiTro}</td><td>${u.DeletedAt}</td><td class="text-end"><button class="btn btn-sm btn-success btn-restore me-1">Khôi phục</button><button class="btn btn-sm btn-danger btn-hard-delete">Xóa vĩnh viễn</button></td></tr>`; });
+                    const modalHtml = `
+                        <div class="modal fade" id="modalRecycleBin" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Thùng rác - Tài khoản đã xóa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><table class="table"><thead><tr><th>Tên đăng nhập</th><th>Vai trò</th><th>Đã xóa</th><th></th></tr></thead><tbody>${html}</tbody></table></div></div></div></div>`;
+                    $('body').append(modalHtml);
+                    const m = new bootstrap.Modal(document.getElementById('modalRecycleBin'));
+                    m.show();
+                    $(document).on('click', '#modalRecycleBin .btn-restore', function(){ const id = $(this).closest('tr').data('id'); $.post('/Account/Restore',{ id: id }, function(r){ if(r && r.success){ Swal.fire('Thành công', 'Đã khôi phục', 'success'); m.hide(); loadUsers(1);} else Swal.fire('Lỗi', r.message||'Lỗi','error'); }, 'json'); });
+                    $(document).on('click', '#modalRecycleBin .btn-hard-delete', function(){ const id=$(this).closest('tr').data('id'); Swal.fire({title:'Xác nhận', text:'Xóa vĩnh viễn?', icon:'warning', showCancelButton:true}).then(rx=>{ if(rx.isConfirmed){ $.post('/Account/HardDelete',{ id: id }, function(r){ if(r && r.success){ Swal.fire('Đã xóa','Xóa vĩnh viễn thành công','success'); m.hide(); loadUsers(1);} else Swal.fire('Lỗi', r.message||'Lỗi','error'); }, 'json'); }}); });
+                } else Swal.fire('Lỗi', res.message||'Không thể tải dữ liệu','error'); }, 'json');
+        });
+
+        // filters
+        $('#btnFilterUser').click(function(){ loadUsers(1); });
+        $('#btnResetUserFilter').click(function(){ $('#searchUserKw').val(''); $('#filterUserRole').val(''); $('#filterUserStatus').val(''); loadUsers(1); });
+
+        // pagination click
+        $(document).on('click','#usersPagination .page-link', function(e){ e.preventDefault(); const p = parseInt($(this).data('page')); if(!isNaN(p)) loadUsers(p); });
+    });
+</script>
             </table>
         </div>
     </div>
 </div>
 
-<!-- Modal 1: Cấp Tài Khoản Mới -->
+<!-- Modal 1: Cấp Tài Khoản Đơn Lẻ -->
 <div class="modal fade" id="modalCreateUser" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2 text-primary"></i>Cấp Tài Khoản Người Dùng Mới</h5>
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2 text-primary"></i> Cấp Tài Khoản Đơn Lẻ</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="formCreateUser">
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Tên Đăng Nhập <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control font-monospace" id="txtUsername" placeholder="VD: gv_hoangminh" required />
-                        <small class="text-muted">Tên đăng nhập là duy nhất và viết liền không dấu.</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Mật Khẩu Khởi Tạo <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control" id="txtPassword" value="123456" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Họ và Tên Chủ Tài Khoản <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="txtFullName" placeholder="VD: Hoàng Văn Minh" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Email Liên Kết</label>
-                        <input type="email" class="form-control" id="txtEmail" placeholder="VD: minh@englishcenter.edu.vn" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Gán Vai Trò Ban Đầu <span class="text-danger">*</span></label>
-                        <select class="form-select" id="selectRole" required>
-                            <option value="Quản lý">Quản lý (Phê duyệt, xem toàn bộ báo cáo)</option>
-                            <option value="Giáo viên">Giáo viên (Điểm danh, giao bài, chấm điểm)</option>
-                            <option value="Nhân viên">Nhân viên (Hồ sơ học viên, hóa đơn, lớp học)</option>
-                            <option value="Học viên">Học viên (Xem lịch, nộp bài, tra cứu điểm)</option>
-                            <option value="Admin">Admin (Quản trị cao nhất)</option>
+                        <label class="form-label fw-semibold">1. Chọn nhóm đối tượng <span class="text-danger">[cite: *]</span></label>
+                        <select class="form-select" id="selectGroup" required>
+                            <option value="HocVien">Học viên chưa có tài khoản</option>
+                            <option value="NhanSu">Nhân sự / Giảng viên chưa có tài khoản</option>
                         </select>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">2. Chọn cá nhân cụ thể từ CSDL <span class="text-danger">[cite: *]</span></label>
+                        <select class="form-select" id="selectPerson" style="width:100%" required>
+                            <option value="">-- Chọn người --</option>
+                        </select>
+                        <div class="form-text">Live search: Nhập tên hoặc mã để tìm (hệ thống chỉ liệt kê người chưa có tài khoản).</div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Họ và Tên</label>
+                            <input type="text" class="form-control bg-light" id="txtPersonName" readonly />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Mã</label>
+                            <input type="text" class="form-control bg-light font-monospace" id="txtPersonCode" readonly />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Ngày sinh</label>
+                            <input type="text" class="form-control bg-light" id="txtPersonDob" readonly />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">3. Tên đăng nhập gợi ý <span class="text-danger">[cite: *]</span></label>
+                        <input type="text" class="form-control font-monospace" id="txtUsernameModal" required />
+                        <div class="form-text">Mặc định: HV{Id}_hotenkhongdau hoặc NS{Id}_hotenkhongdau (có thể chỉnh sửa).</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">4. Mật khẩu khởi tạo mặc định <span class="text-danger">[cite: *]</span></label>
+                        <input type="text" class="form-control bg-light" id="txtDefaultPassword" readonly />
+                        <div class="form-text">Mật khẩu mặc định tự động lấy theo Ngày sinh (ddMMyyyy). Backend sẽ băm trước khi lưu.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">5. Vai trò hệ thống <span class="text-danger">*</span></label>
+                        <select class="form-select" id="selectRoleModal" required>
+                            <option value="">-- Chọn vai trò --</option>
+                            @if (ViewBag.VaiTros != null)
+                            {
+                                foreach (var r in (IEnumerable<dynamic>)ViewBag.VaiTros)
+                                {
+                                    <option value="@r.VaiTroID">@r.TenVaiTro</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="alert alert-info small"><i class="fa-solid fa-info-circle me-1"></i> [i] Sau khi tạo, cờ 'DoiMatKhauLanDau' sẽ được bật. Người dùng buộc phải đổi mật khẩu ở lần đăng nhập đầu tiên.</div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -302,10 +410,87 @@
             const editRoleModal = new bootstrap.Modal(document.getElementById('modalEditRole'));
 
             // 1. Mở Modal Cấp tài khoản mới
+            function loadUnlinkedPersons(group) {
+                $('#selectPerson').prop('disabled', true);
+                $.get('/Account/GetUnlinkedPersons', { loai: group }, function (res) {
+                    $('#selectPerson').prop('disabled', false);
+                    $('#selectPerson').empty().append('<option value="">-- Chọn người --</option>');
+                    if (res && res.success) {
+                        res.items.forEach(function (i) {
+                            const label = `${i.hoTen || ''} (Mã: ${i.ma || ''}${i.ngaySinh ? ' - Ngày sinh: ' + i.ngaySinh : ''})`;
+                            $('#selectPerson').append(`<option value="${i.id}" data-ma="${i.ma}" data-hoten="${i.hoTen}" data-ngaysinh="${i.ngaySinh}">${label}</option>`);
+                        });
+                        // initialize select2 for live search inside modal
+                        try {
+                            $('#selectPerson').select2({ dropdownParent: $('#modalCreateUser'), width: '100%', placeholder: 'Live search...' });
+                        } catch (e) { }
+                    } else if (res && !res.success) {
+                        Swal.fire('Lỗi', res.message || 'Không tải được danh sách', 'error');
+                    }
+                }, 'json');
+            }
+
+            $('#selectGroup').change(function () {
+                loadUnlinkedPersons($(this).val());
+            });
+
             $('#btnOpenCreateUser').click(function () {
                 $('#formCreateUser')[0].reset();
                 $('#txtPassword').val('123456');
+                // load persons for the selected group and init select2
+                loadUnlinkedPersons($('#selectGroup').val());
                 createUserModal.show();
+            });
+
+            // handle when user selects a person (works with select2)
+            $('#selectPerson').on('change', function () {
+                const $sel = $(this);
+                const val = $sel.val();
+                let opt = $sel.find('option:selected');
+                let ma = '', hoten = '', ngaysinh = '';
+                if (opt && opt.length) {
+                    ma = opt.data('ma') || '';
+                    hoten = opt.data('hoten') || opt.text() || '';
+                    ngaysinh = opt.data('ngaysinh') || '';
+                } else {
+                    // select2 may provide selected data object
+                    try {
+                        const s = $sel.select2 ? $sel.select2('data') : null;
+                        if (s && s.length) {
+                            const d = s[0];
+                            if (d.element) {
+                                ma = $(d.element).data('ma') || '';
+                                hoten = $(d.element).data('hoten') || d.text || '';
+                                ngaysinh = $(d.element).data('ngaysinh') || '';
+                            } else {
+                                ma = d.ma || '';
+                                hoten = d.text || d.hoTen || '';
+                                ngaysinh = d.ngaySinh || '';
+                            }
+                        }
+                    } catch (e) { }
+                }
+
+                $('#txtPersonName').val(hoten);
+                $('#txtPersonCode').val(ma);
+                $('#txtPersonDob').val(ngaysinh);
+
+                if (val) {
+                    const prefix = $('#selectGroup').val() === 'HocVien' ? 'HV' : 'NS';
+                    const padded = val.toString().padStart(3, '0');
+                    const nameSlug = hoten ? hoten.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '') : '';
+                    const suggested = `${prefix}${padded}${nameSlug ? '_' + nameSlug : ''}`;
+                    $('#txtUsernameModal').val(suggested);
+                    if (ngaysinh) {
+                        const parts = ngaysinh.split('/');
+                        if (parts.length === 3) $('#txtDefaultPassword').val(parts[0] + parts[1] + parts[2]);
+                        else $('#txtDefaultPassword').val('123456');
+                    } else {
+                        $('#txtDefaultPassword').val('123456');
+                    }
+                } else {
+                    $('#txtUsernameModal,#txtDefaultPassword').val('');
+                }
             });
 
             // 2. Mở Modal Phân quyền

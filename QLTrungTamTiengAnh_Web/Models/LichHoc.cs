@@ -2,7 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-    public class LichHoc
+    public class LichHoc : BaseEntity
     {
         [Key]
         public int LichHocID { get; set; }

@@ -2,7 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-    public class BaiTap
+    public class BaiTap : BaseEntity
     {
         [Key]
         public int BaiTapID { get; set; }
