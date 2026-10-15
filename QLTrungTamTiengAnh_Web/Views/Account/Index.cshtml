@@ -1,0 +1,489 @@
+﻿@{
+    ViewData["Title"] = "Quản lý Tài khoản & Phân quyền";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 text-dark fw-bold">Quản Lý Tài Khoản & Phân Quyền Người Dùng</h4>
+        <p class="text-muted small mb-0">Quản trị danh sách đăng nhập, cấp quyền vai trò hệ thống và kiểm soát bảo mật</p>
+    </div>
+    <button class="btn btn-primary" type="button" id="btnOpenCreateUser">
+        <i class="fa-solid fa-user-plus me-1"></i> Cấp Tài Khoản Mới
+    </button>
+</div>
+
+<!-- 4 Thẻ chỉ số tổng quan vai trò -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-muted small fw-semibold">TỔNG TÀI KHOẢN</span>
+            <h4 class="fw-bold mb-0 text-dark" id="statTotalUsers">5</h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-primary small fw-semibold">QUẢN TRỊ VIÊN / QUẢN LÝ</span>
+            <h4 class="fw-bold mb-0 text-primary">2</h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-success small fw-semibold">GIẢNG VIÊN & NHÂN VIÊN</span>
+            <h4 class="fw-bold mb-0 text-success">2</h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-danger small fw-semibold">TÀI KHOẢN BỊ KHÓA</span>
+            <h4 class="fw-bold mb-0 text-danger" id="statLockedUsers">1</h4>
+        </div>
+    </div>
+</div>
+
+<!-- Bộ lọc tìm kiếm tài khoản -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-5">
+                <input type="text" class="form-control" id="searchUserKw" placeholder="Nhập tên đăng nhập, họ tên hoặc email..." />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterUserRole">
+                    <option value="">-- Tất cả vai trò --</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Quản lý">Quản lý</option>
+                    <option value="Giáo viên">Giáo viên</option>
+                    <option value="Nhân viên">Nhân viên</option>
+                    <option value="Học viên">Học viên</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" id="filterUserStatus">
+                    <option value="">-- Trạng thái --</option>
+                    <option value="Hoạt động">Hoạt động</option>
+                    <option value="Đã khóa">Đã khóa</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="button" class="btn btn-secondary w-100" id="btnFilterUser">
+                    <i class="fa-solid fa-filter me-1"></i> Lọc
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="btnResetUserFilter">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bảng danh sách tài khoản -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">TÊN ĐĂNG NHẬP</th>
+                        <th>HỌ VÀ TÊN</th>
+                        <th>EMAIL XÁC THỰC</th>
+                        <th>VAI TRÒ HỆ THỐNG</th>
+                        <th>TRẠNG THÁI</th>
+                        <th class="text-end pe-3">THAO TÁC PHÂN QUYỀN</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <!-- User 1: Admin -->
+                    <tr id="row_user_1" data-id="1" data-username="admin" data-fullname="Ban Quản Trị Hệ Thống" data-email="admin@englishcenter.edu.vn" data-role="Admin" data-status="Hoạt động">
+                        <td class="ps-3">
+                            <span class="badge bg-light text-primary border border-primary fw-bold font-monospace">admin</span>
+                        </td>
+                        <td class="fw-bold text-dark user-name">Ban Quản Trị Hệ Thống</td>
+                        <td class="text-muted small user-email">admin@englishcenter.edu.vn</td>
+                        <td>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle role-badge">Admin</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span>
+                        </td>
+                        <td class="text-end pe-3">
+                            <span class="badge bg-light text-muted border">Toàn quyền hệ thống</span>
+                        </td>
+                    </tr>
+
+                    <!-- User 2: Quản lý -->
+                    <tr id="row_user_2" data-id="2" data-username="quanly_nguyen" data-fullname="Nguyễn Quản Lý" data-email="quanly@englishcenter.edu.vn" data-role="Quản lý" data-status="Hoạt động">
+                        <td class="ps-3">
+                            <span class="badge bg-light text-dark border fw-bold font-monospace">quanly_nguyen</span>
+                        </td>
+                        <td class="fw-bold text-dark user-name">Nguyễn Quản Lý</td>
+                        <td class="text-muted small user-email">quanly@englishcenter.edu.vn</td>
+                        <td>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle role-badge">Quản lý</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span>
+                        </td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-role" title="Gán vai trò">
+                                <i class="fa-solid fa-user-shield me-1"></i>Phân quyền
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning btn-toggle-lock" title="Khóa tài khoản">
+                                <i class="fa-solid fa-lock"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- User 3: Giáo viên -->
+                    <tr id="row_user_3" data-id="3" data-username="gv_tranthi" data-fullname="Trần Thị Giảng Viên" data-email="giangvien@englishcenter.edu.vn" data-role="Giáo viên" data-status="Hoạt động">
+                        <td class="ps-3">
+                            <span class="badge bg-light text-dark border fw-bold font-monospace">gv_tranthi</span>
+                        </td>
+                        <td class="fw-bold text-dark user-name">Trần Thị Giảng Viên</td>
+                        <td class="text-muted small user-email">giangvien@englishcenter.edu.vn</td>
+                        <td>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle role-badge">Giáo viên</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span>
+                        </td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-role" title="Gán vai trò">
+                                <i class="fa-solid fa-user-shield me-1"></i>Phân quyền
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning btn-toggle-lock" title="Khóa tài khoản">
+                                <i class="fa-solid fa-lock"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- User 4: Nhân viên -->
+                    <tr id="row_user_4" data-id="4" data-username="nv_tuvan" data-fullname="Lê Thị Tư Vấn" data-email="tuvan@englishcenter.edu.vn" data-role="Nhân viên" data-status="Hoạt động">
+                        <td class="ps-3">
+                            <span class="badge bg-light text-dark border fw-bold font-monospace">nv_tuvan</span>
+                        </td>
+                        <td class="fw-bold text-dark user-name">Lê Thị Tư Vấn</td>
+                        <td class="text-muted small user-email">tuvan@englishcenter.edu.vn</td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle role-badge">Nhân viên</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span>
+                        </td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-role" title="Gán vai trò">
+                                <i class="fa-solid fa-user-shield me-1"></i>Phân quyền
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning btn-toggle-lock" title="Khóa tài khoản">
+                                <i class="fa-solid fa-lock"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- User 5: Học viên (Bị khóa) -->
+                    <tr id="row_user_5" data-id="5" data-username="hv_levan" data-fullname="Lê Văn Học Viên" data-email="levan@gmail.com" data-role="Học viên" data-status="Đã khóa">
+                        <td class="ps-3">
+                            <span class="badge bg-light text-dark border fw-bold font-monospace">hv_levan</span>
+                        </td>
+                        <td class="fw-bold text-dark user-name">Lê Văn Học Viên</td>
+                        <td class="text-muted small user-email">levan@gmail.com</td>
+                        <td>
+                            <span class="badge bg-light text-dark border role-badge">Học viên</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle status-badge">Đã khóa</span>
+                        </td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-role" title="Gán vai trò">
+                                <i class="fa-solid fa-user-shield me-1"></i>Phân quyền
+                            </button>
+                            <button class="btn btn-sm btn-outline-success btn-toggle-lock" title="Mở khóa tài khoản">
+                                <i class="fa-solid fa-lock-open"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 1: Cấp Tài Khoản Mới -->
+<div class="modal fade" id="modalCreateUser" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2 text-primary"></i>Cấp Tài Khoản Người Dùng Mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCreateUser">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên Đăng Nhập <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control font-monospace" id="txtUsername" placeholder="VD: gv_hoangminh" required />
+                        <small class="text-muted">Tên đăng nhập là duy nhất và viết liền không dấu.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mật Khẩu Khởi Tạo <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="txtPassword" value="123456" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Họ và Tên Chủ Tài Khoản <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="txtFullName" placeholder="VD: Hoàng Văn Minh" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email Liên Kết</label>
+                        <input type="email" class="form-control" id="txtEmail" placeholder="VD: minh@englishcenter.edu.vn" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Gán Vai Trò Ban Đầu <span class="text-danger">*</span></label>
+                        <select class="form-select" id="selectRole" required>
+                            <option value="Quản lý">Quản lý (Phê duyệt, xem toàn bộ báo cáo)</option>
+                            <option value="Giáo viên">Giáo viên (Điểm danh, giao bài, chấm điểm)</option>
+                            <option value="Nhân viên">Nhân viên (Hồ sơ học viên, hóa đơn, lớp học)</option>
+                            <option value="Học viên">Học viên (Xem lịch, nộp bài, tra cứu điểm)</option>
+                            <option value="Admin">Admin (Quản trị cao nhất)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveUser">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Khởi Tạo Tài Khoản
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Phân Quyền & Đổi Vai Trò -->
+<div class="modal fade" id="modalEditRole" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-shield me-2 text-primary"></i>Phân Quyền Vai Trò</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Tài Khoản Đang Chọn</label>
+                    <input type="text" class="form-control bg-light fw-bold font-monospace" id="txtEditUsername" readonly />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Họ Tên</label>
+                    <input type="text" class="form-control bg-light" id="txtEditFullName" readonly />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Vai Trò Hệ Thống <span class="text-danger">*</span></label>
+                    <select class="form-select" id="selectNewRole">
+                        <option value="Quản lý">Quản lý (ACT-05)</option>
+                        <option value="Giáo viên">Giáo viên (ACT-03)</option>
+                        <option value="Nhân viên">Nhân viên (ACT-02)</option>
+                        <option value="Học viên">Học viên (ACT-04)</option>
+                        <option value="Admin">Admin (ACT-01)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnUpdateRole">
+                    <i class="fa-solid fa-check me-1"></i> Cập Nhật Quyền Hạn
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let activeRow = null;
+            const createUserModal = new bootstrap.Modal(document.getElementById('modalCreateUser'));
+            const editRoleModal = new bootstrap.Modal(document.getElementById('modalEditRole'));
+
+            // 1. Mở Modal Cấp tài khoản mới
+            $('#btnOpenCreateUser').click(function () {
+                $('#formCreateUser')[0].reset();
+                $('#txtPassword').val('123456');
+                createUserModal.show();
+            });
+
+            // 2. Mở Modal Phân quyền
+            $(document).on('click', '.btn-edit-role', function () {
+                activeRow = $(this).closest("tr");
+                const username = activeRow.data('username');
+                const fullname = activeRow.data('fullname');
+                const role = activeRow.data('role');
+
+                $('#txtEditUsername').val(username);
+                $('#txtEditFullName').val(fullname);
+                $('#selectNewRole').val(role);
+
+                editRoleModal.show();
+            });
+
+            // 3. Cập nhật vai trò mới qua AJAX
+            $('#btnUpdateRole').click(function () {
+                if (!activeRow) return;
+                const newRole = $('#selectNewRole').val();
+                const userId = activeRow.data('id');
+
+                $.ajax({
+                    url: `/Account/CapNhatQuyen?id=${userId}&vaiTroMoi=${encodeURIComponent(newRole)}`,
+                    type: 'POST',
+                    success: function (res) {
+                        editRoleModal.hide();
+                        Swal.fire('Thành công', res.message, 'success');
+
+                        activeRow.data('role', newRole);
+                        let badgeClass = 'bg-secondary-subtle text-secondary border-secondary-subtle';
+                        if (newRole === 'Admin') badgeClass = 'bg-danger-subtle text-danger border-danger-subtle';
+                        else if (newRole === 'Quản lý') badgeClass = 'bg-primary-subtle text-primary border-primary-subtle';
+                        else if (newRole === 'Giáo viên') badgeClass = 'bg-info-subtle text-info border-info-subtle';
+                        else if (newRole === 'Học viên') badgeClass = 'bg-light text-dark border';
+
+                        activeRow.find('.role-badge').attr('class', `badge ${badgeClass} role-badge`).text(newRole);
+
+                        activeRow.addClass("table-warning");
+                        setTimeout(() => activeRow.removeClass("table-warning"), 600);
+                    }
+                });
+            });
+
+            // 4. Khóa / Mở khóa tài khoản qua AJAX
+            $(document).on('click', '.btn-toggle-lock', function () {
+                const tr = $(this).closest("tr");
+                const userId = tr.data('id');
+                const username = tr.data('username');
+                const currentStatus = tr.data('status');
+                const isLocking = currentStatus === 'Hoạt động';
+
+                Swal.fire({
+                    title: isLocking ? `Khóa tài khoản [${username}]?` : `Mở khóa tài khoản [${username}]?`,
+                    text: isLocking ? "Người dùng này sẽ không thể đăng nhập vào hệ thống!" : "Người dùng sẽ được phép đăng nhập lại bình thường.",
+                    icon: isLocking ? 'warning' : 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: isLocking ? '#ef4444' : '#10b981',
+                    confirmButtonText: isLocking ? 'Đồng ý khóa' : 'Mở khóa',
+                    cancelButtonText: 'Hủy'
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        $.ajax({
+                            url: `/Account/DoiTrangThaiKhoa?id=${userId}&khoa=${isLocking}`,
+                            type: 'POST',
+                            success: function (res) {
+                                Swal.fire('Thành công', res.message, 'success');
+                                tr.data('status', res.trangThai);
+
+                                if (isLocking) {
+                                    tr.find('.status-badge').attr('class', 'badge bg-danger-subtle text-danger border border-danger-subtle status-badge').text('Đã khóa');
+                                    tr.find('.btn-toggle-lock').attr('class', 'btn btn-sm btn-outline-success btn-toggle-lock').attr('title', 'Mở khóa').html('<i class="fa-solid fa-lock-open"></i>');
+                                } else {
+                                    tr.find('.status-badge').attr('class', 'badge bg-success-subtle text-success border border-success-subtle status-badge').text('Hoạt động');
+                                    tr.find('.btn-toggle-lock').attr('class', 'btn btn-sm btn-outline-warning btn-toggle-lock').attr('title', 'Khóa tài khoản').html('<i class="fa-solid fa-lock"></i>');
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            // 5. Thêm mới tài khoản qua AJAX
+            $('#btnSaveUser').click(function () {
+                const username = $('#txtUsername').val().trim();
+                const password = $('#txtPassword').val().trim();
+                const fullname = $('#txtFullName').val().trim();
+                const email = $('#txtEmail').val().trim();
+                const role = $('#selectRole').val();
+
+                if (!username || !fullname) {
+                    Swal.fire('Lỗi nhập liệu', 'Vui lòng nhập tên đăng nhập và họ tên!', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    tenDangNhap: username,
+                    matKhau: password,
+                    hoTen: fullname,
+                    email: email,
+                    vaiTro: role,
+                    trangThai: 'Hoạt động'
+                };
+
+                $.ajax({
+                    url: '/Account/LuuTaiKhoan',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            createUserModal.hide();
+                            Swal.fire('Thành công', res.message, 'success');
+
+                            const randomId = Math.floor(Math.random() * 800) + 10;
+                            let badgeClass = 'bg-secondary-subtle text-secondary border-secondary-subtle';
+                            if (role === 'Admin') badgeClass = 'bg-danger-subtle text-danger border-danger-subtle';
+                            else if (role === 'Quản lý') badgeClass = 'bg-primary-subtle text-primary border-primary-subtle';
+                            else if (role === 'Giáo viên') badgeClass = 'bg-info-subtle text-info border-info-subtle';
+                            else if (role === 'Học viên') badgeClass = 'bg-light text-dark border';
+
+                            const newTr = `
+                                <tr id="row_user_${randomId}" data-id="${randomId}" data-username="${username}" data-fullname="${fullname}" data-email="${email}" data-role="${role}" data-status="Hoạt động">
+                                    <td class="ps-3">
+                                        <span class="badge bg-light text-dark border fw-bold font-monospace">${username}</span>
+                                    </td>
+                                    <td class="fw-bold text-dark user-name">${fullname}</td>
+                                    <td class="text-muted small user-email">${email || 'Chưa cung cấp'}</td>
+                                    <td>
+                                        <span class="badge ${badgeClass} role-badge">${role}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Hoạt động</span>
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <button class="btn btn-sm btn-outline-primary me-1 btn-edit-role" title="Gán vai trò">
+                                            <i class="fa-solid fa-user-shield me-1"></i>Phân quyền
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning btn-toggle-lock" title="Khóa tài khoản">
+                                            <i class="fa-solid fa-lock"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                            $('#userTableBody').prepend(newTr);
+                            $('#statTotalUsers').text($('#userTableBody tr').length);
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    }
+                });
+            });
+
+            // 6. Lọc tìm kiếm
+            $('#btnFilterUser').click(function () {
+                const kw = $('#searchUserKw').val().toLowerCase().trim();
+                const role = $('#filterUserRole').val();
+                const status = $('#filterUserStatus').val();
+
+                $('#userTableBody tr').each(function () {
+                    const text = $(this).text().toLowerCase();
+                    const rowRole = $(this).find('.role-badge').text().trim();
+                    const rowStatus = $(this).find('.status-badge').text().trim();
+
+                    const matchKw = kw === '' || text.includes(kw);
+                    const matchRole = role === '' || rowRole === role;
+                    const matchStatus = status === '' || rowStatus === status;
+
+                    $(this).toggle(matchKw && matchRole && matchStatus);
+                });
+            });
+
+            $('#btnResetUserFilter').click(function () {
+                $('#searchUserKw').val('');
+                $('#filterUserRole').val('');
+                $('#filterUserStatus').val('');
+                $('#userTableBody tr').show();
+            });
+        });
+    </script>
+}

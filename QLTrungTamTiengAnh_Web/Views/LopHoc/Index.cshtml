@@ -1,0 +1,458 @@
+﻿@using QuanLyTrungTamNgoaiNgu.Models
+@{
+    ViewData["Title"] = "Quản lý Lớp học";
+    var khoaHocs = ViewBag.KhoaHocs as IEnumerable<KhoaHoc> ?? Enumerable.Empty<KhoaHoc>();
+    var giangViens = ViewBag.GiangViens as IEnumerable<NhanSu> ?? Enumerable.Empty<NhanSu>();
+    var phongHocs = ViewBag.PhongHocs as IEnumerable<PhongHoc> ?? Enumerable.Empty<PhongHoc>();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 text-dark fw-bold">Danh Mục Lớp Học Đào Tạo</h4>
+        <p class="text-muted small mb-0">Điều phối danh sách lớp, theo dõi sĩ số thực tế và phân công giảng viên</p>
+    </div>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalClass" onclick="openCreateClassModal()">
+        <i class="fa-solid fa-chalkboard-user me-1"></i> Mở Lớp Học Mới
+    </button>
+</div>
+
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" id="searchClassKeyword" placeholder="Nhập tên lớp, tên giảng viên..." />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterCourseSelect">
+                    <option value="">-- Tất cả khóa học --</option>
+                    @foreach (var khoa in khoaHocs)
+                    {
+                        <option value="@khoa.KhoaHocID">@khoa.TenKhoaHoc</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterClassStatus">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="Dự kiến">Dự kiến</option>
+                    <option value="Sắp mở">Sắp mở</option>
+                    <option value="Đang diễn ra">Đang diễn ra</option>
+                    <option value="Đã kết thúc">Đã kết thúc</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="button" class="btn btn-secondary w-100" id="btnFilterClass"><i class="fa-solid fa-filter me-1"></i> Lọc</button>
+                <button type="button" class="btn btn-outline-secondary" id="btnResetClassFilter" title="Làm mới"><i class="fa-solid fa-rotate-right"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">MÃ LỚP</th>
+                        <th>KHÓA HỌC</th>
+                        <th>GIẢNG VIÊN &amp; PHÒNG</th>
+                        <th style="min-width:170px">TỶ LỆ SĨ SỐ</th>
+                        <th>KHAI GIẢNG</th>
+                        <th>TRẠNG THÁI</th>
+                        <th class="text-end pe-3">THAO TÁC</th>
+                    </tr>
+                </thead>
+                <tbody id="classTableBody">
+                    <tr><td colspan="7" class="text-center text-muted py-4">Đang tải danh sách lớp học...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+        <small class="text-muted">Hiển thị <span id="classCount">0</span> lớp trên trang này · Tổng <span id="classTotalCount">0</span> lớp</small>
+        <div class="d-flex align-items-center gap-2">
+            <label for="classPageSize" class="small text-muted mb-0">Số dòng:</label>
+            <select id="classPageSize" class="form-select form-select-sm" style="width:auto"><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option><option value="50">50</option></select>
+            <div id="classPagination" class="btn-group btn-group-sm" role="group" aria-label="Phân trang"></div>
+        </div>
+        <div class="small text-muted" id="classLoadMessage"></div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalClass" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalClassTitle"><i class="fa-solid fa-chalkboard-user me-2 text-primary"></i>Mở Lớp Học Đào Tạo Mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formClass">
+                    <input type="hidden" id="hiddenClassId" value="0" />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="txtClassName">Mã Lớp Học <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="txtClassName" maxlength="100" placeholder="VD: TOEIC500-K03" required />
+                            <small class="text-muted">Nhập mã/tên lớp; hiện hệ thống lưu trong trường TenLop.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="selectCourse">Khóa Học Thuộc Về <span class="text-danger">*</span></label>
+                            <select class="form-select" id="selectCourse" required>
+                                <option value="">-- Chọn khóa học --</option>
+                                @foreach (var khoa in khoaHocs)
+                                {
+                                    <option value="@khoa.KhoaHocID">@khoa.TenKhoaHoc (@khoa.SoBuoi buổi)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="selectTeacher">Giảng Viên Phụ Trách <span class="text-danger">*</span></label>
+                            <select class="form-select" id="selectTeacher" required>
+                                <option value="">-- Chọn giảng viên --</option>
+                                @foreach (var gv in giangViens)
+                                {
+                                    <option value="@gv.NhanSuID" data-coso="@gv.CoSoID">@gv.HoTen</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="selectRoom">Phòng Học Phân Bổ <span class="text-danger">*</span></label>
+                            <select class="form-select" id="selectRoom" required>
+                                <option value="">-- Chọn phòng học --</option>
+                                @foreach (var phong in phongHocs)
+                                {
+                                    <option value="@phong.PhongHocID" data-coso="@phong.CoSoID" data-succhua="@phong.SucChua">@phong.TenPhong (Sức chứa @phong.SucChua)</option>
+                                }
+                            </select>
+                            <small class="text-muted" id="roomHelp"></small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" for="txtMaxStudents">Sĩ Số Tối Đa (Max 40) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="txtMaxStudents" min="1" max="40" value="20" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" for="txtStartDate">Ngày Khai Giảng <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="txtStartDate" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="selectStatus">Trạng Thái Đào Tạo</label>
+                            <select class="form-select" id="selectStatus">
+                                <option value="Dự kiến">Dự kiến</option>
+                                <option value="Sắp mở" selected>Sắp mở</option>
+                                <option value="Đang diễn ra">Đang diễn ra</option>
+                                <option value="Đã kết thúc">Đã kết thúc</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="txtScheduleDesc">Lịch Học Định Kỳ</label>
+                            <input type="text" class="form-control" id="txtScheduleDesc" placeholder="VD: T2 - T4 - T6 (18:00 - 20:00)" />
+                            <small class="text-muted">Nhập lịch dạng mô tả; không tách thành từng buổi.</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveClass"><i class="fa-solid fa-floppy-disk me-1"></i> Lưu Lớp Học</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let classRows = [];
+    let currentEditId = 0;
+    let currentPage = 1;
+    let totalPages = 1;
+
+    $(document).ready(function () {
+        loadClasses();
+
+        $('#selectTeacher, #selectRoom').on('change', function () {
+            validateRoomTeacherCampus(false);
+        });
+
+        $('#btnFilterClass').on('click', function () { currentPage = 1; loadClasses(); });
+        $('#classPageSize').on('change', function () { currentPage = 1; loadClasses(); });
+        $('#searchClassKeyword').on('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); currentPage = 1; loadClasses(); }
+        });
+        $('#filterCourseSelect, #filterClassStatus').on('change', function () { currentPage = 1; loadClasses(); });
+
+        $('#btnResetClassFilter').on('click', function () {
+            $('#searchClassKeyword').val('');
+            $('#filterCourseSelect').val('');
+            $('#filterClassStatus').val('');
+            currentPage = 1;
+            loadClasses();
+        });
+
+        $('#btnSaveClass').on('click', saveClass);
+    });
+
+    function showMessage(title, message, icon) {
+        if (window.Swal) Swal.fire(title, message, icon);
+        else alert(title + '\n' + message);
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, function (ch) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+        });
+    }
+
+    function statusBadge(status) {
+        switch (status) {
+            case 'Đang diễn ra': return 'bg-success-subtle text-success border-success-subtle';
+            case 'Sắp mở': return 'bg-warning-subtle text-warning border-warning-subtle';
+            case 'Dự kiến': return 'bg-info-subtle text-info border-info-subtle';
+            case 'Đã kết thúc': return 'bg-secondary-subtle text-secondary border-secondary-subtle';
+            default: return 'bg-light text-dark border-secondary-subtle';
+        }
+    }
+
+    function formatDate(value) {
+        if (!value) return '';
+        const parts = String(value).substring(0, 10).split('-');
+        return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : value;
+    }
+
+    function loadClasses() {
+        $('#classTableBody').html('<tr><td colspan="7" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>');
+        $.ajax({
+            url: '/LopHoc/DanhSach',
+            type: 'GET',
+            data: {
+                tuKhoa: $('#searchClassKeyword').val().trim(),
+                khoaHocId: $('#filterCourseSelect').val(),
+                trangThai: $('#filterClassStatus').val(),
+                page: currentPage,
+                pageSize: Number($('#classPageSize').val()) || 10
+            },
+            success: function (res) {
+                if (!res || !res.success) {
+                    $('#classTableBody').html('<tr><td colspan="7" class="text-center text-danger py-4">Không tải được danh sách lớp.</td></tr>');
+                    return;
+                }
+                classRows = res.data || [];
+                currentPage = Number(res.page || currentPage);
+                totalPages = Math.max(1, Number(res.totalPages || 1));
+                renderClassTable(classRows);
+                renderClassPagination(Number(res.totalRecords || 0));
+            },
+            error: function (xhr) {
+                $('#classTableBody').html('<tr><td colspan="7" class="text-center text-danger py-4">Lỗi tải dữ liệu (HTTP ' + xhr.status + '). Kiểm tra Controller và database.</td></tr>');
+                $('#classCount').text('0');
+            }
+        });
+    }
+
+    function renderClassTable(rows) {
+        if (!rows.length) {
+            $('#classTableBody').html('<tr><td colspan="7" class="text-center text-muted py-4">Chưa có lớp học phù hợp.</td></tr>');
+            $('#classCount').text('0');
+            $('#classTotalCount').text('0');
+            $('#classPagination').empty();
+            return;
+        }
+
+        const html = rows.map(function (x) {
+            const registered = Number(x.soHocVien || 0);
+            const max = Number(x.siSoToiDa || 0);
+            const percent = max > 0 ? Math.min(100, Math.round(registered * 100 / max)) : 0;
+            const progressClass = percent >= 90 ? 'bg-danger' : (percent >= 50 ? 'bg-warning' : 'bg-success');
+            const ended = x.trangThai === 'Đã kết thúc';
+            const deleteTitle = ended ? 'Xóa vĩnh viễn khỏi hệ thống' : 'Kết thúc lớp';
+            const deleteIcon = ended ? 'fa-trash-can' : 'fa-trash';
+            const deleteClass = ended ? 'btn-danger' : 'btn-outline-danger';
+            return `<tr data-id="${x.lopHocId}">
+                <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold">${escapeHtml(x.maLop || x.tenLop)}</span></td>
+                <td><div class="fw-bold text-dark">${escapeHtml(x.tenKhoaHoc)}</div><small class="text-muted">${escapeHtml(x.soBuoi)} buổi${x.trinhDo ? ' • ' + escapeHtml(x.trinhDo) : ''}</small></td>
+                <td><div class="fw-semibold"><i class="fa-solid fa-user-tie text-secondary me-1"></i>${escapeHtml(x.giangVien)}</div><span class="badge bg-secondary">${escapeHtml(x.phongHoc || 'Chưa phân phòng')}</span></td>
+                <td><div class="d-flex justify-content-between small mb-1"><span>Đã đăng ký: <strong>${registered}/${max}</strong></span><span class="text-muted">${percent}%</span></div><div class="progress" style="height:6px"><div class="progress-bar ${progressClass}" style="width:${percent}%"></div></div></td>
+                <td><small class="text-muted">${formatDate(x.ngayBatDau)}</small></td>
+                <td><span class="badge ${statusBadge(x.trangThai)} border status-badge">${escapeHtml(x.trangThai)}</span></td>
+                <td class="text-end pe-3 text-nowrap">
+                    <a href="/DiemDanh?lopHocId=${x.lopHocId}" class="btn btn-sm btn-outline-success me-1" title="Điểm danh lớp"><i class="fa-solid fa-clipboard-check"></i></a>
+                    <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa" onclick="openEditClassModal(${x.lopHocId})"><i class="fa-solid fa-pen"></i></button>
+                    <button type="button" class="btn btn-sm ${deleteClass}" title="${deleteTitle}" onclick="confirmDeleteClass(${x.lopHocId}, ${ended})"><i class="fa-solid ${deleteIcon}"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+
+        $('#classTableBody').html(html);
+        $('#classCount').text(rows.length);
+    }
+
+    function renderClassPagination(totalRecords) {
+        $('#classTotalCount').text(totalRecords);
+        const $nav = $('#classPagination').empty();
+        if (totalPages <= 1) return;
+        $nav.append(`<button type="button" class="btn btn-outline-secondary" ${currentPage <= 1 ? 'disabled' : ''} onclick="goToClassPage(${currentPage - 1})" aria-label="Trang trước">&laquo;</button>`);
+        const start = Math.max(1, currentPage - 2);
+        const end = Math.min(totalPages, currentPage + 2);
+        for (let p = start; p <= end; p++) {
+            $nav.append(`<button type="button" class="btn ${p === currentPage ? 'btn-primary' : 'btn-outline-secondary'}" onclick="goToClassPage(${p})">${p}</button>`);
+        }
+        $nav.append(`<button type="button" class="btn btn-outline-secondary" ${currentPage >= totalPages ? 'disabled' : ''} onclick="goToClassPage(${currentPage + 1})" aria-label="Trang sau">&raquo;</button>`);
+    }
+
+    function goToClassPage(page) {
+        if (page < 1 || page > totalPages || page === currentPage) return;
+        currentPage = page;
+        loadClasses();
+    }
+
+    function openCreateClassModal() {
+        currentEditId = 0;
+        $('#formClass')[0].reset();
+        $('#hiddenClassId').val('0');
+        $('#txtMaxStudents').val(20);
+        $('#selectStatus').val('Sắp mở');
+        $('#txtStartDate').val('');
+        $('#txtScheduleDesc').val('T2 - T4 - T6 (18:00 - 20:00)');
+        $('#modalClassTitle').html('<i class="fa-solid fa-chalkboard-user me-2 text-primary"></i>Mở Lớp Học Đào Tạo Mới');
+        $('#roomHelp').text('');
+    }
+
+    function openEditClassModal(id) {
+        const x = classRows.find(item => Number(item.lopHocId) === Number(id));
+        if (!x) {
+            showMessage('Lỗi', 'Không tìm thấy dữ liệu lớp học. Vui lòng tải lại danh sách.', 'error');
+            return;
+        }
+        currentEditId = Number(x.lopHocId);
+        $('#hiddenClassId').val(x.lopHocId);
+        $('#txtClassName').val(x.tenLop || x.maLop || '');
+        $('#selectCourse').val(String(x.khoaHocId));
+        $('#selectTeacher').val(String(x.giaoVienPhuTrachId));
+        $('#selectRoom').val(x.phongHocId ? String(x.phongHocId) : '');
+        $('#txtMaxStudents').val(x.siSoToiDa);
+        $('#txtStartDate').val(String(x.ngayBatDau || '').substring(0, 10));
+        $('#selectStatus').val(x.trangThai || 'Dự kiến');
+        $('#txtScheduleDesc').val(x.lichHocMoTa || '');
+        $('#modalClassTitle').html('<i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Chỉnh Sửa Lớp Học');
+        $('#modalClass').modal('show');
+        validateRoomTeacherCampus(false);
+    }
+
+    function validateRoomTeacherCampus(showWarning) {
+        const teacherCampus = $('#selectTeacher option:selected').data('coso');
+        const roomCampus = $('#selectRoom option:selected').data('coso');
+        const roomCapacity = Number($('#selectRoom option:selected').data('succhua') || 0);
+        const maxStudents = Number($('#txtMaxStudents').val() || 0);
+        if (teacherCampus && roomCampus && String(teacherCampus) !== String(roomCampus)) {
+            $('#roomHelp').text('Lưu ý: Phòng học và giảng viên khác cơ sở.').addClass('text-danger').removeClass('text-muted');
+            if (showWarning) showMessage('Không hợp lệ', 'Vui lòng chọn giảng viên và phòng học cùng cơ sở.', 'warning');
+            return false;
+        }
+        if (roomCapacity > 0 && maxStudents > roomCapacity) {
+            $('#roomHelp').text('Sức chứa phòng là ' + roomCapacity + ' người.').addClass('text-danger').removeClass('text-muted');
+            if (showWarning) showMessage('Sĩ số vượt sức chứa', 'Sĩ số tối đa không được vượt quá sức chứa phòng.', 'warning');
+            return false;
+        }
+        $('#roomHelp').text(roomCapacity > 0 ? 'Sức chứa phòng: ' + roomCapacity + ' người.' : '').addClass('text-muted').removeClass('text-danger');
+        return true;
+    }
+
+    function saveClass() {
+        const form = document.getElementById('formClass');
+        if (!form.reportValidity()) return;
+        if (!validateRoomTeacherCampus(true)) return;
+
+        const startDate = $('#txtStartDate').val();
+        // Giao diện không yêu cầu nhập ngày kết thúc.
+        // Model LopHoc vẫn bắt buộc trường này, nên lớp mới mặc định kết thúc cùng ngày khai giảng;
+        // khi sửa lớp, giữ ngày kết thúc hiện có trong dữ liệu nếu có.
+        const existing = classRows.find(item => Number(item.lopHocId) === Number($('#hiddenClassId').val()));
+        const endDate = (existing && existing.ngayKetThuc)
+            ? String(existing.ngayKetThuc).substring(0, 10)
+            : startDate;
+
+        const payload = {
+            lopHocId: Number($('#hiddenClassId').val()) || 0,
+            tenLop: $('#txtClassName').val().trim(),
+            khoaHocId: Number($('#selectCourse').val()),
+            giaoVienPhuTrachId: Number($('#selectTeacher').val()),
+            phongHocId: Number($('#selectRoom').val()),
+            siSoToiDa: Number($('#txtMaxStudents').val()),
+            ngayBatDau: startDate,
+            ngayKetThuc: endDate,
+            lichHocMoTa: $('#txtScheduleDesc').val().trim(),
+            trangThai: $('#selectStatus').val()
+        };
+
+        $('#btnSaveClass').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...');
+        $.ajax({
+            url: '/LopHoc/LuuLopHoc',
+            type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            data: JSON.stringify(payload),
+            success: function (res) {
+                if (res && res.success) {
+                    $('#modalClass').modal('hide');
+                    showMessage('Thành công', res.message || 'Đã lưu lớp học.', 'success');
+                    loadClasses();
+                } else {
+                    showMessage('Không thể lưu', (res && res.message) || 'Dữ liệu không hợp lệ.', 'error');
+                }
+            },
+            error: function (xhr) {
+                let message = 'Không thể lưu lớp học (HTTP ' + xhr.status + ').';
+                if (xhr.responseJSON && xhr.responseJSON.message) message = xhr.responseJSON.message;
+                showMessage('Lỗi kết nối', message, 'error');
+            },
+            complete: function () {
+                $('#btnSaveClass').prop('disabled', false).html('<i class="fa-solid fa-floppy-disk me-1"></i> Lưu Lớp Học');
+            }
+        });
+    }
+
+    function confirmDeleteClass(id, isAlreadyEnded) {
+        const permanent = Boolean(isAlreadyEnded);
+        const runDelete = function () {
+            $.ajax({
+                url: '/LopHoc/XoaLopHoc',
+                type: 'POST',
+                data: { lopHocId: id, xoaVinhVien: permanent },
+                success: function (res) {
+                    if (res && res.success) {
+                        showMessage('Thành công', res.message, 'success');
+                        loadClasses();
+                    } else {
+                        showMessage('Không thể xử lý', (res && res.message) || 'Không thể cập nhật lớp.', 'warning');
+                    }
+                },
+                error: function (xhr) {
+                    const message = xhr.responseJSON && xhr.responseJSON.message
+                        ? xhr.responseJSON.message
+                        : 'Không thể cập nhật lớp học (HTTP ' + xhr.status + ').';
+                    showMessage('Lỗi kết nối', message, 'error');
+                }
+            });
+        };
+
+        const title = permanent ? 'Xóa vĩnh viễn lớp học?' : 'Kết thúc lớp học này?';
+        const message = permanent
+            ? 'Thao tác này sẽ xóa lớp khỏi cơ sở dữ liệu và không thể hoàn tác. Chỉ thực hiện được nếu lớp không còn dữ liệu liên quan.'
+            : 'Lần đầu, lớp sẽ được chuyển sang trạng thái Đã kết thúc. Sau đó nút này sẽ cho phép xóa vĩnh viễn nếu không còn dữ liệu liên quan.';
+
+        if (window.Swal) {
+            Swal.fire({
+                title: title,
+                text: message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: permanent ? 'Xóa vĩnh viễn' : 'Kết thúc lớp',
+                cancelButtonText: 'Hủy'
+            }).then(result => { if (result.isConfirmed) runDelete(); });
+        } else if (confirm(title + '\n' + message)) {
+            runDelete();
+        }
+    }
+
+</script>
+}

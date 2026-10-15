@@ -1,0 +1,547 @@
+﻿@{
+    ViewData["Title"] = "Đăng ký Lớp & Khảo thí Đầu vào";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 text-dark fw-bold">Ghi Danh Lớp Học & Khảo Thí Đầu Vào</h4>
+        <p class="text-muted small mb-0">Tiếp nhận học viên vào lớp học và lưu trữ kết quả đánh giá năng lực đầu vào</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary" type="button" id="btnOpenPlacementTestModal">
+            <i class="fa-solid fa-file-signature me-1"></i> Ghi Nhận Kết Quả Đầu Vào
+        </button>
+        <button class="btn btn-primary" type="button" id="btnOpenEnrollModal">
+            <i class="fa-solid fa-user-plus me-1"></i> Đăng Ký Học Viên Vào Lớp
+        </button>
+    </div>
+</div>
+
+<!-- Tabs chuyển đổi giữa Danh sách đăng ký lớp và Kết quả kiểm tra đầu vào -->
+<ul class="nav nav-pills mb-4" id="enrollTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-semibold" id="tab-enrollment" data-bs-toggle="pill" data-bs-target="#pane-enrollment" type="button" role="tab">
+            <i class="fa-solid fa-address-book me-1"></i> Danh Sách Ghi Danh Vào Lớp
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="tab-placement" data-bs-toggle="pill" data-bs-target="#pane-placement" type="button" role="tab">
+            <i class="fa-solid fa-chart-simple me-1"></i> Hồ Sơ Khảo Thí Đầu Vào (Thang 0 - 100đ)
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="enrollTabsContent">
+    <!-- TAB 1: DANH SÁCH GHI DANH VÀO LỚP -->
+    <div class="tab-pane fade show active" id="pane-enrollment" role="tabpanel">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3">MÃ ĐĂNG KÝ</th>
+                                <th>HỌC VIÊN</th>
+                                <th>LỚP ĐĂNG KÝ</th>
+                                <th>KHÓA HỌC</th>
+                                <th>NGÀY GHI DANH</th>
+                                <th>HỌC PHÍ NIÊM YẾT</th>
+                                <th>TRẠNG THÁI</th>
+                                <th class="text-end pe-3">THAO TÁC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="enrollTableBody">
+                            <!-- Đăng ký 1 -->
+                            <tr id="row_enroll_1" data-id="1">
+                                <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold font-monospace">DK-1001</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark">Lê Văn Học Viên</div>
+                                    <small class="text-muted">HV-001 • 0900000003</small>
+                                </td>
+                                <td><span class="badge bg-secondary-subtle text-dark border">TOEIC500-K01</span></td>
+                                <td>TOEIC 500 Mục Tiêu</td>
+                                <td><small class="text-muted">01/10/2026</small></td>
+                                <td class="fw-bold text-dark">4,500,000 đ</td>
+                                <td><span class="badge bg-success-subtle text-success border border-success-subtle">Đã duyệt vào lớp</span></td>
+                                <td class="text-end pe-3">
+                                    <a href="/HoaDon" class="btn btn-sm btn-outline-success me-1" title="Lập hóa đơn học phí">
+                                        <i class="fa-solid fa-receipt"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-danger btn-cancel-enroll" title="Hủy đăng ký">
+                                        <i class="fa-solid fa-user-xmark"></i>
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <!-- Đăng ký 2 -->
+                            <tr id="row_enroll_2" data-id="2">
+                                <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold font-monospace">DK-1002</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark">Trần Thị Mai Phương</div>
+                                    <small class="text-muted">HV-002 • 0900000012</small>
+                                </td>
+                                <td><span class="badge bg-secondary-subtle text-dark border">IELTS6.5-K02</span></td>
+                                <td>IELTS Intensive 6.5+</td>
+                                <td><small class="text-muted">03/10/2026</small></td>
+                                <td class="fw-bold text-dark">7,500,000 đ</td>
+                                <td><span class="badge bg-success-subtle text-success border border-success-subtle">Đã duyệt vào lớp</span></td>
+                                <td class="text-end pe-3">
+                                    <a href="/HoaDon" class="btn btn-sm btn-outline-success me-1" title="Lập hóa đơn học phí">
+                                        <i class="fa-solid fa-receipt"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-danger btn-cancel-enroll" title="Hủy đăng ký">
+                                        <i class="fa-solid fa-user-xmark"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: HỒ SƠ KHẢO THÍ ĐẦU VÀO (LƯU TRỮ CỐ ĐỊNH) -->
+    <div class="tab-pane fade" id="pane-placement" role="tabpanel">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3">MÃ HV</th>
+                                <th>HỌ VÀ TÊN</th>
+                                <th>NGÀY KHẢO THÍ</th>
+                                <th>ĐIỂM ĐẦU VÀO (0 - 100)</th>
+                                <th>TRÌNH ĐỘ XẾP LỚP</th>
+                                <th>GIÁO VIÊN KHẢO THÍ</th>
+                                <th>NHẬN XÉT ĐÁNH GIÁ</th>
+                                <th class="text-end pe-3">CHI TIẾT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="placementTableBody">
+                            <tr id="row_test_1" data-code="HV-001" data-name="Lê Văn Học Viên" data-date="28/09/2026" data-score="55" data-level="B1 (Intermediate)" data-teacher="Trần Thị Giảng Viên" data-comment="Ngữ pháp cơ bản tốt, kỹ năng nghe phản xạ còn chậm. Phù hợp lộ trình TOEIC 500.">
+                                <td class="ps-3"><span class="badge bg-light text-dark border font-monospace">HV-001</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark">Lê Văn Học Viên</div>
+                                    <small class="text-muted">0900000003</small>
+                                </td>
+                                <td><small class="text-muted">28/09/2026</small></td>
+                                <td><span class="badge bg-primary fs-6">55 / 100</span></td>
+                                <td><span class="badge bg-info-subtle text-info border">B1 (Intermediate)</span></td>
+                                <td><span class="small fw-semibold text-dark">Trần Thị Giảng Viên</span></td>
+                                <td><small class="text-muted text-truncate d-inline-block" style="max-width: 220px;">Ngữ pháp cơ bản tốt, kỹ năng nghe phản xạ còn chậm.</small></td>
+                                <td class="text-end pe-3">
+                                    <button class="btn btn-sm btn-outline-secondary btn-view-test" title="Xem phiếu khảo thí">
+                                        <i class="fa-solid fa-eye me-1"></i>Xem
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr id="row_test_2" data-code="HV-002" data-name="Trần Thị Mai Phương" data-date="30/09/2026" data-score="78" data-level="B2 (Upper-Inter)" data-teacher="Nguyễn Quản Lý" data-comment="Từ vựng phong phú, phát âm rõ ràng, đủ điều kiện vào thẳng lớp IELTS Intensive 6.5+.">
+                                <td class="ps-3"><span class="badge bg-light text-dark border font-monospace">HV-002</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark">Trần Thị Mai Phương</div>
+                                    <small class="text-muted">0900000012</small>
+                                </td>
+                                <td><small class="text-muted">30/09/2026</small></td>
+                                <td><span class="badge bg-success fs-6">78 / 100</span></td>
+                                <td><span class="badge bg-success-subtle text-success border">B2 (Upper-Inter)</span></td>
+                                <td><span class="small fw-semibold text-dark">Nguyễn Quản Lý</span></td>
+                                <td><small class="text-muted text-truncate d-inline-block" style="max-width: 220px;">Từ vựng phong phú, phát âm rõ ràng, đủ điều kiện vào thẳng IELTS 6.5+.</small></td>
+                                <td class="text-end pe-3">
+                                    <button class="btn btn-sm btn-outline-secondary btn-view-test" title="Xem phiếu khảo thí">
+                                        <i class="fa-solid fa-eye me-1"></i>Xem
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white py-3">
+                <small class="text-muted"><i class="fa-solid fa-lock text-secondary me-1"></i>Lưu ý: Kết quả khảo thí đầu vào là dữ liệu lưu trữ cố định làm căn cứ ký cam kết chuẩn đầu ra và không được phép chỉnh sửa tùy tiện.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 1: Đăng Ký Học Viên Vào Lớp -->
+<div class="modal fade" id="modalEnroll" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2 text-primary"></i>Ghi Danh Học Viên Vào Lớp Học</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEnroll">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Chọn Học Viên <span class="text-danger">*</span></label>
+                            <select class="form-select" id="selectEnrollStudent" required>
+                                <option value="">-- Chọn học viên --</option>
+                                <option value="1" data-name="Lê Văn Học Viên">HV-001: Lê Văn Học Viên (Điểm test: 55/100 - B1)</option>
+                                <option value="2" data-name="Trần Thị Mai Phương">HV-002: Trần Thị Mai Phương (Điểm test: 78/100 - B2)</option>
+                                <option value="3" data-name="Nguyễn Hữu Nam">HV-003: Nguyễn Hữu Nam (Chưa có kết quả test)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Lớp Học Tiếp Nhận <span class="text-danger">*</span></label>
+                            <select class="form-select" id="selectEnrollClass" required>
+                                <option value="">-- Chọn lớp học đang mở --</option>
+                                <option value="1" data-name="TOEIC500-K01" data-course="TOEIC 500 Mục Tiêu" data-fee="4500000" data-cur="2" data-max="20">TOEIC500-K01 (Sĩ số: 2/20 - Học phí: 4.500.000đ)</option>
+                                <option value="2" data-name="IELTS6.5-K02" data-course="IELTS Intensive 6.5+" data-fee="7500000" data-cur="1" data-max="15">IELTS6.5-K02 (Sĩ số: 1/15 - Học phí: 7.500.000đ)</option>
+                                <option value="3" data-name="GIAOTIEP-K01" data-course="Tiếng Anh Giao Tiếp Cơ Bản" data-fee="3500000" data-cur="20" data-max="20">GIAOTIEP-K01 (ĐÃ ĐẦY: 20/20)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Khóa Học Thuộc Về</label>
+                            <input type="text" class="form-control bg-light" id="txtEnrollCourse" readonly placeholder="Tự động nhận diện..." />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Học Phí Niêm Yết (VNĐ)</label>
+                            <input type="text" class="form-control bg-light fw-bold text-primary" id="txtEnrollFee" readonly placeholder="0 đ" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Sĩ Số Lớp Hiện Tại</label>
+                            <input type="text" class="form-control bg-light" id="txtEnrollCapacity" readonly placeholder="0/0" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitEnroll">
+                    <i class="fa-solid fa-check me-1"></i> Xác Nhận Ghi Danh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Ghi Nhận Kết Quả Kiểm Tra Đầu Vào (Nhập mới) -->
+<div class="modal fade" id="modalPlacementTest" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-signature me-2 text-primary"></i>Biên Bản Đánh Giá Khảo Thí Đầu Vào</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formPlacement">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Học Viên Khảo Thí <span class="text-danger">*</span></label>
+                        <select class="form-select" id="selectTestStudent" required>
+                            <option value="1" data-name="Lê Văn Học Viên">HV-001: Lê Văn Học Viên</option>
+                            <option value="2" data-name="Trần Thị Mai Phương">HV-002: Trần Thị Mai Phương</option>
+                            <option value="3" data-name="Nguyễn Hữu Nam" selected>HV-003: Nguyễn Hữu Nam (Chưa có kết quả)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Điểm Đạt Được (Thang 0 - 100) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control fw-bold fs-5 text-primary" id="txtTestScore" min="0" max="100" value="65" required />
+                        <small class="text-muted">Theo quy tắc F07: Điểm số hợp lệ bắt buộc từ 0 đến 100 điểm.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Xếp Trình Độ Đề Xuất <span class="text-danger">*</span></label>
+                        <select class="form-select" id="selectTargetLevel">
+                            <option value="A1 (Mất gốc)">A1 - Sơ cấp / Mất gốc (0 - 30 điểm)</option>
+                            <option value="A2 (Pre-Intermediate)">A2 - Tiền trung cấp (31 - 50 điểm)</option>
+                            <option value="B1 (Intermediate)" selected>B1 - Trung cấp (51 - 70 điểm)</option>
+                            <option value="B2 (Upper-Inter)">B2 - Cao cấp (71 - 85 điểm)</option>
+                            <option value="C1 (Advanced)">C1 - Chuyên gia (86 - 100 điểm)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Giáo Viên Chấm Thi / Khảo Thí</label>
+                        <input type="text" class="form-control" id="txtTestTeacher" value="Trần Thị Giảng Viên" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nhận Xét Năng Lực</label>
+                        <textarea class="form-control" id="txtTestNotes" rows="2" placeholder="Ghi chú điểm mạnh ngữ pháp, từ vựng, phát âm..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSavePlacementTest">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Kết Quả
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 3: Xem Chi Tiết Phiếu Khảo Thí Đầu Vào (Chỉ đọc) -->
+<div class="modal fade" id="modalViewPlacementTest" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Phiếu Khảo Thí Đầu Vào</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="p-3 bg-light rounded mb-3 border">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">HỌC VIÊN:</span>
+                        <span class="badge bg-light text-dark border font-monospace" id="viewTestCode">HV-001</span>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1" id="viewTestName">Lê Văn Học Viên</h5>
+                    <div class="text-muted small">Ngày khảo thí: <span id="viewTestDate" class="fw-semibold">28/09/2026</span></div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="border rounded p-3 text-center">
+                            <span class="text-muted small d-block mb-1">ĐIỂM ĐẦU VÀO</span>
+                            <h3 class="fw-bold text-primary mb-0" id="viewTestScore">55 / 100</h3>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-3 text-center">
+                            <span class="text-muted small d-block mb-1">XẾP TRÌNH ĐỘ</span>
+                            <span class="badge bg-info-subtle text-info border fs-6 mt-1" id="viewTestLevel">B1 (Intermediate)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-muted small mb-1">GIÁO VIÊN KHẢO THÍ</label>
+                    <div class="p-2 border rounded bg-white fw-semibold text-dark" id="viewTestTeacher">Trần Thị Giảng Viên</div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label fw-semibold text-muted small mb-1">ĐÁNH GIÁ NĂNG LỰC & TƯ VẤN LỘ TRÌNH</label>
+                    <div class="p-3 border rounded bg-white text-muted small" id="viewTestComment">
+                        Ngữ pháp cơ bản tốt, kỹ năng nghe phản xạ còn chậm. Phù hợp lộ trình TOEIC 500.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            const enrollModal = new bootstrap.Modal(document.getElementById('modalEnroll'));
+            const testModal = new bootstrap.Modal(document.getElementById('modalPlacementTest'));
+            const viewModal = new bootstrap.Modal(document.getElementById('modalViewPlacementTest'));
+
+            // 1. Mở modal Đăng ký vào lớp
+            $('#btnOpenEnrollModal').click(function () {
+                $('#formEnroll')[0].reset();
+                $('#txtEnrollCourse').val('');
+                $('#txtEnrollFee').val('0 đ');
+                $('#txtEnrollCapacity').val('0/0');
+                enrollModal.show();
+            });
+
+            // Tự động nhận diện khóa học, học phí và kiểm tra sĩ số khi chọn lớp
+            $('#selectEnrollClass').change(function () {
+                const opt = $(this).find(':selected');
+                const course = opt.data('course') || '';
+                const fee = parseFloat(opt.data('fee')) || 0;
+                const cur = parseInt(opt.data('cur')) || 0;
+                const max = parseInt(opt.data('max')) || 0;
+
+                $('#txtEnrollCourse').val(course);
+                $('#txtEnrollFee').val(fee > 0 ? fee.toLocaleString() + ' đ' : '0 đ');
+                $('#txtEnrollCapacity').val(`${cur}/${max}`);
+
+                if (max > 0 && cur >= max) {
+                    Swal.fire('Lớp đầy', 'Lớp học này đã đủ sĩ số tối đa. Vui lòng chọn lớp học khác!', 'warning');
+                }
+            });
+
+            // 2. Xác nhận Đăng ký học viên vào lớp (AJAX)
+            $('#btnSubmitEnroll').click(function () {
+                const studentId = $('#selectEnrollStudent').val();
+                const studentName = $('#selectEnrollStudent option:selected').data('name');
+                const classOpt = $('#selectEnrollClass option:selected');
+                const classId = $('#selectEnrollClass').val();
+                const className = classOpt.data('name');
+                const courseName = classOpt.data('course');
+                const fee = parseFloat(classOpt.data('fee')) || 0;
+                const cur = parseInt(classOpt.data('cur')) || 0;
+                const max = parseInt(classOpt.data('max')) || 0;
+
+                if (!studentId || !classId) {
+                    Swal.fire('Thiếu dữ liệu', 'Vui lòng chọn đầy đủ học viên và lớp học!', 'warning');
+                    return;
+                }
+
+                if (cur >= max) {
+                    Swal.fire('Không thể ghi danh', 'Lớp học đã đạt sĩ số tối đa!', 'error');
+                    return;
+                }
+
+                const payload = {
+                    hocVienId: parseInt(studentId),
+                    hoTenHocVien: studentName,
+                    lopHocId: parseInt(classId),
+                    tenLop: className,
+                    tenKhoaHoc: courseName,
+                    hocPhiPhaiThu: fee,
+                    ngayDangKy: '07/10/2026',
+                    siSoHienTai: cur,
+                    siSoToiDa: max,
+                    trangThai: 'Đã duyệt vào lớp'
+                };
+
+                $.ajax({
+                    url: '/DangKy/LuuDangKy',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            enrollModal.hide();
+                            Swal.fire('Ghi danh thành công!', res.message, 'success');
+
+                            const randomId = Math.floor(Math.random() * 800) + 1000;
+                            const newTr = `
+                                <tr id="row_enroll_${randomId}">
+                                    <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold font-monospace">DK-${randomId}</span></td>
+                                    <td>
+                                        <div class="fw-bold text-dark">${studentName}</div>
+                                        <small class="text-muted">HV-00${studentId}</small>
+                                    </td>
+                                    <td><span class="badge bg-secondary-subtle text-dark border">${className}</span></td>
+                                    <td>${courseName}</td>
+                                    <td><small class="text-muted">07/10/2026</small></td>
+                                    <td class="fw-bold text-dark">${fee.toLocaleString()} đ</td>
+                                    <td><span class="badge bg-success-subtle text-success border border-success-subtle">Đã duyệt vào lớp</span></td>
+                                    <td class="text-end pe-3">
+                                        <a href="/HoaDon" class="btn btn-sm btn-outline-success me-1" title="Lập hóa đơn học phí">
+                                            <i class="fa-solid fa-receipt"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-danger btn-cancel-enroll" title="Hủy đăng ký">
+                                            <i class="fa-solid fa-user-xmark"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                            $('#enrollTableBody').prepend(newTr);
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    }
+                });
+            });
+
+            // 3. Mở modal Ghi nhận kết quả khảo thí đầu vào
+            $('#btnOpenPlacementTestModal').click(function () {
+                $('#formPlacement')[0].reset();
+                $('#txtTestScore').val(65);
+                testModal.show();
+            });
+
+            // Tự động phân loại trình độ theo số điểm nhập vào (Thang 0 - 100)
+            $('#txtTestScore').on('input', function () {
+                const score = parseFloat($(this).val()) || 0;
+                if (score <= 30) $('#selectTargetLevel').val('A1 (Mất gốc)');
+                else if (score <= 50) $('#selectTargetLevel').val('A2 (Pre-Intermediate)');
+                else if (score <= 70) $('#selectTargetLevel').val('B1 (Intermediate)');
+                else if (score <= 85) $('#selectTargetLevel').val('B2 (Upper-Inter)');
+                else $('#selectTargetLevel').val('C1 (Advanced)');
+            });
+
+            // 4. Lưu kết quả kiểm tra đầu vào (Lưu cố định, không có nút sửa)
+            $('#btnSavePlacementTest').click(function () {
+                const studentId = $('#selectTestStudent').val();
+                const studentName = $('#selectTestStudent option:selected').data('name');
+                const score = parseFloat($('#txtTestScore').val());
+                const targetLevel = $('#selectTargetLevel').val();
+                const teacher = $('#txtTestTeacher').val().trim();
+                const notes = $('#txtTestNotes').val().trim();
+
+                if (isNaN(score) || score < 0 || score > 100) {
+                    Swal.fire('Lỗi điểm số', 'Điểm kiểm tra phải từ 0 đến 100 điểm!', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    hocVienId: parseInt(studentId),
+                    diemDauVao: score,
+                    trinhDoDeXuat: targetLevel,
+                    nhanXet: notes
+                };
+
+                $.ajax({
+                    url: '/DangKy/LuuDiemDauVao',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            testModal.hide();
+                            Swal.fire('Đã ghi nhận kết quả!', res.message, 'success');
+
+                            const newTestTr = `
+                                <tr class="table-info" data-code="HV-00${studentId}" data-name="${studentName}" data-date="Hôm nay" data-score="${score}" data-level="${targetLevel}" data-teacher="${teacher || 'Giáo viên khảo thí'}" data-comment="${notes || 'Đã ghi nhận năng lực đầu vào'}">
+                                    <td class="ps-3"><span class="badge bg-light text-dark border font-monospace">HV-00${studentId}</span></td>
+                                    <td>
+                                        <div class="fw-bold text-dark">${studentName}</div>
+                                        <small class="text-muted">Test ngày: Hôm nay</small>
+                                    </td>
+                                    <td><small class="text-muted">Hôm nay</small></td>
+                                    <td><span class="badge bg-primary fs-6">${score} / 100</span></td>
+                                    <td><span class="badge bg-info-subtle text-info border">${targetLevel}</span></td>
+                                    <td><span class="small fw-semibold text-dark">${teacher || 'Giáo viên khảo thí'}</span></td>
+                                    <td><small class="text-muted text-truncate d-inline-block" style="max-width: 220px;">${notes || 'Đã ghi nhận năng lực'}</small></td>
+                                    <td class="text-end pe-3">
+                                        <button class="btn btn-sm btn-outline-secondary btn-view-test" title="Xem phiếu khảo thí">
+                                            <i class="fa-solid fa-eye me-1"></i>Xem
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                            $('#placementTableBody').prepend(newTestTr);
+                            $('#tab-placement').tab('show');
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    }
+                });
+            });
+
+            // 5. Xem chi tiết phiếu khảo thí đầu vào (Chỉ đọc)
+            $(document).on('click', '.btn-view-test', function () {
+                const tr = $(this).closest("tr");
+                $('#viewTestCode').text(tr.data('code'));
+                $('#viewTestName').text(tr.data('name'));
+                $('#viewTestDate').text(tr.data('date'));
+                $('#viewTestScore').text(tr.data('score') + ' / 100');
+                $('#viewTestLevel').text(tr.data('level'));
+                $('#viewTestTeacher').text(tr.data('teacher'));
+                $('#viewTestComment').text(tr.data('comment') || 'Không có nhận xét bổ sung.');
+
+                viewModal.show();
+            });
+
+            // 6. Hủy đăng ký
+            $(document).on('click', '.btn-cancel-enroll', function () {
+                const tr = $(this).closest("tr");
+                Swal.fire({
+                    title: 'Hủy đăng ký vào lớp?',
+                    text: 'Học viên sẽ được đưa ra khỏi danh sách lớp này.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'Đồng ý hủy',
+                    cancelButtonText: 'Đóng'
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        tr.fadeOut(250, function () { $(this).remove(); });
+                        Swal.fire('Thành công', 'Đã hủy ghi danh thành công!', 'success');
+                    }
+                });
+            });
+        });
+    </script>
+}

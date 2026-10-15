@@ -1,0 +1,289 @@
+@{
+    ViewData["Title"] = "Quản Lý Cam Kết & Kết Quả";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 text-dark fw-bold">Cam Kết & Kết Quả</h4>
+        <p class="text-muted small mb-0">Xem danh sách cam kết học viên, đề xuất và duyệt kết quả</p>
+    </div>
+</div>
+
+<!-- Bộ lọc -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+        <form method="get" action="/CamKet/Index" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-muted">TÌM KIẾM</label>
+                    <input type="text" class="form-control" name="keyword" placeholder="Tên học viên..." value="@ViewBag.FilterKeyword" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-muted">TRẠNG THÁI</label>
+                    <select class="form-select" name="trangThai">
+                        <option value="">-- Tất cả --</option>
+                        
+<option value="Chờ duyệt" selected="@(ViewBag.FilterTrangThai == "Chờ duyệt")">Chờ duyệt</option>
+<option value="Đã duyệt" selected="@(ViewBag.FilterTrangThai == "Đã duyệt")">Đã duyệt</option>
+<option value="Từ chối" selected="@(ViewBag.FilterTrangThai == "Từ chối")">Từ chối</option>
+
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="fa-solid fa-filter me-1"></i>Lọc
+                    </button>
+                    <a href="/CamKet/Index" class="btn btn-outline-secondary" title="Đặt lại">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bảng dữ liệu -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">Mã HV</th>
+                        <th>Họ Và Tên</th>
+                        <th>Khóa Học</th>
+                        <th>Lớp Học</th>
+                        <th>Trạng Thái</th>
+                        <th>Điểm Cuối Khóa</th>
+                        <th class="text-end pe-3">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count > 0)
+                    {
+                        @foreach (var camKet in Model)
+                        {
+                            <tr>
+                                <td class="ps-3">
+                                    <span class="badge bg-light text-dark border">HV-@camKet.HocVienID.ToString("D3")</span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">@camKet.HocVien?.HoTen</div>
+                                    <small class="text-muted">@camKet.HocVien?.Email</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info text-white">@camKet.KhoaHoc?.TenKhoaHoc</span>
+                                </td>
+                                <td>@camKet.DangKy?.LopHoc?.TenLop</td>
+                                <td>
+                                    @if (camKet.TrangThai == "Chờ duyệt")
+                                    {
+                                        <span class="badge bg-warning text-dark">@camKet.TrangThai</span>
+                                    }
+                                    else if (camKet.TrangThai == "Đã duyệt")
+                                    {
+                                        <span class="badge bg-success text-white">@camKet.TrangThai</span>
+                                    }
+                                    else if (camKet.TrangThai == "Từ chối")
+                                    {
+                                        <span class="badge bg-danger text-white">@camKet.TrangThai</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@camKet.TrangThai</span>
+                                    }
+                                </td>
+                                <td>
+                                    <strong>@(camKet.DiemCuoiKhoa?.ToString("F1") ?? "-")</strong>
+                                </td>
+                                <td class="text-end pe-3">
+                                    <a href="/CamKet/ChiTiet/@camKet.CamKetID" class="btn btn-sm btn-primary" title="Xem chi tiết">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    @{
+                                        var userRole = Context.Session.GetString("UserRole");
+                                        if ((userRole == "Admin" || userRole == "Quản lý") && camKet.TrangThai == "Chờ duyệt")
+                                        {
+                                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#mdlDuyet" onclick="loadCamKetForApproval(@camKet.CamKetID, '@camKet.HocVien.HoTen')" title="Duyệt">
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#mdlTuChoi" onclick="loadCamKetForReject(@camKet.CamKetID, '@camKet.HocVien.HoTen')" title="Từ chối">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                        }
+                                        if (userRole == "Giáo viên" && camKet.TrangThai == "Chờ duyệt" && camKet.DiemCuoiKhoa == null)
+                                        {
+                                            <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#mdlDeXuat" onclick="loadCamKetForProposal(@camKet.CamKetID, '@camKet.HocVien.HoTen')" title="Đề xuất điểm">
+                                                <i class="fa-solid fa-pencil"></i>
+                                            </button>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="fa-solid fa-inbox fs-2 mb-2 d-block"></i>
+                                Không có cam kết nào
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Phân trang -->
+@if (ViewBag.TotalPages > 1)
+{
+    <nav class="mt-4" aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            @if (ViewBag.CurrentPage > 1)
+            {
+                <li class="page-item">
+                    <a class="page-link" href="/CamKet/Index?page=1&keyword=@(ViewBag.FilterKeyword ?? "")&trangThai=@(ViewBag.FilterTrangThai ?? "")">
+                        <i class="fa-solid fa-chevron-left me-1"></i>Đầu tiên
+                    </a>
+                </li>
+            }
+            @for (int p = Math.Max(1, ViewBag.CurrentPage - 2); p <= Math.Min(ViewBag.TotalPages, ViewBag.CurrentPage + 2); p++)
+            {
+                if (p == ViewBag.CurrentPage)
+                {
+                    <li class="page-item active"><span class="page-link">@p</span></li>
+                }
+                else
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="/CamKet/Index?page=@p&keyword=@(ViewBag.FilterKeyword ?? "")&trangThai=@(ViewBag.FilterTrangThai ?? "")">@p</a>
+                    </li>
+                }
+            }
+            @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+            {
+                <li class="page-item">
+                    <a class="page-link" href="/CamKet/Index?page=@ViewBag.TotalPages&keyword=@(ViewBag.FilterKeyword ?? "")&trangThai=@(ViewBag.FilterTrangThai ?? "")">
+                        Cuối cùng<i class="fa-solid fa-chevron-right ms-1"></i>
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+}
+
+<!-- Modal Duyệt -->
+<div class="modal fade" id="mdlDuyet" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Duyệt Cam Kết</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formDuyet" method="post" action="/CamKet/Duyet">
+                <input type="hidden" name="__RequestVerificationToken" id="tokenDuyet" />
+                <input type="hidden" name="camKetId" id="camKetIdDuyet" />
+                <input type="hidden" name="approved" value="true" />
+                <div class="modal-body">
+                    <div id="camKetInfoDuyet"></div>
+                    <p class="mt-3 text-success"><i class="fa-solid fa-check-circle me-2"></i>Bạn sắp duyệt cam kết này. Điều này sẽ cập nhật trạng thái và kết quả học viên.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fa-solid fa-check me-1"></i>Duyệt
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Từ chối -->
+<div class="modal fade" id="mdlTuChoi" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Từ chối Cam Kết</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formTuChoi" method="post" action="/CamKet/Duyet">
+                <input type="hidden" name="__RequestVerificationToken" id="tokenTuChoi" />
+                <input type="hidden" name="camKetId" id="camKetIdTuChoi" />
+                <input type="hidden" name="approved" value="false" />
+                <div class="modal-body">
+                    <div id="camKetInfoTuChoi"></div>
+                    <div class="mt-3">
+                        <label class="form-label">Ghi chú lý do từ chối (tùy chọn)</label>
+                        <textarea class="form-control" name="ghiChuTuChoi" rows="3" placeholder="Nhập lý do từ chối..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fa-solid fa-xmark me-1"></i>Từ chối
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Đề xuất -->
+<div class="modal fade" id="mdlDeXuat" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Đề xuất Điểm</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formDeXuat" method="post" action="/CamKet/DeXuatDiem">
+                <input type="hidden" name="__RequestVerificationToken" id="tokenDeXuat" />
+                <input type="hidden" name="camKetId" id="camKetIdDeXuat" />
+                <div class="modal-body">
+                    <div id="camKetInfoDeXuat"></div>
+                    <div class="mt-3">
+                        <label class="form-label">Điểm Cuối Khóa (0-100)</label>
+                        <input type="number" class="form-control" name="diemCuoiKhoa" min="0" max="100" step="0.5" placeholder="Nhập điểm..." required />
+                    </div>
+                    <div class="mt-2">
+                        <label class="form-label">Ghi chú (tùy chọn)</label>
+                        <textarea class="form-control" name="ghiChu" rows="2" placeholder="Ghi chú..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-paper-plane me-1"></i>Đề xuất
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function loadCamKetForApproval(camKetId, hoTen) {
+            document.getElementById('camKetIdDuyet').value = camKetId;
+            document.getElementById('tokenDuyet').value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            document.getElementById('camKetInfoDuyet').innerHTML = '<p>Học viên: <strong>' + hoTen + '</strong></p>';
+        }
+
+        function loadCamKetForReject(camKetId, hoTen) {
+            document.getElementById('camKetIdTuChoi').value = camKetId;
+            document.getElementById('tokenTuChoi').value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            document.getElementById('camKetInfoTuChoi').innerHTML = '<p>Học viên: <strong>' + hoTen + '</strong></p>';
+        }
+
+        function loadCamKetForProposal(camKetId, hoTen) {
+            document.getElementById('camKetIdDeXuat').value = camKetId;
+            document.getElementById('tokenDeXuat').value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            document.getElementById('camKetInfoDeXuat').innerHTML = '<p>Học viên: <strong>' + hoTen + '</strong></p>';
+        }
+    </script>
+}

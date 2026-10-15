@@ -1,0 +1,516 @@
+﻿@{
+    ViewData["Title"] = "Quản lý Bảng lương";
+}
+
+<style>
+    @@media print {
+        /* Khi in: Ẩn toàn bộ giao diện hệ thống (Sidebar, Navbar, Footer...) */
+        body * {
+            visibility: hidden;
+        }
+        /* Chỉ hiển thị duy nhất vùng nội dung phiếu lương */
+        #payslipPrintArea, #payslipPrintArea * {
+            visibility: visible;
+        }
+        #payslipPrintArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 24px !important;
+            background: white !important;
+        }
+        /* Ẩn các nút đóng và nút in trong modal khi lệnh in bật lên */
+        .modal-footer, .btn-close {
+            display: none !important;
+        }
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 text-dark fw-bold">Bảng Lương & Chi Trả Thù Lao</h4>
+        <p class="text-muted small mb-0">Tính toán thu nhập giảng viên theo giờ đứng lớp, phụ cấp và giải ngân lương tháng</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalSalary" onclick="openCreateSalaryModal()">
+        <i class="fa-solid fa-calculator me-1"></i> Tính Lương Nhân Sự Mới
+    </button>
+</div>
+
+<!-- 4 Thẻ chỉ số tổng quỹ lương -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-muted small fw-semibold">TỔNG QUỸ LƯƠNG (T10/2026)</span>
+            <h4 class="fw-bold mb-0 text-dark" id="statTotalPayroll">41,200,000 đ</h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-success small fw-semibold">ĐÃ CHI TRẢ</span>
+            <h4 class="fw-bold mb-0 text-success" id="statPaidPayroll">18,500,000 đ</h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-warning small fw-semibold">CHƯA GIẢI NGÂN</span>
+            <h4 class="fw-bold mb-0 text-warning" id="statPendingPayroll">22,700,000 đ</h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-white shadow-sm p-3">
+            <span class="text-primary small fw-semibold">TỔNG GIỜ ĐỨNG LỚP</span>
+            <h4 class="fw-bold mb-0 text-primary">76 giờ</h4>
+        </div>
+    </div>
+</div>
+
+<!-- Bảng lương nhân sự -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">MÃ PHIẾU</th>
+                        <th>GIẢNG VIÊN / NHÂN VIÊN</th>
+                        <th>KỲ LƯƠNG</th>
+                        <th>LƯƠNG CƠ BẢN</th>
+                        <th>GIỜ DẠY & THÙ LAO</th>
+                        <th>PHỤ CẤP / THƯỞNG</th>
+                        <th>THỰC LĨNH</th>
+                        <th>TRẠNG THÁI</th>
+                        <th class="text-end pe-3">THAO TÁC</th>
+                    </tr>
+                </thead>
+                <tbody id="salaryTableBody">
+                    <!-- Phiếu lương 1 -->
+                    <tr id="row_sal_1" data-id="1" data-amount="18200000">
+                        <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">PL-1001</span></td>
+                        <td>
+                            <div class="fw-bold text-dark">Trần Thị Giảng Viên</div>
+                            <small class="text-muted">GV-001 • TOEIC Specialist</small>
+                        </td>
+                        <td><span class="badge bg-light text-primary border">10/2026</span></td>
+                        <td>12,000,000 đ</td>
+                        <td>
+                            <div><strong>32 giờ</strong> x 180,000 đ</div>
+                            <small class="text-muted">Thù lao: 5,760,000 đ</small>
+                        </td>
+                        <td class="text-success">+1,000,000 đ</td>
+                        <td class="fw-bold text-dark fs-6">18,200,000 đ</td>
+                        <td><span class="badge bg-warning-subtle text-warning border border-warning-subtle status-badge">Chờ duyệt</span></td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-success me-1 btn-pay" title="Chi trả lương" onclick="confirmPaySalary(this, 1, 18200000)">
+                                <i class="fa-solid fa-money-bill-transfer"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" title="In phiếu lương" onclick="printPayslip('PL-1001', 'Trần Thị Giảng Viên', 'Giảng viên TOEIC', '10/2026', 12000000, 32, 180000, 5760000, 1000000, 0, 18200000, 'Chờ duyệt')">
+                                <i class="fa-solid fa-print"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Phiếu lương 2 -->
+                    <tr id="row_sal_2" data-id="2" data-amount="18500000">
+                        <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">PL-1002</span></td>
+                        <td>
+                            <div class="fw-bold text-dark">Nguyễn Quản Lý</div>
+                            <small class="text-muted">GV-002 • IELTS Lead</small>
+                        </td>
+                        <td><span class="badge bg-light text-primary border">10/2026</span></td>
+                        <td>18,000,000 đ</td>
+                        <td>
+                            <div><strong>0 giờ</strong> (Trợ cấp quản lý)</div>
+                            <small class="text-muted">Lương cứng</small>
+                        </td>
+                        <td class="text-success">+500,000 đ</td>
+                        <td class="fw-bold text-dark fs-6">18,500,000 đ</td>
+                        <td><span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Đã chi trả</span></td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-secondary" title="In phiếu lương" onclick="printPayslip('PL-1002', 'Nguyễn Quản Lý', 'Quản lý / IELTS Lead', '10/2026', 18000000, 0, 0, 0, 500000, 0, 18500000, 'Đã chi trả')">
+                                <i class="fa-solid fa-print"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Phiếu lương 3 -->
+                    <tr id="row_sal_3" data-id="3" data-amount="4500000">
+                        <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">PL-1003</span></td>
+                        <td>
+                            <div class="fw-bold text-dark">Lê Thị Tư Vấn</div>
+                            <small class="text-muted">NV-003 • Tuyển sinh</small>
+                        </td>
+                        <td><span class="badge bg-light text-primary border">10/2026</span></td>
+                        <td>4,000,000 đ</td>
+                        <td>
+                            <div>N/A</div>
+                            <small class="text-muted">Bộ phận văn phòng</small>
+                        </td>
+                        <td class="text-success">+500,000 đ (Hoa hồng tuyển sinh)</td>
+                        <td class="fw-bold text-dark fs-6">4,500,000 đ</td>
+                        <td><span class="badge bg-warning-subtle text-warning border border-warning-subtle status-badge">Chờ duyệt</span></td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-success me-1 btn-pay" title="Chi trả lương" onclick="confirmPaySalary(this, 3, 4500000)">
+                                <i class="fa-solid fa-money-bill-transfer"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" title="In phiếu lương" onclick="printPayslip('PL-1003', 'Lê Thị Tư Vấn', 'Tư vấn tuyển sinh', '10/2026', 4000000, 0, 0, 0, 500000, 0, 4500000, 'Chờ duyệt')">
+                                <i class="fa-solid fa-print"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 1: Tính Lương Nhân Sự Mới (Dynamic Calculation) -->
+<div class="modal fade" id="modalSalary" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-calculator me-2 text-primary"></i>Lập Bảng Tính Lương Chi Tiết</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formSalary">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Chọn Nhân Sự / Giảng Viên <span class="text-danger">*</span></label>
+                            <select class="form-select" id="selectStaffSalary" required>
+                                <option value="">-- Chọn nhân sự --</option>
+                                <option value="1" data-name="Trần Thị Giảng Viên" data-base="12000000" data-role="Giảng viên" data-rate="180000">GV-001: Trần Thị Giảng Viên (GV TOEIC)</option>
+                                <option value="2" data-name="Nguyễn Quản Lý" data-base="18000000" data-role="Quản lý" data-rate="250000">GV-002: Nguyễn Quản Lý (IELTS Lead)</option>
+                                <option value="3" data-name="Lê Thị Tư Vấn" data-base="8500000" data-role="Tuyển sinh" data-rate="0">NV-003: Lê Thị Tư Vấn (Tư vấn viên)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Kỳ Lương Tháng</label>
+                            <input type="text" class="form-control bg-light" id="txtSalaryMonth" value="10/2026" readonly />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Lương Cơ Bản (VNĐ)</label>
+                            <input type="number" class="form-control bg-light fw-bold" id="txtBaseSalary" value="0" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Số Giờ Dạy Trong Tháng</label>
+                            <input type="number" class="form-control" id="txtTeachHours" value="20" min="0" step="1" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Đơn Giá / Giờ (VNĐ)</label>
+                            <input type="number" class="form-control" id="txtHourlyRate" value="180000" min="0" step="10000" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Thù Lao Giờ Dạy (Tự tính)</label>
+                            <input type="number" class="form-control bg-light text-primary fw-bold" id="txtTeachingBonus" value="0" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Phụ Cấp / Thưởng Thêm (VNĐ)</label>
+                            <input type="number" class="form-control" id="txtAllowance" value="500000" min="0" step="100000" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Khấu Trừ / Phạt (VNĐ)</label>
+                            <input type="number" class="form-control text-danger" id="txtDeduction" value="0" min="0" step="50000" />
+                        </div>
+
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded d-flex justify-content-between align-items-center border">
+                                <div>
+                                    <span class="text-muted fw-semibold">TỔNG LƯƠNG THỰC LĨNH:</span>
+                                    <div class="small text-muted">Lương cơ bản + Thù lao dạy + Phụ cấp - Khấu trừ</div>
+                                </div>
+                                <h3 class="fw-bold text-success mb-0" id="displayNetSalary">0 đ</h3>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveSalary">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Phiếu Lương
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: In & Xem Trước Phiếu Lương Chi Tiết -->
+<div class="modal fade" id="modalPrintPayslip" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-body p-4" id="payslipPrintArea">
+                <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-primary">TRUNG TÂM ANH NGỮ ENGLISH CENTER</h5>
+                        <p class="small text-muted mb-0">Hệ Thống Đào Tạo & Khảo Thí Chuẩn Quốc Tế</p>
+                        <p class="small text-muted mb-0">Địa chỉ: 123 Đường Cầu Giấy, Hà Nội - Hotline: 0900000001</p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-light text-dark border fs-6" id="pSlipCode">PL-1001</span>
+                        <div class="small text-muted mt-1">Ngày xuất: @DateTime.Now.ToString("dd/MM/yyyy")</div>
+                    </div>
+                </div>
+
+                <div class="text-center my-3">
+                    <h4 class="fw-bold text-dark text-uppercase mb-1">PHIẾU THANH TOÁN THÙ LAO & LƯƠNG</h4>
+                    <span class="text-muted fw-semibold">Kỳ lương: <span id="pSlipMonth">10/2026</span></span>
+                </div>
+
+                <div class="row g-2 mb-3 small bg-light p-3 rounded">
+                    <div class="col-6"><strong>Họ và tên:</strong> <span id="pSlipName" class="fw-bold text-dark">Trần Thị Giảng Viên</span></div>
+                    <div class="col-6"><strong>Chức vụ / Vị trí:</strong> <span id="pSlipRole">Giảng viên đứng lớp</span></div>
+                    <div class="col-6"><strong>Hình thức chi trả:</strong> <span>Chuyển khoản ngân hàng</span></div>
+                    <div class="col-6"><strong>Trạng thái:</strong> <span id="pSlipStatus" class="badge bg-success-subtle text-success">Đã chi trả</span></div>
+                </div>
+
+                <table class="table table-bordered table-sm small mb-3">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>KHOẢN MỤC THU NHẬP / KHẤU TRỪ</th>
+                            <th class="text-center" style="width: 120px;">SỐ LƯỢNG</th>
+                            <th class="text-end" style="width: 140px;">ĐƠN GIÁ</th>
+                            <th class="text-end" style="width: 150px;">THÀNH TIỀN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1. Lương cơ bản theo hợp đồng</td>
+                            <td class="text-center">1 tháng</td>
+                            <td class="text-end" id="pSlipBaseRate">12,000,000 đ</td>
+                            <td class="text-end fw-semibold" id="pSlipBaseTotal">12,000,000 đ</td>
+                        </tr>
+                        <tr>
+                            <td>2. Thù lao giảng dạy đứng lớp</td>
+                            <td class="text-center" id="pSlipHours">32 giờ</td>
+                            <td class="text-end" id="pSlipHourlyRate">180,000 đ</td>
+                            <td class="text-end fw-semibold" id="pSlipTeachingBonus">5,760,000 đ</td>
+                        </tr>
+                        <tr>
+                            <td>3. Phụ cấp, thưởng chuyên cần & hoàn thành lớp</td>
+                            <td class="text-center">--</td>
+                            <td class="text-end">--</td>
+                            <td class="text-end text-success fw-semibold" id="pSlipAllowance">+1,000,000 đ</td>
+                        </tr>
+                        <tr>
+                            <td>4. Các khoản giảm trừ / phạt vi phạm</td>
+                            <td class="text-center">--</td>
+                            <td class="text-end">--</td>
+                            <td class="text-end text-danger fw-semibold" id="pSlipDeduction">-0 đ</td>
+                        </tr>
+                        <tr class="table-active border-top">
+                            <td colspan="3" class="fw-bold text-uppercase fs-6">TỔNG THỰC LĨNH (NET):</td>
+                            <td class="text-end fw-bold text-primary fs-5" id="pSlipNetTotal">18,200,000 đ</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="d-flex justify-content-between text-center mt-4 small pt-2">
+                    <div>
+                        <p class="mb-5"><strong>Người lập phiếu</strong><br /><em>(Ký, ghi rõ họ tên)</em></p>
+                        <p class="fw-bold">Kế toán viên</p>
+                    </div>
+                    <div>
+                        <p class="mb-5"><strong>Giảng viên / Nhân sự nhận</strong><br /><em>(Ký, ghi rõ họ tên)</em></p>
+                        <p class="fw-bold" id="pSlipSignName">Trần Thị Giảng Viên</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="triggerPrint()">
+                    <i class="fa-solid fa-print me-1"></i> In Ngay
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // 1. Tự động nạp lương cơ bản và đơn giá khi chọn nhân sự
+            $('#selectStaffSalary').change(function () {
+                const opt = $(this).find(':selected');
+                const baseSalary = parseFloat(opt.data('base')) || 0;
+                const rate = parseFloat(opt.data('rate')) || 0;
+
+                $('#txtBaseSalary').val(baseSalary);
+                $('#txtHourlyRate').val(rate);
+                calculateSalary();
+            });
+
+            // 2. Tự động tính thù lao và tổng thực lĩnh khi thay đổi số liệu
+            $('#txtTeachHours, #txtHourlyRate, #txtAllowance, #txtDeduction').on('input', function () {
+                calculateSalary();
+            });
+
+            function calculateSalary() {
+                const base = parseFloat($('#txtBaseSalary').val()) || 0;
+                let hours = parseFloat($('#txtTeachHours').val()) || 0;
+                let rate = parseFloat($('#txtHourlyRate').val()) || 0;
+                let allowance = parseFloat($('#txtAllowance').val()) || 0;
+                let deduction = parseFloat($('#txtDeduction').val()) || 0;
+
+                if (hours < 0) { hours = 0; $('#txtTeachHours').val(0); }
+                if (rate < 0) { rate = 0; $('#txtHourlyRate').val(0); }
+                if (allowance < 0) { allowance = 0; $('#txtAllowance').val(0); }
+                if (deduction < 0) { deduction = 0; $('#txtDeduction').val(0); }
+
+                const teachBonus = hours * rate;
+                $('#txtTeachingBonus').val(teachBonus);
+
+                const netSalary = base + teachBonus + allowance - deduction;
+                $('#displayNetSalary').text(netSalary.toLocaleString() + ' đ');
+            }
+
+            // 3. Mở modal tạo phiếu mới
+            window.openCreateSalaryModal = function () {
+                $('#formSalary')[0].reset();
+                $('#txtSalaryMonth').val('10/2026');
+                $('#txtTeachHours').val(20);
+                $('#txtAllowance').val(500000);
+                $('#txtDeduction').val(0);
+                $('#displayNetSalary').text('0 đ');
+            };
+
+            // 4. Lưu phiếu lương bằng AJAX
+            $('#btnSaveSalary').click(function () {
+                const staffId = $('#selectStaffSalary').val();
+                const staffName = $('#selectStaffSalary option:selected').data('name');
+                const role = $('#selectStaffSalary option:selected').data('role');
+                const base = parseFloat($('#txtBaseSalary').val()) || 0;
+                const hours = parseFloat($('#txtTeachHours').val()) || 0;
+                const rate = parseFloat($('#txtHourlyRate').val()) || 0;
+                const allowance = parseFloat($('#txtAllowance').val()) || 0;
+                const deduction = parseFloat($('#txtDeduction').val()) || 0;
+                const netSalary = base + (hours * rate) + allowance - deduction;
+                const month = $('#txtSalaryMonth').val();
+
+                if (!staffId) {
+                    Swal.fire('Thiếu dữ liệu', 'Vui lòng chọn nhân sự/giảng viên!', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    nhanVienId: parseInt(staffId),
+                    hoTen: staffName,
+                    thangNam: month,
+                    luongCoBan: base,
+                    soGioDay: hours,
+                    donGiaGio: rate,
+                    phuCap: allowance,
+                    khauTru: deduction,
+                    thucLinh: netSalary
+                };
+
+                $.ajax({
+                    url: '/BangLuong/LuuBangLuong',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            $('#modalSalary').modal('hide');
+                            Swal.fire('Thành công!', res.message, 'success');
+
+                            const randomId = Math.floor(Math.random() * 800) + 1000;
+                            const newTr = `
+                                <tr id="row_sal_${randomId}" data-id="${randomId}" data-amount="${netSalary}">
+                                    <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">PL-${randomId}</span></td>
+                                    <td>
+                                        <div class="fw-bold text-dark">${staffName}</div>
+                                        <small class="text-muted">NV-00${staffId}</small>
+                                    </td>
+                                    <td><span class="badge bg-light text-primary border">${month}</span></td>
+                                    <td>${base.toLocaleString()} đ</td>
+                                    <td>
+                                        <div><strong>${hours} giờ</strong> x ${rate.toLocaleString()} đ</div>
+                                        <small class="text-muted">Thù lao: ${(hours * rate).toLocaleString()} đ</small>
+                                    </td>
+                                    <td class="text-success">+${allowance.toLocaleString()} đ</td>
+                                    <td class="fw-bold text-dark fs-6">${netSalary.toLocaleString()} đ</td>
+                                    <td><span class="badge bg-warning-subtle text-warning border border-warning-subtle status-badge">Chờ duyệt</span></td>
+                                    <td class="text-end pe-3">
+                                        <button class="btn btn-sm btn-outline-success me-1 btn-pay" title="Chi trả lương" onclick="confirmPaySalary(this, ${randomId}, ${netSalary})">
+                                            <i class="fa-solid fa-money-bill-transfer"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" title="In phiếu lương" onclick="printPayslip('PL-${randomId}', '${staffName}', '${role}', '${month}', ${base}, ${hours}, ${rate}, ${hours * rate}, ${allowance}, ${deduction}, ${netSalary}, 'Chờ duyệt')">
+                                            <i class="fa-solid fa-print"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                            $('#salaryTableBody').prepend(newTr);
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi kết nối', 'Không thể kết nối đến máy chủ!', 'error');
+                    }
+                });
+            });
+
+            // 5. Xác nhận giải ngân chi trả lương
+            window.confirmPaySalary = function (btnElement, id, amount) {
+                const tr = $(btnElement).closest("tr");
+
+                Swal.fire({
+                    title: 'Xác nhận giải ngân lương?',
+                    text: `Bạn chuẩn bị chi trả số tiền ${amount.toLocaleString()} đ cho nhân viên này.`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#10b981',
+                    confirmButtonText: 'Đồng ý chi trả',
+                    cancelButtonText: 'Hủy'
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        $.ajax({
+                            url: '/BangLuong/ChiTraLuong?bangLuongId=' + id,
+                            type: 'POST',
+                            success: function (res) {
+                                if (res.success) {
+                                    Swal.fire('Thành công', res.message, 'success');
+                                    tr.find('.status-badge')
+                                        .removeClass('bg-warning-subtle text-warning border-warning-subtle')
+                                        .addClass('bg-success-subtle text-success border border-success-subtle')
+                                        .text('Đã chi trả');
+                                    tr.find('.btn-pay').remove();
+                                }
+                            }
+                        });
+                    }
+                });
+            };
+
+            // 6. Mở Modal Xem Trước Phiếu Lương Chi Tiết
+            window.printPayslip = function (code, name, role, month, base, hours, rate, teachBonus, allowance, deduction, net, status) {
+                $('#pSlipCode').text(code || 'PL-1001');
+                $('#pSlipName').text(name);
+                $('#pSlipSignName').text(name);
+                $('#pSlipRole').text(role || 'Giảng viên đứng lớp');
+                $('#pSlipMonth').text(month);
+                $('#pSlipBaseRate').text(parseFloat(base).toLocaleString() + ' đ');
+                $('#pSlipBaseTotal').text(parseFloat(base).toLocaleString() + ' đ');
+                $('#pSlipHours').text(hours + ' giờ');
+                $('#pSlipHourlyRate').text(parseFloat(rate).toLocaleString() + ' đ');
+                $('#pSlipTeachingBonus').text(parseFloat(teachBonus).toLocaleString() + ' đ');
+                $('#pSlipAllowance').text('+' + parseFloat(allowance).toLocaleString() + ' đ');
+                $('#pSlipDeduction').text('-' + parseFloat(deduction).toLocaleString() + ' đ');
+                $('#pSlipNetTotal').text(parseFloat(net).toLocaleString() + ' đ');
+                $('#pSlipStatus').text(status);
+
+                $('#modalPrintPayslip').modal('show');
+            };
+
+            // 7. Kích hoạt lệnh in hệ thống
+            window.triggerPrint = function () {
+                window.print();
+            };
+        });
+    </script>
+}
