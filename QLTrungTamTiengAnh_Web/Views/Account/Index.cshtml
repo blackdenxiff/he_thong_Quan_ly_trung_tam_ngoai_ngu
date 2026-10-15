@@ -126,7 +126,7 @@
                         <select class="form-select" id="selectPerson" style="width:100%" required>
                             <option value="">-- Chọn người --</option>
                         </select>
-                        <div class="form-text">Có thể tìm theo tên hoặc mã hồ sơ trong danh sách.</div>
+                        <div class="form-text">Tìm theo tên hoặc mã. Mỗi lần chỉ tải 10 hồ sơ; kéo xuống để tải tiếp.</div>
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
@@ -144,7 +144,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold" for="txtUsernameModal">3. Tên đăng nhập</label>
-                        <input class="form-control font-monospace" id="txtUsernameModal" required maxlength="100" />
+                        <input class="form-control font-monospace" id="txtUsernameModal" required maxlength="50" />
                         <div class="form-text">Tên đăng nhập được gợi ý tự động và có thể chỉnh sửa.</div>
                     </div>
                     <div class="mb-3">
@@ -254,11 +254,16 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body">
+                <input type="search" id="trashSearch" class="form-control mb-3" placeholder="Tìm tên đăng nhập trong thùng rác..." autocomplete="off" />
                 <div class="table-responsive">
                     <table class="table table-sm align-middle">
                         <thead><tr><th>Tên đăng nhập</th><th>Vai trò</th><th>Ngày xóa</th><th>Thao tác</th></tr></thead>
                         <tbody id="trashTableBody"><tr><td colspan="4" class="text-center text-muted">Chưa tải dữ liệu.</td></tr></tbody>
                     </table>
+                </div>
+                <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
+                    <small class="text-muted">Hiển thị <span id="trashDisplayRange">0-0</span> / <span id="trashTotal">0</span></small>
+                    <nav aria-label="Phân trang thùng rác"><ul class="pagination pagination-sm mb-0" id="trashPagination"></ul></nav>
                 </div>
             </div>
         </div>
@@ -293,7 +298,11 @@
         $(function() {
             const pageSize = 10;
             let currentPage = 1;
+            let currentTrashPage = 1;
             let activeUserId = null;
+            let accountsRequest = null;
+            let trashRequest = null;
+            let trashSearchTimer = null;
             const createModalEl = document.getElementById('modalCreateUser');
             const bulkModalEl = document.getElementById('modalBulkCreate');
             const editModalEl = document.getElementById('modalEditRole');
@@ -332,37 +341,59 @@
                     const lockText = u.trangThai === 'Hoạt động' ? 'Khóa' : 'Mở khóa';
                     const lockIcon = u.trangThai === 'Hoạt động' ? 'fa-lock' : 'fa-lock-open';
                     const row = `
-                                <tr data-id="${Number(u.nguoiDungId)}"
-                                    data-username="${escapeHtml(u.tenDangNhap)}"
-                                    data-fullname="${escapeHtml(u.hoTen)}"
-                                    data-role-id="${Number(u.vaiTroId)}"
-                                    data-status="${escapeHtml(u.trangThai)}">
-                                    <td class="ps-3"><span class="badge bg-light text-dark border font-monospace">${escapeHtml(u.tenDangNhap)}</span></td>
-                                    <td class="fw-semibold">${escapeHtml(u.hoTen || '')}</td>
-                                    <td class="text-muted small">${escapeHtml(u.email || '')}</td>
-                                    <td><span class="badge ${roleBadgeClass(u.vaiTro)} role-badge">${escapeHtml(u.vaiTro || 'Chưa phân quyền')}</span></td>
-                                    <td><span class="badge ${statusClass} status-badge">${escapeHtml(u.trangThai)}</span></td>
-                                    <td class="text-end pe-3 text-nowrap">
-                                        <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit-role" title="Phân quyền"><i class="fa-solid fa-user-shield"></i></button>
-                                        <button type="button" class="btn btn-sm btn-outline-warning me-1 btn-toggle-lock" title="${lockText}"><i class="fa-solid ${lockIcon}"></i></button>
-                                        <button type="button" class="btn btn-sm btn-outline-danger btn-soft-delete" title="Xóa mềm"><i class="fa-solid fa-trash"></i></button>
-                                    </td>
-                                </tr>`;
+                                        <tr data-id="${Number(u.nguoiDungId)}"
+                                            data-username="${escapeHtml(u.tenDangNhap)}"
+                                            data-fullname="${escapeHtml(u.hoTen)}"
+                                            data-role-id="${Number(u.vaiTroId)}"
+                                            data-status="${escapeHtml(u.trangThai)}">
+                                            <td class="ps-3"><span class="badge bg-light text-dark border font-monospace">${escapeHtml(u.tenDangNhap)}</span></td>
+                                            <td class="fw-semibold">${escapeHtml(u.hoTen || '')}</td>
+                                            <td class="text-muted small">${escapeHtml(u.email || '')}</td>
+                                            <td><span class="badge ${roleBadgeClass(u.vaiTro)} role-badge">${escapeHtml(u.vaiTro || 'Chưa phân quyền')}</span></td>
+                                            <td><span class="badge ${statusClass} status-badge">${escapeHtml(u.trangThai)}</span></td>
+                                            <td class="text-end pe-3 text-nowrap">
+                                                <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit-role" title="Phân quyền"><i class="fa-solid fa-user-shield"></i></button>
+                                                <button type="button" class="btn btn-sm btn-outline-warning me-1 btn-toggle-lock" title="${lockText}"><i class="fa-solid ${lockIcon}"></i></button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger btn-soft-delete" title="Xóa mềm"><i class="fa-solid fa-trash"></i></button>
+                                            </td>
+                                        </tr>`;
                     $tbody.append(row);
                 });
             }
 
-            function renderPagination(page, totalPages) {
-                const $ul = $('#usersPagination').empty();
+            // Chỉ vẽ tối đa 5 nút trang cùng Trước/Sau, kể cả khi có hàng nghìn trang.
+            function renderPagination(page, totalPages, target) {
+                const $ul = $(target).empty();
                 if (totalPages <= 1) return;
-                for (let i = 1; i <= totalPages; i++) {
-                    $ul.append(`<li class="page-item ${i === page ? 'active' : ''}"><button class="page-link" type="button" data-page="${i}">${i}</button></li>`);
-                }
+                const add = (number, label, disabled = false, active = false) => {
+                    $ul.append(`<li class="page-item ${disabled ? 'disabled' : ''} ${active ? 'active' : ''}">
+                                <button type="button" class="page-link" data-page="${number}" ${disabled ? 'disabled' : ''}>${label}</button>
+                            </li>`);
+                };
+                add(Math.max(1, page - 1), '‹', page <= 1);
+                const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+                const end = Math.min(totalPages, start + 4);
+                for (let i = start; i <= end; i++) add(i, String(i), false, i === page);
+                add(Math.min(totalPages, page + 1), '›', page >= totalPages);
+            }
+
+            function loadStats() {
+                $.getJSON('/Account/GetAccountStats')
+                    .done(function(res) {
+                        if (!res || !res.success) return;
+                        $('#statTotalUsersTop').text(res.totalAccounts ?? 0);
+                        $('#statAdminUsers').text(res.adminManagers ?? 0);
+                        $('#statStaffUsers').text(res.staffAccounts ?? 0);
+                        $('#statLockedUsers').text(res.lockedAccounts ?? 0);
+                    })
+                    .fail(function(xhr) { console.error('GetAccountStats:', xhr.status); });
             }
 
             function loadUsers(page) {
-                const requestedPage = page || 1;
-                $.ajax({
+                const requestedPage = Math.max(1, Number(page) || 1);
+                if (accountsRequest && accountsRequest.readyState !== 4) accountsRequest.abort();
+                $('#userTableBody').html('<tr><td colspan="6" class="text-center text-muted py-4">Đang tải...</td></tr>');
+                accountsRequest = $.ajax({
                     url: '/Account/GetAccounts',
                     type: 'GET',
                     dataType: 'json',
@@ -378,74 +409,70 @@
                             $('#userTableBody').html('<tr><td colspan="6" class="text-center text-danger py-4">Máy chủ không trả về danh sách tài khoản hợp lệ.</td></tr>');
                             return;
                         }
-
                         currentPage = res.currentPage || 1;
                         renderRows(res.items || []);
-                        renderPagination(currentPage, res.totalPages || 0);
-                        $('#statTotalUsers, #statTotalUsersTop').text(res.totalItems || 0);
+                        renderPagination(currentPage, res.totalPages || 0, '#usersPagination');
+                        $('#statTotalUsers').text(res.totalItems || 0);
                         const total = res.totalItems || 0;
                         const start = total ? ((currentPage - 1) * pageSize + 1) : 0;
                         const end = Math.min(currentPage * pageSize, total);
                         $('#displayRange').text(`${start}-${end}`);
                     },
-                    error: function(xhr) {
+                    error: function(xhr, status) {
+                        if (status === 'abort') return;
                         console.error('GetAccounts:', xhr.status, xhr.responseText);
-                        $('#userTableBody').html(`<tr><td colspan="6" class="text-center text-danger py-4">Không tải được danh sách tài khoản (HTTP ${xhr.status}). Kiểm tra F12 → Network.</td></tr>`);
+                        $('#userTableBody').html(`<tr><td colspan="6" class="text-center text-danger py-4">Không tải được danh sách tài khoản (HTTP ${xhr.status}).</td></tr>`);
                     }
                 });
             }
 
+            // Select2 remote search: mỗi request chỉ tải 10 hồ sơ chưa có tài khoản.
+            // Dữ liệu ở trang tiếp theo chỉ tải khi kéo xuống cuối danh sách.
             function loadUnlinkedPersons(group) {
                 const $person = $('#selectPerson');
-                if ($person.hasClass('select2-hidden-accessible')) {
-                    $person.select2('destroy');
-                }
-                $person.prop('disabled', true).empty().append(new Option('Đang tải danh sách...', ''));
-
+                if ($person.hasClass('select2-hidden-accessible')) $person.select2('destroy');
+                $person.empty().append(new Option('', ''));
                 $('#txtPersonName, #txtPersonCode, #txtPersonDob, #txtUsernameModal, #txtDefaultPassword').val('');
-
-                $.ajax({
-                    url: '/Account/GetUnlinkedPersons',
-                    type: 'GET',
-                    dataType: 'json',
-                    data: { loai: group },
-                    success: function(res) {
-                        $person.empty().append(new Option('-- Chọn người --', ''));
-                        if (!res || !res.success) {
-                            Swal.fire('Lỗi', res?.message || 'Không tải được hồ sơ.', 'error');
-                            return;
-                        }
-
-                        (res.items || []).forEach(function(p) {
-                            const suffix = p.ngaySinh ? ` - Ngày sinh: ${p.ngaySinh}` : '';
-                            const label = `${p.hoTen || ''} (Mã: ${p.ma || ''}${suffix})`;
-                            const option = new Option(label, p.id);
-                            $(option).attr({
-                                'data-ma': p.ma || '',
-                                'data-hoten': p.hoTen || '',
-                                'data-ngaysinh': p.ngaySinh || ''
-                            });
-                            $person.append(option);
-                        });
-
-                        $person.select2({
-                            dropdownParent: $('#modalCreateUser'),
-                            width: '100%',
-                            placeholder: 'Nhập tên hoặc mã để tìm...',
-                            allowClear: true
-                        });
-
-                        if (!res.items || res.items.length === 0) {
-                            $person.append(new Option('Không còn hồ sơ chưa có tài khoản', ''));
+                $person.select2({
+                    dropdownParent: $('#modalCreateUser'),
+                    width: '100%',
+                    placeholder: '-- Chọn người hoặc nhập tên/mã để tìm --',
+                    allowClear: true,
+                    ajax: {
+                        url: '/Account/GetUnlinkedPersons',
+                        dataType: 'json',
+                        delay: 300,
+                        cache: false,
+                        data: function(params) {
+                            return {
+                                loai: $('#selectGroup').val(),
+                                keyword: params.term || '',
+                                page: params.page || 1
+                            };
+                        },
+                        processResults: function(res) {
+                            if (!res || !res.success) {
+                                console.error('GetUnlinkedPersons:', res?.message);
+                                return { results: [], pagination: { more: false } };
+                            }
+                            return {
+                                results: (res.items || []).map(function(p) {
+                                    return {
+                                        id: p.id,
+                                        text: `${p.hoTen} (Mã: ${p.ma}${p.ngaySinh ? ', Sinh: ' + p.ngaySinh : ''})`,
+                                        ma: p.ma,
+                                        hoTen: p.hoTen,
+                                        ngaySinh: p.ngaySinh
+                                    };
+                                }),
+                                pagination: { more: res.hasMore === true }
+                            };
                         }
                     },
-                    error: function(xhr) {
-                        console.error('GetUnlinkedPersons:', xhr.status, xhr.responseText);
-                        $person.empty().append(new Option('Không tải được danh sách', ''));
-                        Swal.fire('Lỗi', `Không tải được danh sách hồ sơ (HTTP ${xhr.status}).`, 'error');
-                    },
-                    complete: function() {
-                        $person.prop('disabled', false);
+                    language: {
+                        noResults: () => 'Không tìm thấy hồ sơ chưa có tài khoản',
+                        searching: () => 'Đang tìm...',
+                        loadingMore: () => 'Đang tải thêm 10 hồ sơ...'
                     }
                 });
             }
@@ -463,16 +490,15 @@
             });
 
             $('#selectPerson').on('change', function() {
-                const $option = $(this).find('option:selected');
+                const selected = $(this).select2('data')[0] || {};
                 const id = $(this).val();
-                const name = $option.attr('data-hoten') || '';
-                const code = $option.attr('data-ma') || '';
-                const dob = $option.attr('data-ngaysinh') || '';
+                const name = selected.hoTen || '';
+                const code = selected.ma || '';
+                const dob = selected.ngaySinh || '';
 
                 $('#txtPersonName').val(name);
                 $('#txtPersonCode').val(code);
                 $('#txtPersonDob').val(dob);
-
                 if (!id) {
                     $('#txtUsernameModal, #txtDefaultPassword').val('');
                     return;
@@ -485,8 +511,9 @@
                     .replace(/đ/g, 'd').replace(/Đ/g, 'D')
                     .replace(/[^a-zA-Z0-9]/g, '')
                     .toLowerCase();
-
-                $('#txtUsernameModal').val(`${prefix}${String(id).padStart(3, '0')}${usernameSlug ? '_' + usernameSlug : ''}`);
+                const codePrefix = `${prefix}${String(id).padStart(3, '0')}`;
+                const suffix = usernameSlug ? '_' + usernameSlug : '';
+                $('#txtUsernameModal').val((codePrefix + suffix).slice(0, 50));
                 $('#txtDefaultPassword').val(dob ? dob.split('/').join('') : '123456');
             });
 
@@ -495,7 +522,6 @@
                     loai: $('#selectGroup').val(),
                     personId: Number($('#selectPerson').val()),
                     tenDangNhap: $('#txtUsernameModal').val().trim(),
-                    matKhauPlain: $('#txtDefaultPassword').val(),
                     vaiTroId: Number($('#selectRoleModal').val())
                 };
 
@@ -526,6 +552,7 @@
                             createModal.hide();
                             Swal.fire('Thành công', res.message, 'success');
                             loadUsers(1);
+                            loadStats();
                         },
                         error: function(xhr) {
                             console.error('CapTaiKhoanDonLe:', xhr.status, xhr.responseText);
@@ -578,6 +605,7 @@
                             }
                             Swal.fire('Thành công', res.message, 'success');
                             loadUsers(currentPage);
+                            loadStats();
                         },
                         error: function(xhr) {
                             console.error('DoiTrangThaiKhoa:', xhr.status, xhr.responseText);
@@ -613,6 +641,7 @@
                             }
                             Swal.fire('Thành công', res.message, 'success');
                             loadUsers(1);
+                            loadStats();
                         },
                         error: function(xhr) {
                             console.error('SoftDelete:', xhr.status, xhr.responseText);
@@ -650,6 +679,7 @@
                         editModal.hide();
                         Swal.fire('Thành công', res.message, 'success');
                         loadUsers(currentPage);
+                        loadStats();
                     },
                     error: function(xhr) {
                         console.error('CapNhatQuyen:', xhr.status, xhr.responseText);
@@ -697,6 +727,7 @@
                             bulkModal.hide();
                             Swal.fire('Hoàn tất', res.message, 'success');
                             loadUsers(1);
+                            loadStats();
                         },
                         error: function(xhr) {
                             console.error('CapTaiKhoanHangLoat:', xhr.status, xhr.responseText);
@@ -706,82 +737,94 @@
                 });
             });
 
-            function loadTrash() {
-                $.getJSON('/Account/Trash')
-                    .done(function(res) {
-                        const $tbody = $('#trashTableBody').empty();
-                        if (!res || !res.success || !res.data || res.data.length === 0) {
-                            $tbody.html('<tr><td colspan="4" class="text-center text-muted">Thùng rác trống.</td></tr>');
+            // Thùng rác: tìm kiếm/phân trang tại server, không tải toàn bộ một lần.
+            function loadTrash(page = 1) {
+                const requestedPage = Math.max(1, Number(page) || 1);
+                if (trashRequest && trashRequest.readyState !== 4) trashRequest.abort();
+                $('#trashTableBody').html('<tr><td colspan="4" class="text-center text-muted">Đang tải...</td></tr>');
+                trashRequest = $.ajax({
+                    url: '/Account/Trash',
+                    type: 'GET',
+                    dataType: 'json',
+                    data: { page: requestedPage, keyword: $('#trashSearch').val().trim() },
+                    success: function(res) {
+                        if (!res || !res.success) {
+                            $('#trashTableBody').html('<tr><td colspan="4" class="text-center text-danger">Không tải được thùng rác.</td></tr>');
                             return;
                         }
-                        res.data.forEach(function(u) {
-                            const deletedAt = u.deletedAt ? new Date(u.deletedAt).toLocaleString('vi-VN') : '';
-                            $tbody.append(`<tr data-id="${Number(u.nguoiDungId)}">
-                                        <td>${escapeHtml(u.tenDangNhap)}</td>
-                                        <td>${escapeHtml(u.vaiTro)}</td>
-                                        <td>${escapeHtml(deletedAt)}</td>
-                                        <td class="text-nowrap">
-                                            <button type="button" class="btn btn-sm btn-success btn-restore me-1">Khôi phục</button>
-                                            <button type="button" class="btn btn-sm btn-danger btn-hard-delete">Xóa vĩnh viễn</button>
-                                        </td>
-                                    </tr>`);
-                        });
-                    })
-                    .fail(function(xhr) {
-                        console.error('Trash:', xhr.status, xhr.responseText);
-                        $('#trashTableBody').html('<tr><td colspan="4" class="text-danger text-center">Không tải được thùng rác.</td></tr>');
-                    });
+                        currentTrashPage = res.currentPage || 1;
+                        const $tbody = $('#trashTableBody').empty();
+                        if (!res.items || res.items.length === 0) {
+                            $tbody.html('<tr><td colspan="4" class="text-center text-muted">Thùng rác trống hoặc không có kết quả.</td></tr>');
+                        } else {
+                            res.items.forEach(function(u) {
+                                const deletedAt = u.deletedAt ? new Date(u.deletedAt).toLocaleString('vi-VN') : '';
+                                $tbody.append(`<tr data-id="${Number(u.nguoiDungId)}">
+                                            <td>${escapeHtml(u.tenDangNhap)}</td>
+                                            <td>${escapeHtml(u.vaiTro)}</td>
+                                            <td>${escapeHtml(deletedAt)}</td>
+                                            <td><button type="button" class="btn btn-sm btn-success btn-restore">Khôi phục</button></td>
+                                        </tr>`);
+                            });
+                        }
+                        const total = res.totalItems || 0;
+                        const first = total ? (currentTrashPage - 1) * pageSize + 1 : 0;
+                        const last = Math.min(currentTrashPage * pageSize, total);
+                        $('#trashDisplayRange').text(`${first}-${last}`);
+                        $('#trashTotal').text(total);
+                        renderPagination(currentTrashPage, res.totalPages || 0, '#trashPagination');
+                    },
+                    error: function(xhr, status) {
+                        if (status === 'abort') return;
+                        $('#trashTableBody').html(`<tr><td colspan="4" class="text-danger text-center">Lỗi tải thùng rác (HTTP ${xhr.status}).</td></tr>`);
+                    }
+                });
             }
 
             $('#menuRecycleBin').on('click', function(e) {
                 e.preventDefault();
-                loadTrash();
+                $('#trashSearch').val('');
                 trashModal.show();
+                loadTrash(1);
+            });
+
+            $('#trashSearch').on('input', function() {
+                clearTimeout(trashSearchTimer);
+                trashSearchTimer = setTimeout(() => loadTrash(1), 300);
+            });
+            $(document).on('click', '#trashPagination [data-page]', function() {
+                loadTrash(Number($(this).attr('data-page')));
             });
 
             $(document).on('click', '.btn-restore', function() {
                 const id = Number($(this).closest('tr').attr('data-id'));
-                $.post('/Account/Restore', { id: id })
-                    .done(function(res) {
-                        if (!res || !res.success) {
-                            Swal.fire('Lỗi', res?.message || 'Không thể khôi phục.', 'error');
-                            return;
-                        }
-                        Swal.fire('Thành công', res.message, 'success');
-                        loadTrash();
-                        loadUsers(1);
-                    })
-                    .fail(function(xhr) {
-                        Swal.fire('Lỗi', `Không thể khôi phục (HTTP ${xhr.status}).`, 'error');
-                    });
-            });
-
-            $(document).on('click', '.btn-hard-delete', function() {
-                const id = Number($(this).closest('tr').attr('data-id'));
                 Swal.fire({
-                    title: 'Xóa vĩnh viễn?',
-                    text: 'Thao tác này không thể hoàn tác.',
-                    icon: 'warning',
+                    title: 'Khôi phục tài khoản?',
+                    text: 'Tài khoản sẽ được đưa trở lại danh sách.',
+                    icon: 'question',
                     showCancelButton: true,
-                    confirmButtonText: 'Xóa vĩnh viễn',
+                    confirmButtonText: 'Khôi phục',
                     cancelButtonText: 'Hủy'
                 }).then(function(result) {
                     if (!result.isConfirmed) return;
-                    $.post('/Account/HardDelete', { id: id })
+                    $.post('/Account/Restore', { id: id })
                         .done(function(res) {
                             if (!res || !res.success) {
-                                Swal.fire('Lỗi', res?.message || 'Không thể xóa.', 'error');
+                                Swal.fire('Lỗi', res?.message || 'Không thể khôi phục.', 'error');
                                 return;
                             }
-                            Swal.fire('Đã xóa', res.message, 'success');
-                            loadTrash();
+                            Swal.fire('Thành công', res.message, 'success');
+                            loadTrash(currentTrashPage);
+                            loadUsers(1);
+                            loadStats();
                         })
                         .fail(function(xhr) {
-                            Swal.fire('Lỗi', `Không thể xóa vĩnh viễn (HTTP ${xhr.status}).`, 'error');
+                            Swal.fire('Lỗi', `Không thể khôi phục (HTTP ${xhr.status}).`, 'error');
                         });
                 });
             });
 
+            loadStats();
             loadUsers(1);
         });
     </script>

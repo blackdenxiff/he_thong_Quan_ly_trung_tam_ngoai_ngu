@@ -158,8 +158,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             int page = 1,
             int pageSize = 10)
         {
-            page = Math.Max(page, 1);
-            pageSize = Math.Clamp(pageSize, 1, 100);
+            page = Math.Clamp(page, 1, 1000000);
+            pageSize = 10; // Cố định 10 tài khoản/trang, không cho client tăng.
             keyword = (keyword ?? "").Trim();
             role = (role ?? "").Trim();
             trangThai = (trangThai ?? "").Trim();
@@ -232,27 +232,49 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             });
         }
 
+        // Chỉ tải 10 hồ sơ chưa có tài khoản theo từ khóa và trang.
         [HttpGet]
         [Authorize(Roles = "Admin,QuanLy")]
-        public async Task<IActionResult> GetUnlinkedPersons(string loai, string keyword = "")
+        public async Task<IActionResult> GetUnlinkedPersons(string loai, string keyword = "", int page = 1)
         {
+            const int pageSize = 10;
+            page = Math.Clamp(page, 1, 1000000);
             loai = (loai ?? "").Trim();
             keyword = (keyword ?? "").Trim();
+
+            if (keyword.Length > 100)
+                return BadRequest(new { success = false, message = "Từ khóa quá dài." });
 
             if (loai.Equals("HocVien", StringComparison.OrdinalIgnoreCase))
             {
                 var query = _context.HocViens.AsNoTracking().Where(h => h.NguoiDungID == null);
                 if (!string.IsNullOrWhiteSpace(keyword))
                 {
-                    query = query.Where(h =>
-                        (h.HoTen != null && h.HoTen.Contains(keyword)) ||
+                    if (keyword.StartsWith("HV", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!int.TryParse(keyword.Substring(2), out int hocVienId))
+                            return Json(new
+                            {
+                                success = true,
+                                items = Array.Empty<object>(),
+                                currentPage = 1,
+                                totalPages = 0,
+                                totalItems = 0,
+                                hasMore = false
+                            });
+                        query = query.Where(h => h.HocVienID == hocVienId);
+                    }
+                    else query = query.Where(h => h.HoTen.Contains(keyword) ||
                         h.HocVienID.ToString().Contains(keyword));
                 }
 
+                var totalItems = await query.CountAsync();
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+                page = totalPages == 0 ? 1 : Math.Min(page, totalPages);
                 var rows = await query.OrderBy(h => h.HocVienID)
+                    .Skip((page - 1) * pageSize).Take(pageSize)
                     .Select(h => new { id = h.HocVienID, hoTen = h.HoTen, ngaySinh = h.NgaySinh })
                     .ToListAsync();
-
                 return Json(new
                 {
                     success = true,
@@ -262,7 +284,11 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                         ma = "HV" + x.id.ToString("D3"),
                         x.hoTen,
                         ngaySinh = x.ngaySinh.HasValue ? x.ngaySinh.Value.ToString("dd/MM/yyyy") : ""
-                    })
+                    }),
+                    currentPage = page,
+                    totalPages,
+                    totalItems,
+                    hasMore = page < totalPages
                 });
             }
 
@@ -270,17 +296,35 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 loai.Equals("GiangVien", StringComparison.OrdinalIgnoreCase))
             {
                 var query = _context.NhanSus.AsNoTracking().Where(n => n.NguoiDungID == null);
+                if (loai.Equals("GiangVien", StringComparison.OrdinalIgnoreCase))
+                    query = query.Where(n => n.LoaiNhanSu == "Giáo viên" || n.LoaiNhanSu == "Cả hai");
                 if (!string.IsNullOrWhiteSpace(keyword))
                 {
-                    query = query.Where(n =>
-                        (n.HoTen != null && n.HoTen.Contains(keyword)) ||
+                    if (keyword.StartsWith("NS", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!int.TryParse(keyword.Substring(2), out int nhanSuId))
+                            return Json(new
+                            {
+                                success = true,
+                                items = Array.Empty<object>(),
+                                currentPage = 1,
+                                totalPages = 0,
+                                totalItems = 0,
+                                hasMore = false
+                            });
+                        query = query.Where(n => n.NhanSuID == nhanSuId);
+                    }
+                    else query = query.Where(n => n.HoTen.Contains(keyword) ||
                         n.NhanSuID.ToString().Contains(keyword));
                 }
 
+                var totalItems = await query.CountAsync();
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+                page = totalPages == 0 ? 1 : Math.Min(page, totalPages);
                 var rows = await query.OrderBy(n => n.NhanSuID)
+                    .Skip((page - 1) * pageSize).Take(pageSize)
                     .Select(n => new { id = n.NhanSuID, hoTen = n.HoTen, ngaySinh = n.NgaySinh })
                     .ToListAsync();
-
                 return Json(new
                 {
                     success = true,
@@ -290,11 +334,31 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                         ma = "NS" + x.id.ToString("D3"),
                         x.hoTen,
                         ngaySinh = x.ngaySinh.HasValue ? x.ngaySinh.Value.ToString("dd/MM/yyyy") : ""
-                    })
+                    }),
+                    currentPage = page,
+                    totalPages,
+                    totalItems,
+                    hasMore = page < totalPages
                 });
             }
 
-            return Json(new { success = false, message = "Loại đối tượng không hợp lệ." });
+            return BadRequest(new { success = false, message = "Loại đối tượng không hợp lệ." });
+        }
+
+        // Thống kê dùng COUNT tại SQL Server, không tải toàn bộ tài khoản về trình duyệt.
+        [HttpGet]
+        [Authorize(Roles = "Admin,QuanLy")]
+        public async Task<IActionResult> GetAccountStats()
+        {
+            var accounts = _context.NguoiDungs.AsNoTracking();
+            var totalAccounts = await accounts.CountAsync();
+            var adminManagers = await accounts.CountAsync(u => u.VaiTro != null &&
+                (u.VaiTro.TenVaiTro == "Admin" || u.VaiTro.TenVaiTro == "QuanLy" ||
+                 u.VaiTro.TenVaiTro == "Quản lý"));
+            var staffAccounts = await accounts.CountAsync(u => u.NhanSu != null);
+            var lockedAccounts = await accounts.CountAsync(u => !u.TrangThai);
+
+            return Json(new { success = true, totalAccounts, adminManagers, staffAccounts, lockedAccounts });
         }
 
         [HttpPost]
@@ -307,6 +371,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 return Json(new { success = false, message = "Vui lòng nhập đủ thông tin." });
 
             var username = model.tenDangNhap.Trim();
+            if (username.Length > 50)
+                return Json(new { success = false, message = "Tên đăng nhập không được vượt quá 50 ký tự." });
             if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
                 return Json(new { success = false, message = "Tên đăng nhập admin không được sử dụng." });
 
@@ -594,12 +660,26 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin,QuanLy")]
-        public async Task<IActionResult> Trash()
+        public async Task<IActionResult> Trash(string keyword = "", int page = 1)
         {
-            var items = await _context.NguoiDungs
-                .IgnoreQueryFilters()
-                .Where(u => u.IsDeleted)
+            const int pageSize = 10;
+            page = Math.Clamp(page, 1, 1000000);
+            keyword = (keyword ?? "").Trim();
+            if (keyword.Length > 100)
+                return BadRequest(new { success = false, message = "Từ khóa quá dài." });
+
+            var query = _context.NguoiDungs.IgnoreQueryFilters().AsNoTracking()
+                .Where(u => u.IsDeleted);
+            if (keyword.Length > 0)
+                query = query.Where(u => u.TenDangNhap.Contains(keyword));
+
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = totalPages == 0 ? 1 : Math.Min(page, totalPages);
+            var items = await query
                 .OrderByDescending(u => u.DeletedAt)
+                .ThenByDescending(u => u.NguoiDungID)
+                .Skip((page - 1) * pageSize).Take(pageSize)
                 .Select(u => new
                 {
                     nguoiDungId = u.NguoiDungID,
@@ -609,7 +689,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 })
                 .ToListAsync();
 
-            return Json(new { success = true, data = items });
+            return Json(new { success = true, items, currentPage = page, totalPages, totalItems });
         }
 
         [HttpPost]
@@ -631,20 +711,6 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return Json(new { success = true, message = "Khôi phục tài khoản thành công." });
         }
 
-        [HttpPost]
-        [Authorize(Roles = "Admin,QuanLy")]
-        public async Task<IActionResult> HardDelete(int id)
-        {
-            var user = await _context.NguoiDungs.IgnoreQueryFilters()
-                .FirstOrDefaultAsync(u => u.NguoiDungID == id && u.IsDeleted);
-
-            if (user == null)
-                return Json(new { success = false, message = "Tài khoản không tồn tại trong thùng rác." });
-
-            _context.NguoiDungs.Remove(user);
-            await _context.SaveChangesAsync();
-            return Json(new { success = true, message = "Đã xóa vĩnh viễn tài khoản." });
-        }
     }
 
     public class LoginRequestDto
