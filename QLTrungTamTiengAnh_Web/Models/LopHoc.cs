@@ -2,7 +2,11 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
+<<<<<<< HEAD
     public class LopHoc
+=======
+    public class LopHoc : BaseEntity
+>>>>>>> origin/main
     {
         [Key]
         public int LopHocID { get; set; }

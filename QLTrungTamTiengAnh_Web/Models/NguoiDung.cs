@@ -2,7 +2,11 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
+<<<<<<< HEAD
     public class NguoiDung
+=======
+    public class NguoiDung : BaseEntity
+>>>>>>> origin/main
     {
         [Key]
         public int NguoiDungID { get; set; }
@@ -15,6 +19,11 @@ namespace QuanLyTrungTamNgoaiNgu.Models
         [StringLength(255)]
         public string MatKhauHash { get; set; }
 
+<<<<<<< HEAD
+=======
+        public bool DoiMatKhauLanDau { get; set; } = false;
+
+>>>>>>> origin/main
         [Required]
         public int VaiTroID { get; set; }
 

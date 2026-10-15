@@ -5,8 +5,16 @@ using QuanLyTrungTamNgoaiNgu.Models;
 using System.Linq;
 using System.Threading.Tasks;
 
+<<<<<<< HEAD
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
+=======
+using Microsoft.AspNetCore.Authorization;
+
+namespace QLTrungTamTiengAnh_Web.Controllers
+{
+    [Authorize]
+>>>>>>> origin/main
     public class CamKetController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -15,7 +23,11 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         {
             _context = context;
         }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> origin/main
         // Helper method: Kiếm tra quyền truy cập CamKet của người dùng hiện tại
         private bool CanAccessCamKet(int camKetId, out string errorMessage)
         {
