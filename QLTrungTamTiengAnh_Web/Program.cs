@@ -1,8 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-<<<<<<< HEAD
-=======
-using Microsoft.AspNetCore.Authentication.Cookies;
->>>>>>> origin/main
 using QuanLyTrungTamNgoaiNgu.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,17 +19,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
-<<<<<<< HEAD
-=======
-// Register cookie authentication so [Authorize] and role claims work
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/Account/Login";
-        options.AccessDeniedPath = "/Account/AccessDenied";
-    });
-
->>>>>>> origin/main
 var app = builder.Build();
 
 
@@ -49,10 +34,6 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseSession(); // Bắt buộc phải đặt trước UseAuthorization
-<<<<<<< HEAD
-=======
-app.UseAuthentication();
->>>>>>> origin/main
 app.UseAuthorization();
 
 app.MapStaticAssets();

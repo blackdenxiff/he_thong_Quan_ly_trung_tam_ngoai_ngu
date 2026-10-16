@@ -1,19 +1,13 @@
-<<<<<<< HEAD
-﻿
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyTrungTamNgoaiNgu.Models;
 using QuanLyTrungTamNgoaiNgu.Data;
 using System.ComponentModel.DataAnnotations.Schema;
-=======
-﻿using Microsoft.AspNetCore.Mvc;
->>>>>>> origin/main
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
     public class KhoaHocController : Controller
     {
-<<<<<<< HEAD
         private readonly ApplicationDbContext _context;
 
         public KhoaHocController(ApplicationDbContext context)
@@ -28,9 +22,10 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         {
             var danhSachKhoaHoc = await _context.KhoaHocs
                 .AsNoTracking()
+                .Where(k => !k.IsDeleted)
                 .OrderBy(k => k.KhoaHocID)
                 .ToListAsync();
-              
+
             return View(danhSachKhoaHoc);
         }
 
@@ -50,8 +45,10 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             if (pageSize < 1) pageSize = 10;
             if (pageSize > 100) pageSize = 100;
 
+            // Danh sách chính chỉ hiển thị khóa học chưa bị xóa mềm.
             IQueryable<KhoaHoc> query =
-                _context.KhoaHocs.AsNoTracking();
+                _context.KhoaHocs.AsNoTracking()
+                    .Where(k => !k.IsDeleted);
 
             // Tìm theo tên khóa học
 
@@ -224,7 +221,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                     // Cập nhật khóa học đã tồn tại
                     khoaHoc = await _context.KhoaHocs
                         .FirstOrDefaultAsync(k =>
-                            k.KhoaHocID == model.KhoaHocId);
+                            k.KhoaHocID == model.KhoaHocId && !k.IsDeleted);
 
                     if (khoaHoc == null)
                     {
@@ -288,7 +285,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             }
 
             var khoaHoc = await _context.KhoaHocs
-                .FirstOrDefaultAsync(k => k.KhoaHocID == khoaHocId);
+                .FirstOrDefaultAsync(k => k.KhoaHocID == khoaHocId && !k.IsDeleted);
 
             if (khoaHoc == null)
             {
@@ -299,27 +296,64 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 });
             }
 
-            try
-            {
-                _context.KhoaHocs.Remove(khoaHoc);
-                await _context.SaveChangesAsync();
+            // Xóa mềm: không xóa bản ghi khỏi database.
+            khoaHoc.IsDeleted = true;
+            khoaHoc.DeletedAt = DateTime.Now;
+            khoaHoc.UpdatedAt = DateTime.Now;
 
-                return Json(new
-                {
-                    success = true,
-                    message = "Xóa khóa học thành công!"
-                });
-            }
-            catch (DbUpdateException)
+            await _context.SaveChangesAsync();
+
+            return Json(new
             {
-                return Json(new
-                {
-                    success = false,
-                    message = "Không thể xóa khóa học vì đang có dữ liệu liên quan, chẳng hạn lớp học hoặc tài liệu."
-                });
-            }
+                success = true,
+                message = "Đã chuyển khóa học vào thùng rác."
+            });
         }
 
+        // GET: /KhoaHoc/DanhSachThungRac
+        [HttpGet]
+        public async Task<IActionResult> DanhSachThungRac()
+        {
+            var danhSach = await _context.KhoaHocs
+                .AsNoTracking()
+                .Where(k => k.IsDeleted)
+                .OrderByDescending(k => k.DeletedAt)
+                .Select(k => new
+                {
+                    k.KhoaHocID,
+                    k.TenKhoaHoc,
+                    k.TrinhDo,
+                    k.MoTa,
+                    k.SoBuoi,
+                    k.HocPhi,
+                    k.TrangThai,
+                    k.DeletedAt
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, data = danhSach });
+        }
+
+        // POST: /KhoaHoc/KhoiPhucKhoaHoc
+        [HttpPost]
+        public async Task<IActionResult> KhoiPhucKhoaHoc(int khoaHocId)
+        {
+            if (khoaHocId <= 0)
+                return Json(new { success = false, message = "Mã khóa học không hợp lệ!" });
+
+            var khoaHoc = await _context.KhoaHocs
+                .FirstOrDefaultAsync(k => k.KhoaHocID == khoaHocId && k.IsDeleted);
+
+            if (khoaHoc == null)
+                return Json(new { success = false, message = "Không tìm thấy khóa học trong thùng rác!" });
+
+            khoaHoc.IsDeleted = false;
+            khoaHoc.DeletedAt = null;
+            khoaHoc.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Đã khôi phục khóa học." });
+        }
 
 
         // DTO chỉ dùng trong Controller, không sửa Model KhoaHoc
@@ -342,67 +376,4 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             public string? TrangThai { get; set; }
         }
     }
-=======
-        // GET: /KhoaHoc
-        public IActionResult Index()
-        {
-            return View();
-        }
-
-        // POST: /KhoaHoc/LuuKhoaHoc (Thêm mới / Sửa khóa học qua AJAX)
-        [HttpPost]
-        public IActionResult LuuKhoaHoc([FromBody] KhoaHocDto model)
-        {
-            if (model == null || string.IsNullOrWhiteSpace(model.TenKhoaHoc))
-            {
-                return Json(new { success = false, message = "Vui lòng nhập tên khóa học!" });
-            }
-
-            if (model.SoBuoiHoc <= 0 || model.SoBuoiHoc > 120)
-            {
-                return Json(new { success = false, message = "Số buổi học phải nằm trong khoảng từ 1 đến 120 buổi!" });
-            }
-
-            if (model.HocPhiNiemYet <= 0)
-            {
-                return Json(new { success = false, message = "Học phí niêm yết phải lớn hơn 0 đồng!" });
-            }
-
-            return Json(new
-            {
-                success = true,
-                message = "Lưu thông tin khóa học thành công!",
-                data = model
-            });
-        }
-
-        // POST: /KhoaHoc/XoaKhoaHoc
-        [HttpPost]
-        public IActionResult XoaKhoaHoc(int khoaHocId)
-        {
-            if (khoaHocId <= 0)
-            {
-                return Json(new { success = false, message = "Mã khóa học không hợp lệ!" });
-            }
-
-            return Json(new
-            {
-                success = true,
-                message = "Đã ngưng phát hành khóa học này thành công!"
-            });
-        }
-    }
-
-    public class KhoaHocDto
-    {
-        public int KhoaHocId { get; set; }
-        public string MaKhoaHoc { get; set; }
-        public string TenKhoaHoc { get; set; }
-        public string CapDo { get; set; }
-        public int SoBuoiHoc { get; set; }
-        public decimal HocPhiNiemYet { get; set; }
-        public string MoTa { get; set; }
-        public string TrangThai { get; set; }
-    }
->>>>>>> origin/main
 }

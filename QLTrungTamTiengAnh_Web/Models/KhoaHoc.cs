@@ -2,11 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-<<<<<<< HEAD
     public class KhoaHoc
-=======
-    public class KhoaHoc : BaseEntity
->>>>>>> origin/main
     {
         [Key]
         public int KhoaHocID { get; set; }
@@ -36,5 +32,9 @@ namespace QuanLyTrungTamNgoaiNgu.Models
         public ICollection<TaiLieu>? TaiLieus { get; set; }
 
         public ICollection<CamKet>? CamKets { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? UpdatedAt { get; set; }
     }
 }

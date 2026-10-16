@@ -1,20 +1,14 @@
-<<<<<<< HEAD
-﻿
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyTrungTamNgoaiNgu.Data;
 using QuanLyTrungTamNgoaiNgu.Models;
 using System.Globalization;
 using System.Text.RegularExpressions;
-=======
-﻿using Microsoft.AspNetCore.Mvc;
->>>>>>> origin/main
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
     public class LopHocController : Controller
     {
-<<<<<<< HEAD
         private readonly ApplicationDbContext _context;
 
         public LopHocController(ApplicationDbContext context)
@@ -29,6 +23,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             // Danh sách khóa học
             ViewBag.KhoaHocs = await _context.KhoaHocs
                 .AsNoTracking()
+                .Where(x => !x.IsDeleted)
                 .OrderBy(x => x.TenKhoaHoc)
                 .ToListAsync();
 
@@ -64,6 +59,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
             var query = _context.LopHocs
                 .AsNoTracking()
+                .Where(x => !x.IsDeleted)
                 .Include(x => x.KhoaHoc)
                 .Include(x => x.GiaoVienPhuTrach)
                 .AsQueryable();
@@ -258,7 +254,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
             var khoaHoc = await _context.KhoaHocs
                 .FirstOrDefaultAsync(x =>
-                    x.KhoaHocID == model.KhoaHocId);
+                    x.KhoaHocID == model.KhoaHocId && !x.IsDeleted);
 
             if (khoaHoc == null)
             {
@@ -358,7 +354,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             {
                 lopHoc = await _context.LopHocs
                     .FirstOrDefaultAsync(x =>
-                        x.LopHocID == model.LopHocId);
+                        x.LopHocID == model.LopHocId && !x.IsDeleted);
 
                 if (lopHoc == null)
                 {
@@ -449,11 +445,23 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
         [HttpPost]
         public async Task<IActionResult> XoaLopHoc(
-            int lopHocId,
-            bool xoaVinhVien = false)
+    [FromBody] LopHocIdDto? model)
         {
+            int lopHocId = model?.LopHocId ?? 0;
+
+            if (lopHocId <= 0)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Mã lớp học không hợp lệ."
+                });
+            }
+
+            // Giữ nguyên phần xử lý xóa mềm phía dưới.
+
             var lopHoc = await _context.LopHocs
-                .FirstOrDefaultAsync(x => x.LopHocID == lopHocId);
+                .FirstOrDefaultAsync(x => x.LopHocID == lopHocId && !x.IsDeleted);
 
             if (lopHoc == null)
             {
@@ -464,49 +472,104 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 });
             }
 
-            // Lần 1: Chuyển lớp sang trạng thái Đã kết thúc
-            if (!xoaVinhVien)
-            {
-                lopHoc.TrangThai = "Đã kết thúc";
+            // Xóa mềm, giữ nguyên lịch học, đăng ký và điểm danh liên quan.
+            lopHoc.IsDeleted = true;
+            lopHoc.DeletedAt = DateTime.Now;
+            lopHoc.UpdatedAt = DateTime.Now;
 
-                await _context.SaveChangesAsync();
-
-                return Json(new
-                {
-                    success = true,
-                    message = "Đã kết thúc lớp học."
-                });
-            }
-
-            // Lần 2: Chỉ cho phép xóa nếu lớp đã kết thúc
-            if (lopHoc.TrangThai != "Đã kết thúc")
-            {
-                return Json(new
-                {
-                    success = false,
-                    message = "Chỉ được xóa vĩnh viễn lớp đã kết thúc."
-                });
-            }
-
-            // Xóa lịch học thuộc lớp trước
+            // Ẩn lịch học khỏi danh sách lịch đang hoạt động nếu bảng LichHoc
+            // cũng sử dụng IsDeleted. Không xóa lịch khỏi database.
             var lichHocs = await _context.LichHocs
-                .Where(x => x.LopHocID == lopHocId)
+                .Where(x => x.LopHocID == lopHocId && !x.IsDeleted)
                 .ToListAsync();
 
-            _context.LichHocs.RemoveRange(lichHocs);
-
-            // Sau đó xóa lớp
-            _context.LopHocs.Remove(lopHoc);
+            foreach (var lich in lichHocs)
+            {
+                lich.IsDeleted = true;
+                lich.DeletedAt = DateTime.Now;
+                lich.UpdatedAt = DateTime.Now;
+            }
 
             await _context.SaveChangesAsync();
 
             return Json(new
             {
                 success = true,
-                message = "Đã xóa vĩnh viễn lớp học."
+                message = "Đã chuyển lớp học vào thùng rác."
             });
         }
 
+        // GET: /LopHoc/DanhSachThungRac
+        [HttpGet]
+        public async Task<IActionResult> DanhSachThungRac()
+        {
+            var data = await _context.LopHocs
+                .AsNoTracking()
+                .Where(x => x.IsDeleted)
+                .Include(x => x.KhoaHoc)
+                .Include(x => x.GiaoVienPhuTrach)
+                .OrderByDescending(x => x.DeletedAt)
+                .Select(x => new
+                {
+                    lopHocId = x.LopHocID,
+                    maLop = x.TenLop,
+                    tenLop = x.TenLop,
+                    tenKhoaHoc = x.KhoaHoc != null ? x.KhoaHoc.TenKhoaHoc : "",
+                    giangVien = x.GiaoVienPhuTrach != null ? x.GiaoVienPhuTrach.HoTen : "",
+                    ngayBatDau = x.NgayBatDau,
+                    ngayKetThuc = x.NgayKetThuc,
+                    trangThai = x.TrangThai,
+                    deletedAt = x.DeletedAt
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, data });
+        }
+
+        // POST: /LopHoc/KhoiPhucLopHoc
+        [HttpPost]
+        public async Task<IActionResult> KhoiPhucLopHoc(
+    [FromBody] LopHocIdDto? model)
+        {
+            int lopHocId = model?.LopHocId ?? 0;
+
+            if (lopHocId <= 0)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Mã lớp học không hợp lệ."
+                });
+            }
+
+            // Giữ nguyên phần xử lý khôi phục phía dưới.
+
+            var lopHoc = await _context.LopHocs
+                .FirstOrDefaultAsync(x => x.LopHocID == lopHocId && x.IsDeleted);
+
+            if (lopHoc == null)
+                return Json(new { success = false, message = "Không tìm thấy lớp học trong thùng rác." });
+
+            lopHoc.IsDeleted = false;
+            lopHoc.DeletedAt = null;
+            lopHoc.UpdatedAt = DateTime.Now;
+
+            // Khôi phục các lịch học đã được chuyển vào thùng rác cùng lớp.
+            var lichHocs = await _context.LichHocs
+                .Where(x => x.LopHocID == lopHocId && x.IsDeleted)
+                .ToListAsync();
+
+            foreach (var lich in lichHocs)
+            {
+                lich.IsDeleted = false;
+                lich.DeletedAt = null;
+                lich.UpdatedAt = DateTime.Now;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Đã khôi phục lớp học." });
+        }
 
 
         public class LopHocDto
@@ -523,67 +586,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             public string? TrangThai { get; set; }
         }
     }
-}
-
-
-=======
-        // GET: /LopHoc
-        public IActionResult Index()
-        {
-            return View();
-        }
-
-        // POST: /LopHoc/LuuLopHoc (Thêm mới / cập nhật lớp học qua AJAX)
-        [HttpPost]
-        public IActionResult LuuLopHoc([FromBody] LopHocDto model)
-        {
-            if (model == null || string.IsNullOrWhiteSpace(model.TenLop))
-            {
-                return Json(new { success = false, message = "Vui lòng nhập tên mã lớp học!" });
-            }
-
-            if (model.SiSoToiDa <= 0 || model.SiSoToiDa > 40)
-            {
-                return Json(new { success = false, message = "Sĩ số tối đa của lớp phải từ 1 đến 40 học viên!" });
-            }
-
-            return Json(new
-            {
-                success = true,
-                message = "Lưu thông tin lớp học thành công!",
-                data = model
-            });
-        }
-
-        // POST: /LopHoc/DoiTrangThai (Chuyển trạng thái đào tạo của lớp)
-        [HttpPost]
-        public IActionResult DoiTrangThai(int lopHocId, string trangThaiMoi)
-        {
-            if (lopHocId <= 0 || string.IsNullOrWhiteSpace(trangThaiMoi))
-            {
-                return Json(new { success = false, message = "Dữ liệu không hợp lệ!" });
-            }
-
-            return Json(new
-            {
-                success = true,
-                message = $"Đã chuyển trạng thái lớp sang: {trangThaiMoi}!"
-            });
-        }
-    }
-
-    public class LopHocDto
+    public class LopHocIdDto
     {
         public int LopHocId { get; set; }
-        public string TenLop { get; set; }
-        public int KhoaHocId { get; set; }
-        public string TenKhoaHoc { get; set; }
-        public string GiangVien { get; set; }
-        public string PhongHoc { get; set; }
-        public int SiSoToiDa { get; set; }
-        public string NgayKhaiGiang { get; set; }
-        public string LichHocMoTa { get; set; }
-        public string TrangThai { get; set; }
     }
 }
->>>>>>> origin/main

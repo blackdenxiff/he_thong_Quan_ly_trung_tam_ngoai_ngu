@@ -2,11 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-<<<<<<< HEAD
     public class BaiTap
-=======
-    public class BaiTap : BaseEntity
->>>>>>> origin/main
     {
         [Key]
         public int BaiTapID { get; set; }

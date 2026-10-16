@@ -2,11 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-<<<<<<< HEAD
     public class CoSo
-=======
-    public class CoSo : BaseEntity
->>>>>>> origin/main
     {
         [Key]
         public int CoSoID { get; set; }

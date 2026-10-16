@@ -7,9 +7,18 @@
         <h4 class="mb-1 text-dark fw-bold">Hồ Sơ Học Viên & Tuyển Sinh</h4>
         <p class="text-muted small mb-0">Quản lý danh sách học viên, kết quả test đầu vào và xếp lớp đào tạo</p>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalStudent">
-        <i class="fa-solid fa-user-plus me-1"></i> Tiếp Nhận Học Viên Mới
-    </button>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-danger"
+                data-bs-toggle="modal" data-bs-target="#modalStudentTrash">
+            <i class="fa-solid fa-trash-can me-1"></i> Thùng rác
+        </button>
+
+        <button class="btn btn-primary"
+                data-bs-toggle="modal" data-bs-target="#modalStudent">
+            <i class="fa-solid fa-user-plus me-1"></i>
+            Tiếp Nhận Học Viên Mới
+        </button>
+    </div>
 </div>
 
 <!-- Bộ lọc Paging & Filtering -->
@@ -73,70 +82,9 @@
                     </tr>
                 </thead>
                 <tbody id="studentTableBody">
-                    <!-- Bản ghi 1 khớp CSDL HocVien và DangKy -->
                     <tr>
-                        <td class="ps-3"><span class="badge bg-light text-dark border">HV-001</span></td>
-                        <td>
-                            <div class="fw-bold text-dark">Lê Văn Học Viên</div>
-                            <small class="text-muted"><i class="fa-solid fa-mars text-primary me-1"></i> Nam • 10/05/2005</small>
-                        </td>
-                        <td>
-                            <div>0900000003</div>
-                            <small class="text-muted">hocvien@example.com</small>
-                        </td>
-                        <td>
-                            <span class="badge bg-info text-dark">A2 - 65 đ</span>
-                            <div class="small text-muted text-truncate" style="max-width: 150px;">Đạt chuẩn đầu vào TOEIC 500</div>
-                        </td>
-                        <td>
-                            <span class="fw-semibold text-primary">TOEIC500-K01</span>
-                            <div class="small text-muted">P.101 (T2-T4-T6)</div>
-                        </td>
-                        <td><span class="badge bg-success"><i class="fa-solid fa-shield-check me-1"></i>Có cam kết</span></td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle">Đang học</span></td>
-                        <td class="text-end pe-3">
-                            <button class="btn btn-sm btn-outline-success me-1" title="Đăng ký lớp mới" onclick="openEnrollModal(1, 'Lê Văn Học Viên', this)">
-                                <i class="fa-solid fa-graduation-cap"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary me-1" title="Sửa hồ sơ">
-                                <i class="fa-solid fa-user-pen"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="confirmDelete(this, 1)">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    <!-- Bản ghi 2 -->
-                    <tr>
-                        <td class="ps-3"><span class="badge bg-light text-dark border">HV-002</span></td>
-                        <td>
-                            <div class="fw-bold text-dark">Trần Thị Mai Phương</div>
-                            <small class="text-muted"><i class="fa-solid fa-venus text-danger me-1"></i> Nữ • 15/08/2004</small>
-                        </td>
-                        <td>
-                            <div>0900000012</div>
-                            <small class="text-muted">maiphuong@example.com</small>
-                        </td>
-                        <td>
-                            <span class="badge bg-info text-dark">B1 - 70 đ</span>
-                            <div class="small text-muted">Nghe tốt, yếu từ vựng</div>
-                        </td>
-                        <td>
-                            <span class="fw-semibold text-primary">TOEIC500-K01</span>
-                            <div class="small text-muted">P.101 (T2-T4-T6)</div>
-                        </td>
-                        <td><span class="badge bg-secondary">Không</span></td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle">Đang học</span></td>
-                        <td class="text-end pe-3">
-                            <button class="btn btn-sm btn-outline-success me-1" title="Đăng ký lớp mới" onclick="openEnrollModal(2, 'Trần Thị Mai Phương', this)">
-                                <i class="fa-solid fa-graduation-cap"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary me-1" title="Sửa hồ sơ">
-                                <i class="fa-solid fa-user-pen"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="confirmDelete(this, 2)">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            Đang tải danh sách học viên...
                         </td>
                     </tr>
                 </tbody>
@@ -144,12 +92,13 @@
         </div>
     </div>
     <!-- Phân trang Paging -->
-    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
-        <small class="text-muted">Hiển thị 1 - 2 trong tổng số 2 học viên</small>
-        <ul class="pagination pagination-sm mb-0">
-            <li class="page-item disabled"><a class="page-link" href="#">Trước</a></li>
-            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-            <li class="page-item disabled"><a class="page-link" href="#">Sau</a></li>
+    <div class="card-footer bg-white d-flex justify-content-between
+        align-items-center py-3 flex-wrap gap-2">
+        <small class="text-muted" id="paginationInfo">
+            Đang tải dữ liệu...
+        </small>
+
+        <ul class="pagination pagination-sm mb-0" id="paginationList">
         </ul>
     </div>
 </div>
@@ -164,6 +113,7 @@
             </div>
             <div class="modal-body">
                 <form id="studentForm">
+                    <input type="hidden" id="txtStudentId" value="0" />
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Họ và tên <span class="text-danger">*</span></label>
@@ -187,6 +137,20 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Email liên hệ <span class="text-danger">*</span></label>
                             <input type="email" class="form-control" id="txtEmail" required placeholder="VD: long@example.com" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                Lớp đăng ký
+                            </label>
+
+                            <select class="form-select" id="selectStudentClass">
+                                <option value="">-- Chưa xếp lớp --</option>
+                            </select>
+
+                            <small class="text-muted">
+                                Chọn lớp nếu học viên đăng ký ngay; có thể để trống và xếp lớp sau.
+                            </small>
                         </div>
 
                         <!-- Đánh giá đầu vào F07 -->
@@ -266,187 +230,644 @@
         </div>
     </div>
 </div>
+
+<!-- Modal thùng rác học viên -->
+<div class="modal fade" id="modalStudentTrash" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="fa-solid fa-trash-can me-2 text-danger"></i>
+                    Thùng rác học viên
+                </h5>
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mã HV</th>
+                                <th>Họ tên</th>
+                                <th>Số điện thoại</th>
+                                <th>Email</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTrashBody">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    Chưa tải dữ liệu
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         $(document).ready(function() {
-            let currentRowTarget = null; // Biến ghi nhớ dòng học viên đang thao tác
+            let currentPage = 1;
+            const pageSize = 10;
+            let searchTimer = null;
 
-            // 1. Mở Modal Xếp lớp và lưu lại dòng đang chọn
-            window.openEnrollModal = function(studentId, studentName, element) {
-                currentRowTarget = $(element).closest("tr");
-                $('#enrollStudentId').val(studentId);
-                $('#enrollStudentName').val(studentName);
-                $('#modalEnroll').modal('show');
-            };
+            const modalStudentElement =
+                document.getElementById('modalStudent');
 
-            // 2. Tự động tính học phí khi chọn lớp
-            $('#selectClassEnroll').change(function() {
-                const fee = $(this).find(':selected').data('fee'); $('#txtTuitionFee').val(fee);
-            });
+            const studentModal =
+                bootstrap.Modal.getOrCreateInstance(modalStudentElement);
 
-            // 3. Xử lý Đăng ký xếp lớp qua AJAX & cập nhật giao diện
-            $('#btnConfirmEnroll').click(function() {
-                const selectedClassText = $('#selectClassEnroll option:selected').text().split('(')[0].trim();
-                const hasCommitment = $('#chkCommitment').is(':checked');
+            // Chuyển dữ liệu thành HTML an toàn để tránh chèn HTML ngoài ý muốn.
+            function escapeHtml(value) {
+                return String(value ?? '').replace(/[&<>"']/g, function(c) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#39;'
+                    }[c];
+                });
+            }
 
-                const payload = {
-                    hocVienId: parseInt($('#enrollStudentId').val()),
-                    lopHocId: parseInt($('#selectClassEnroll').val()),
-                    hocPhiApDung: parseFloat($('#txtTuitionFee').val()),
-                    coCamKet: hasCommitment,
-                    ghiChu: $('#txtEnrollNote').val()
+            function formatDate(value) {
+                if (!value) return '';
+
+                const date = new Date(value);
+                if (isNaN(date.getTime())) return '';
+
+                return [
+                    String(date.getDate()).padStart(2, '0'),
+                    String(date.getMonth() + 1).padStart(2, '0'),
+                    date.getFullYear()
+                ].join('/');
+            }
+
+            function formatDateInput(value) {
+                if (!value) return '';
+
+                const date = new Date(value);
+                if (isNaN(date.getTime())) return '';
+
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+
+                return `${year}-${month}-${day}`;
+            }
+
+            function statusBadge(status) {
+                const colors = {
+                    'Đang học': 'bg-success-subtle text-success border border-success-subtle',
+                    'Chờ xếp lớp': 'bg-warning-subtle text-warning border border-warning-subtle',
+                    'Bảo lưu': 'bg-secondary-subtle text-secondary border',
+                    'Hoàn thành': 'bg-primary-subtle text-primary border border-primary-subtle'
                 };
+
+                const css = colors[status] || 'bg-secondary-subtle text-secondary border';
+
+                return `<span class="badge ${css}">${escapeHtml(status || 'Chưa xác định')}</span>`;
+            }
+
+            function renderStudent(student) {
+                const id = Number(student.hocVienID);
+                const name = escapeHtml(student.hoTen);
+                const gender = escapeHtml(student.gioiTinh || 'Chưa cập nhật');
+                const dob = formatDate(student.ngaySinh);
+                const phone = escapeHtml(student.soDienThoai || 'Chưa cập nhật');
+                const email = escapeHtml(student.email || 'Chưa cập nhật');
+                const level = escapeHtml(student.trinhDoDauVao || 'Chưa đánh giá');
+                const score = student.diemDauVao == null
+                    ? 'Chưa có điểm'
+                    : `${escapeHtml(student.diemDauVao)} đ`;
+                const notes = escapeHtml(student.nhanXetDauVao || '');
+                const status = student.trangThai || '';
+
+                const genderIcon = student.gioiTinh === 'Nữ'
+                    ? 'fa-venus text-danger'
+                    : 'fa-mars text-primary';
+
+                return `
+                            <tr data-id="${id}">
+                                <td class="ps-3">
+                                    <span class="badge bg-light text-dark border">
+                                        HV-${String(id).padStart(3, '0')}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">${name}</div>
+                                    <small class="text-muted">
+                                        <i class="fa-solid ${genderIcon} me-1"></i>
+                                        ${gender}${dob ? ' • ' + dob : ''}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div>${phone}</div>
+                                    <small class="text-muted">${email}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info text-dark">
+                                        ${level} - ${score}
+                                    </span>
+                                    ${notes ? `<div class="small text-muted text-truncate" style="max-width:150px" title="${notes}">${notes}</div>` : ''}
+                                </td>
+                                <td>
+                                    <span class="text-muted fst-italic">Chưa xếp lớp</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">Chưa xét</span>
+                                </td>
+                                <td>${statusBadge(status)}</td>
+                                <td class="text-end pe-3">
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-primary me-1"
+                                            title="Sửa hồ sơ"
+                                            onclick="editStudent(${id})">
+                                        <i class="fa-solid fa-user-pen"></i>
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Xóa hồ sơ"
+                                            onclick="confirmDelete(${id})">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>`;
+            }
+
+            // Tải danh sách thật từ database.
+            function loadStudents(page = 1) {
+                currentPage = page;
+
+                $('#studentTableBody').html(`
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    Đang tải dữ liệu...
+                                </td>
+                            </tr>`);
 
                 $.ajax({
-                    url: '/HocVien/DangKyLop',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(payload),
-                    success: function(res) {
-                        $('#modalEnroll').modal('hide');
-
-                        if (res.success) {
-                            Swal.fire('Hoàn tất!', res.message, 'success');
-
-                            if (currentRowTarget && currentRowTarget.length > 0) {
-                                // Cập nhật Lớp học (Cột 5)
-                                currentRowTarget.find("td:nth-child(5)").html(`
-                                            <span class="fw-semibold text-primary">${selectedClassText}</span>
-                                            <div class="small text-muted">Vừa xếp lớp</div>
-                                        `);
-
-                                // Cập nhật Cam kết (Cột 6)
-                                if (hasCommitment) {
-                                    currentRowTarget.find("td:nth-child(6)").html('<span class="badge bg-success"><i class="fa-solid fa-shield-check me-1"></i>Có cam kết</span>');
-                                } else {
-                                    currentRowTarget.find("td:nth-child(6)").html('<span class="badge bg-secondary">Không</span>');
-                                }
-
-                                // Cập nhật Trạng thái (Cột 7)
-                                currentRowTarget.find("td:nth-child(7)").html('<span class="badge bg-success-subtle text-success border border-success-subtle">Đang học</span>');
-
-                                currentRowTarget.addClass("table-warning");
-                                setTimeout(() => {
-                                    currentRowTarget.removeClass("table-warning");
-                                }, 800);
-                            }
-                        } else {
-                            Swal.fire('Lỗi', res.message, 'error');
-                        }
+                    url: '/HocVien/DanhSach',
+                    type: 'GET',
+                    dataType: 'json',
+                    data: {
+                        tuKhoa: $('#searchKeyword').val().trim(),
+                        trinhDo: $('#filterLevel').val(),
+                        trangThai: $('#filterStatus').val(),
+                        page: currentPage,
+                        pageSize: pageSize
                     },
-                    error: function() {
-                        Swal.fire('Lỗi kết nối', 'Không thể gửi dữ liệu xếp lớp', 'error');
+                    success: function(res) {
+                        if (!res.success) {
+                            $('#studentTableBody').html(`
+                                        <tr>
+                                            <td colspan="8" class="text-center text-danger py-4">
+                                                Không thể tải danh sách học viên.
+                                            </td>
+                                        </tr>`);
+                            return;
+                        }
+
+                        if (!res.data || res.data.length === 0) {
+                            $('#studentTableBody').html(`
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-4">
+                                                Không tìm thấy học viên phù hợp.
+                                            </td>
+                                        </tr>`);
+                        } else {
+                            $('#studentTableBody').html(
+                                res.data.map(renderStudent).join('')
+                            );
+                        }
+
+                        const total = res.total || 0;
+                        const start = total === 0
+                            ? 0
+                            : (res.page - 1) * res.pageSize + 1;
+                        const end = Math.min(
+                            res.page * res.pageSize,
+                            total
+                        );
+
+                        $('#paginationInfo').text(
+                            `Hiển thị ${start} - ${end} trong tổng số ${total} học viên`
+                        );
+
+                        renderPagination(res.page, res.totalPages);
+                    },
+                    error: function(xhr) {
+                        console.error(xhr.responseText);
+
+                        $('#studentTableBody').html(`
+                                    <tr>
+                                        <td colspan="8" class="text-center text-danger py-4">
+                                            Lỗi tải dữ liệu. Hãy kiểm tra controller và kết nối database.
+                                        </td>
+                                    </tr>`);
+
+                        $('#paginationInfo').text('Không tải được dữ liệu.');
+                        $('#paginationList').empty();
                     }
                 });
+            }
+
+            // Vẽ nút phân trang.
+            function renderPagination(page, totalPages) {
+                const $list = $('#paginationList');
+                $list.empty();
+
+                if (!totalPages || totalPages <= 1) return;
+
+                function addPage(label, targetPage, disabled, active) {
+                    const li = $('<li>').addClass('page-item');
+
+                    if (disabled) li.addClass('disabled');
+                    if (active) li.addClass('active');
+
+                    const link = $('<a>')
+                        .addClass('page-link')
+                        .attr('href', '#')
+                        .text(label);
+
+                    link.on('click', function(e) {
+                        e.preventDefault();
+
+                        if (!disabled && !active) {
+                            loadStudents(targetPage);
+                        }
+                    });
+
+                    li.append(link);
+                    $list.append(li);
+                }
+
+                addPage('Trước', page - 1, page <= 1, false);
+
+                for (let i = 1; i <= totalPages; i++) {
+                    addPage(String(i), i, false, i === page);
+                }
+
+                addPage('Sau', page + 1, page >= totalPages, false);
+            }
+
+            // Lọc và tìm kiếm.
+            $('#btnFilter').on('click', function() {
+                loadStudents(1);
             });
 
-            // 4. Xử lý Thêm học viên mới
-            $('#btnSaveStudent').click(function() {
+            $('#searchKeyword').on('input', function() {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(function() {
+                    loadStudents(1);
+                }, 350);
+            });
+
+            $('#filterLevel, #filterStatus').on('change', function() {
+                loadStudents(1);
+            });
+
+            $('#btnResetFilter').on('click', function() {
+                $('#searchKeyword').val('');
+                $('#filterLevel').val('');
+                $('#filterStatus').val('');
+
+                loadStudents(1);
+            });
+
+            // Mở modal thêm mới.
+            $('button[data-bs-target="#modalStudent"]').on('click', function() {
+                $('#studentForm')[0].reset();
+                $('#txtStudentId').val('0');
+                $('#modalStudent .modal-title').html(
+                    '<i class="fa-solid fa-user-plus me-2 text-primary"></i>Tiếp Nhận Hồ Sơ Học Viên'
+                );
+                $('#btnSaveStudent').text('Lưu Hồ Sơ');
+            });
+
+            // Mở modal sửa và nạp dữ liệu của học viên.
+            window.editStudent = function(id) {
+                $.ajax({
+                    url: '/HocVien/DanhSach',
+                    type: 'GET',
+                    dataType: 'json',
+                    data: {
+                        tuKhoa: String(id),
+                        page: 1,
+                        pageSize: 100
+                    },
+                    success: function(res) {
+                        const student = res.data?.find(
+                            x => Number(x.hocVienID) === Number(id)
+                        );
+
+                        if (!student) {
+                            Swal.fire('Thông báo', 'Không tìm thấy học viên.', 'warning');
+                            return;
+                        }
+
+                        $('#studentForm')[0].reset();
+                        $('#txtStudentId').val(student.hocVienID);
+                        $('#txtStudentName').val(student.hoTen || '');
+                        $('#selectGender').val(student.gioiTinh || 'Nam');
+                        $('#txtDob').val(formatDateInput(student.ngaySinh));
+                        $('#txtPhone').val(student.soDienThoai || '');
+                        $('#txtEmail').val(student.email || '');
+                        $('#selectLevel').val(student.trinhDoDauVao || 'A1');
+                        $('#txtScore').val(student.diemDauVao ?? '');
+                        $('#txtNotes').val(student.nhanXetDauVao || '');
+
+                        $('#modalStudent .modal-title').html(
+                            '<i class="fa-solid fa-user-pen me-2 text-primary"></i>Sửa Hồ Sơ Học Viên'
+                        );
+                        $('#btnSaveStudent').text('Cập Nhật');
+
+                        studentModal.show();
+                    },
+                    error: function() {
+                        Swal.fire('Lỗi', 'Không tải được thông tin học viên.', 'error');
+                    }
+                });
+            };
+
+            // Thêm mới hoặc cập nhật.
+            $('#btnSaveStudent').on('click', function() {
+                const form = document.getElementById('studentForm');
+
+                if (!form.reportValidity()) return;
+
                 const name = $('#txtStudentName').val().trim();
-                const score = parseFloat($('#txtScore').val());
+                const scoreText = $('#txtScore').val();
+                const score = scoreText === ''
+                    ? null
+                    : Number(scoreText);
 
                 if (!name) {
-                    Swal.fire('Lỗi nhập liệu', 'Vui lòng nhập họ tên học viên!', 'warning');
+                    Swal.fire('Thiếu thông tin', 'Vui lòng nhập họ tên học viên.', 'warning');
                     return;
                 }
-                if (isNaN(score) || score < 0 || score > 100) {
-                    Swal.fire('Lỗi điểm số', 'Điểm kiểm tra đầu vào phải nằm trong thang từ 0 đến 100!', 'warning');
+
+                if (score === null || !Number.isFinite(score) ||
+                    score < 0 || score > 100) {
+                    Swal.fire('Điểm không hợp lệ', 'Điểm đầu vào phải từ 0 đến 100.', 'warning');
                     return;
                 }
 
                 const payload = {
+                    hocVienID: Number($('#txtStudentId').val()) || 0,
                     hoTen: name,
-                    soDienThoai: $('#txtPhone').val(),
-                    email: $('#txtEmail').val(),
+                    ngaySinh: $('#txtDob').val() || null,
                     gioiTinh: $('#selectGender').val(),
+                    soDienThoai: $('#txtPhone').val().trim(),
+                    email: $('#txtEmail').val().trim(),
                     trinhDoDauVao: $('#selectLevel').val(),
                     diemDauVao: score,
-                    nhanXet: $('#txtNotes').val()
+                    nhanXetDauVao: $('#txtNotes').val().trim(),
+                    lopHocID: Number($('#selectStudentClass').val()) || null
                 };
+
+                const $button = $('#btnSaveStudent');
+                $button.prop('disabled', true);
 
                 $.ajax({
                     url: '/HocVien/LuuHocVien',
                     type: 'POST',
-                    contentType: 'application/json',
+                    contentType: 'application/json; charset=utf-8',
                     data: JSON.stringify(payload),
                     success: function(res) {
                         if (res.success) {
-                            $('#modalStudent').modal('hide');
-                            Swal.fire('Thành công!', res.message, 'success');
+                            studentModal.hide();
 
-                            const randomId = Math.floor(Math.random() * 1000) + 10;
-                            const newTr = `
-                                        <tr id="row_student_${randomId}">
-                                            <td class="ps-3"><span class="badge bg-light text-dark border">HV-${randomId}</span></td>
-                                            <td>
-                                                <div class="fw-bold text-dark">${payload.hoTen}</div>
-                                                <small class="text-muted">${payload.gioiTinh}</small>
-                                            </td>
-                                            <td>
-                                                <div>${payload.soDienThoai}</div>
-                                                <small class="text-muted">${payload.email}</small>
-                                            </td>
-                                            <td><span class="badge bg-info text-dark">${payload.trinhDoDauVao} - ${payload.diemDauVao} đ</span></td>
-                                            <td><span class="text-muted fst-italic">Chưa xếp lớp</span></td>
-                                            <td><span class="badge bg-secondary">Chưa xét</span></td>
-                                            <td><span class="badge bg-warning-subtle text-warning border border-warning-subtle">Chờ xếp lớp</span></td>
-                                            <td class="text-end pe-3">
-                                                <button class="btn btn-sm btn-outline-success me-1" title="Xếp lớp" onclick="openEnrollModal(${randomId}, '${payload.hoTen}', this)">
-                                                    <i class="fa-solid fa-graduation-cap"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="confirmDelete(this, ${randomId})">
-                                                    <i class="fa-solid fa-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    `;
-                            $('#studentTableBody').prepend(newTr);
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công',
+                                text: res.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+
+                            loadStudents(1);
                             $('#studentForm')[0].reset();
+                            $('#txtStudentId').val('0');
                         } else {
-                            Swal.fire('Lỗi', res.message, 'error');
+                            Swal.fire('Không thể lưu', res.message, 'error');
                         }
                     },
-                    error: function() {
-                        Swal.fire('Lỗi kết nối', 'Không thể lưu hồ sơ học viên', 'error');
+                    error: function(xhr) {
+                        console.error(xhr.responseText);
+                        Swal.fire('Lỗi kết nối', 'Không thể lưu hồ sơ. Hãy kiểm tra controller và database.', 'error');
+                    },
+                    complete: function() {
+                        $button.prop('disabled', false);
                     }
                 });
             });
 
-            // 5. Xử lý Xóa học viên linh hoạt
-            window.confirmDelete = function(btnElement, studentId) {
-                let tr = null;
-                if (btnElement instanceof HTMLElement || btnElement instanceof jQuery) {
-                    tr = $(btnElement).closest("tr");
-                } else if (typeof btnElement === 'number') {
-                    tr = $(`button[onclick*="confirmDelete(${btnElement})"]`).closest("tr");
-                }
-
+            // Xóa hồ sơ qua controller, không xóa HTML giả.
+            window.confirmDelete = function(id) {
                 Swal.fire({
                     title: 'Xóa hồ sơ học viên?',
-                    text: "Bạn có chắc chắn muốn xóa hồ sơ học viên này khỏi danh sách?",
+                    text: 'Hồ sơ sẽ bị xóa khỏi database nếu không còn dữ liệu liên quan.',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#ef4444',
                     confirmButtonText: 'Đồng ý xóa',
                     cancelButtonText: 'Hủy'
-                }).then((r) => {
-                    if (r.isConfirmed) {
-                        if (tr && tr.length > 0) {
-                            tr.fadeOut(300, function() {
-                                $(this).remove();
+                }).then(function(result) {
+                    if (!result.isConfirmed) return;
+
+                    $.ajax({
+                        url: '/HocVien/XoaHocVien',
+                        type: 'POST',
+                        contentType: 'application/json; charset=utf-8',
+                        data: JSON.stringify({
+                            hocVienID: Number(id)
+                        }),
+                        success: function(res) {
+                            if (res.success) {
                                 Swal.fire({
                                     toast: true,
                                     position: 'top-end',
                                     icon: 'success',
-                                    title: 'Đã xóa hồ sơ học viên thành công',
+                                    title: res.message,
                                     showConfirmButton: false,
-                                    timer: 1500
+                                    timer: 1800
                                 });
-                            });
+
+                                loadStudents(currentPage);
+                            } else {
+                                Swal.fire('Không thể xóa', res.message, 'warning');
+                            }
+                        },
+                        error: function(xhr) {
+                            console.error(xhr.responseText);
+                            Swal.fire('Lỗi', 'Không thể xóa hồ sơ học viên.', 'error');
                         }
-                    }
+                    });
                 });
             };
-        }); // <-- Đóng chính xác $(document).ready
+
+            // Tải danh sách học viên trong thùng rác khi mở modal.
+            $('#modalStudentTrash').on('show.bs.modal', function() {
+                loadStudentTrash();
+            });
+
+            function loadStudentTrash() {
+                $('#studentTrashBody').html(`
+                            <tr>
+                                <td colspan="5" class="text-center py-3">
+                                    Đang tải dữ liệu...
+                                </td>
+                            </tr>
+                        `);
+
+                $.get('/HocVien/DanhSachThungRac')
+                    .done(function(res) {
+                        const items = res.data || [];
+
+                        if (!res.success || items.length === 0) {
+                            $('#studentTrashBody').html(`
+                                        <tr>
+                                            <td colspan="5"
+                                                class="text-center text-muted py-4">
+                                                Thùng rác đang trống.
+                                            </td>
+                                        </tr>
+                                    `);
+                            return;
+                        }
+
+                        const html = items.map(function(hv) {
+                            const id = Number(hv.hocVienID);
+
+                            return `
+                                        <tr>
+                                            <td>HV-${String(id).padStart(3, '0')}</td>
+                                            <td>${escapeHtml(hv.hoTen)}</td>
+                                            <td>${escapeHtml(hv.soDienThoai || '')}</td>
+                                            <td>${escapeHtml(hv.email || '')}</td>
+                                            <td>
+                                                <button type="button"
+                                                        class="btn btn-sm btn-success"
+                                                        onclick="restoreStudent(${id})">
+                                                    <i class="fa-solid fa-rotate-left me-1"></i>
+                                                    Khôi phục
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `;
+                        }).join('');
+
+                        $('#studentTrashBody').html(html);
+                    })
+                    .fail(function(xhr) {
+                        console.error(xhr.responseText);
+
+                        $('#studentTrashBody').html(`
+                                    <tr>
+                                        <td colspan="5"
+                                            class="text-center text-danger py-4">
+                                            Không tải được thùng rác.
+                                            Hãy kiểm tra action DanhSachThungRac.
+                                        </td>
+                                    </tr>
+                                `);
+                    });
+            }
+
+            // Khôi phục học viên.
+            window.restoreStudent = function(id) {
+                if (!confirm('Bạn có muốn khôi phục học viên này không?')) {
+                    return;
+                }
+
+                $.ajax({
+                    url: '/HocVien/KhoiPhucHocVien',
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    data: JSON.stringify({ hocVienID: id })
+                })
+                    .done(function(res) {
+                        alert(res.message || 'Đã xử lý yêu cầu.');
+
+                        if (res.success) {
+                            loadStudentTrash();
+                            loadStudents(1);
+                        }
+                    })
+                    .fail(function(xhr) {
+                        console.error(xhr.responseText);
+                        alert('Không thể khôi phục học viên.');
+                    });
+            };
+
+            // Tải danh sách lớp từ database.
+            function loadClassesForStudent() {
+                const $select = $('#selectStudentClass');
+
+                $select.html(
+                    '<option value="">Đang tải danh sách lớp...</option>'
+                );
+
+                $.get('/HocVien/DanhSachLopDangKy')
+                    .done(function(res) {
+                        $select.empty();
+                        $select.append(
+                            '<option value="">-- Chưa xếp lớp --</option>'
+                        );
+
+                        if (!res.success || !res.data || res.data.length === 0) {
+                            $select.append(
+                                '<option value="" disabled>Hiện không có lớp phù hợp</option>'
+                            );
+                            return;
+                        }
+
+                        res.data.forEach(function(lop) {
+                            const tenLop = escapeHtml(lop.tenLop);
+                            const ngayBatDau = escapeHtml(lop.ngayBatDau);
+                            const soLuong = Number(lop.soLuongDangKy);
+                            const siSo = Number(lop.siSoToiDa);
+
+                            $select.append(
+                                $('<option>', {
+                                    value: lop.lopHocID,
+                                    text: `${tenLop} - Khai giảng ${ngayBatDau} - Sĩ số ${soLuong}/${siSo}`
+                                })
+                            );
+                        });
+                    })
+                    .fail(function(xhr) {
+                        console.error(xhr.responseText);
+
+                        $select.html(
+                            '<option value="">Không tải được danh sách lớp</option>'
+                        );
+                    });
+            }
+
+            // Mở form tiếp nhận thì cập nhật danh sách lớp.
+            $('#modalStudent').on('show.bs.modal', function() {
+                loadClassesForStudent();
+            });
+
+            // Khởi tạo danh sách từ database.
+            loadStudents(1);
+        });
     </script>
 }
+
+

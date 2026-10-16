@@ -2,11 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-<<<<<<< HEAD
     public class NhanSu
-=======
-    public class NhanSu : BaseEntity
->>>>>>> origin/main
     {
         [Key]
         public int NhanSuID { get; set; }

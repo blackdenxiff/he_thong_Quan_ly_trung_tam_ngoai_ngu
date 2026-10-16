@@ -2,11 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-<<<<<<< HEAD
     public class CamKet
-=======
-    public class CamKet : BaseEntity
->>>>>>> origin/main
     {
         [Key]
         public int CamKetID { get; set; }

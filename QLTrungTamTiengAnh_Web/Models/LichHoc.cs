@@ -2,11 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-<<<<<<< HEAD
     public class LichHoc
-=======
-    public class LichHoc : BaseEntity
->>>>>>> origin/main
     {
         [Key]
         public int LichHocID { get; set; }
@@ -40,5 +36,9 @@ namespace QuanLyTrungTamNgoaiNgu.Models
         public ICollection<PhanCongDay>? PhanCongDays { get; set; }
 
         public ICollection<DiemDanh>? DiemDanhs { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? UpdatedAt { get; set; }
     }
 }

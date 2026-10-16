@@ -2,11 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-<<<<<<< HEAD
     public class LopHoc
-=======
-    public class LopHoc : BaseEntity
->>>>>>> origin/main
     {
         [Key]
         public int LopHocID { get; set; }
@@ -48,5 +44,9 @@ namespace QuanLyTrungTamNgoaiNgu.Models
         public ICollection<LichHoc>? LichHocs { get; set; }
 
         public ICollection<BaiTap>? BaiTaps { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? UpdatedAt { get; set; }
     }
 }
