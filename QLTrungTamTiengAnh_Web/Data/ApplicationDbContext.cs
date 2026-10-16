@@ -55,12 +55,26 @@ namespace QuanLyTrungTamNgoaiNgu.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+<<<<<<< HEAD
 
             modelBuilder.Entity<NguoiDung>().ToTable("NguoiDung");
             modelBuilder.Entity<VaiTro>().ToTable("VaiTro");
             modelBuilder.Entity<HocVien>().ToTable("HocVien");
             modelBuilder.Entity<NhanSu>().ToTable("NhanSu");
 
+=======
+            modelBuilder.Entity<LopHoc>().ToTable("LopHoc");
+            modelBuilder.Entity<LichHoc>().ToTable("LichHoc");
+            modelBuilder.Entity<BangLuong>().ToTable("BangLuong");
+            modelBuilder.Entity<NhanSu>().ToTable("NhanSu");
+            modelBuilder.Entity<DiemDanh>().ToTable("DiemDanh");
+            modelBuilder.Entity<PhongHoc>().ToTable("PhongHoc");
+            modelBuilder.Entity<DangKy>().ToTable("DangKy");
+            //10/13 sang thê,
+            modelBuilder.Entity<HocVien>().ToTable("HocVien");
+            modelBuilder.Entity<HoaDon>().ToTable("HoaDon");
+            modelBuilder.Entity<ThanhToan>().ToTable("ThanhToan");
+>>>>>>> sang
             // CoSoCuID -> CoSo
             modelBuilder.Entity<LichSuDieuChuyen>()
                 .HasOne(x => x.CoSoCu)

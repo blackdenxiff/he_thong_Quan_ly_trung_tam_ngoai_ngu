@@ -1,23 +1,37 @@
 ﻿@{
     ViewData["Title"] = "Thời khóa biểu & Phòng học";
+    var danhSachLich = ViewBag.DanhSachLich as List<QuanLyTrungTamNgoaiNgu.Models.LichHoc> ?? new();
+    var danhSachLop = ViewBag.DanhSachLop as List<QuanLyTrungTamNgoaiNgu.Models.LopHoc> ?? new();
+    var danhSachPhong = ViewBag.DanhSachPhong as List<QuanLyTrungTamNgoaiNgu.Models.PhongHoc> ?? new();
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <div>
         <h4 class="mb-1 text-dark fw-bold">Thời Khóa Biểu & Quản Lý Phòng Học</h4>
-        <p class="text-muted small mb-0">Theo dõi lịch đào tạo theo tuần, điều phối phòng học và chống trùng ca</p>
+        <p class="text-muted small mb-0">Theo dõi lịch đào tạo theo tuần từ SQL Server, điều phối phòng học và chống trùng ca</p>
     </div>
-    <div class="d-flex gap-2">
+
+    <!-- Bộ lọc tìm lịch theo lớp học & Các nút điều hướng -->
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="input-group input-group-sm" style="width: 240px;">
+            <select class="form-select form-select-sm" id="filterClass">
+                <option value="0">-- Tất cả các lớp --</option>
+                @foreach (var lop in danhSachLop)
+                {
+                    <option value="@lop.TenLop">Lớp: @lop.TenLop</option>
+                }
+            </select>
+        </div>
         <button class="btn btn-outline-secondary btn-sm" id="btnPrevWeek"><i class="fa-solid fa-chevron-left"></i></button>
-        <button class="btn btn-outline-secondary btn-sm fw-semibold" id="btnCurrentWeek">Tuần Hiện Tại (05/10 - 11/10/2026)</button>
+        <button class="btn btn-outline-secondary btn-sm fw-semibold" id="btnCurrentWeek">Tuần (05/10 - 11/10)</button>
         <button class="btn btn-outline-secondary btn-sm" id="btnNextWeek"><i class="fa-solid fa-chevron-right"></i></button>
-        <button class="btn btn-primary btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#modalSchedule">
+        <button class="btn btn-primary btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#modalSchedule">
             <i class="fa-solid fa-calendar-plus me-1"></i> Xếp Lịch Học Mới
         </button>
     </div>
 </div>
 
-<!-- Lưới thời khóa biểu (Timetable Grid) -->
+<!-- Lưới thời khóa biểu (Timetable Grid) động từ SQL -->
 <div class="card shadow-sm border-0">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -35,105 +49,85 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Ca Sáng -->
-                    <tr>
-                        <td class="bg-light fw-bold text-secondary">
-                            <div>Ca Sáng</div>
-                            <small class="text-muted fw-normal">08:00 - 10:00</small>
-                        </td>
-                        <td class="cell-slot" data-day="Thứ 2" data-time="Ca sáng (08:00 - 10:00)">
-                            <div class="schedule-card p-2 rounded bg-info-subtle border border-info text-start small" data-room="P.102" data-classname="IELTS6.5-K02">
-                                <div class="fw-bold text-dark">IELTS6.5-K02</div>
-                                <div class="text-muted"><i class="fa-solid fa-chalkboard-user me-1"></i>GV: Nguyễn Quản Lý</div>
-                                <span class="badge bg-primary mt-1">P.102</span>
-                            </div>
-                        </td>
-                        <td class="cell-slot" data-day="Thứ 3" data-time="Ca sáng (08:00 - 10:00)"></td>
-                        <td class="cell-slot" data-day="Thứ 4" data-time="Ca sáng (08:00 - 10:00)">
-                            <div class="schedule-card p-2 rounded bg-info-subtle border border-info text-start small" data-room="P.102" data-classname="IELTS6.5-K02">
-                                <div class="fw-bold text-dark">IELTS6.5-K02</div>
-                                <div class="text-muted"><i class="fa-solid fa-chalkboard-user me-1"></i>GV: Nguyễn Quản Lý</div>
-                                <span class="badge bg-primary mt-1">P.102</span>
-                            </div>
-                        </td>
-                        <td class="cell-slot" data-day="Thứ 5" data-time="Ca sáng (08:00 - 10:00)"></td>
-                        <td class="cell-slot" data-day="Thứ 6" data-time="Ca sáng (08:00 - 10:00)">
-                            <div class="schedule-card p-2 rounded bg-info-subtle border border-info text-start small" data-room="P.102" data-classname="IELTS6.5-K02">
-                                <div class="fw-bold text-dark">IELTS6.5-K02</div>
-                                <div class="text-muted"><i class="fa-solid fa-chalkboard-user me-1"></i>GV: Nguyễn Quản Lý</div>
-                                <span class="badge bg-primary mt-1">P.102</span>
-                            </div>
-                        </td>
-                        <td class="cell-slot" data-day="Thứ 7" data-time="Ca sáng (08:00 - 10:00)"></td>
-                        <td class="cell-slot" data-day="Chủ Nhật" data-time="Ca sáng (08:00 - 10:00)"></td>
-                    </tr>
+                    @{
+                        string[] cacCa = { "Ca Sáng", "Ca Chiều", "Ca Tối" };
+                        string[] khungGioArr = { "Ca sáng (08:00 - 10:00)", "Ca chiều (14:00 - 16:00)", "Ca tối (18:00 - 20:00)" };
+                        string[] thuArr = { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật" };
+                    }
 
-                    <!-- Ca Chiều -->
-                    <tr>
-                        <td class="bg-light fw-bold text-secondary">
-                            <div>Ca Chiều</div>
-                            <small class="text-muted fw-normal">14:00 - 16:00</small>
-                        </td>
-                        <td class="cell-slot" data-day="Thứ 2" data-time="Ca chiều (14:00 - 16:00)"></td>
-                        <td class="cell-slot" data-day="Thứ 3" data-time="Ca chiều (14:00 - 16:00)">
-                            <div class="schedule-card p-2 rounded bg-warning-subtle border border-warning text-start small" data-room="P.103" data-classname="GIAOTIEP-K01">
-                                <div class="fw-bold text-dark">GIAOTIEP-K01</div>
-                                <div class="text-muted"><i class="fa-solid fa-chalkboard-user me-1"></i>GV: Lê Văn Hướng Dẫn</div>
-                                <span class="badge bg-secondary mt-1">P.103</span>
-                            </div>
-                        </td>
-                        <td class="cell-slot" data-day="Thứ 4" data-time="Ca chiều (14:00 - 16:00)"></td>
-                        <td class="cell-slot" data-day="Thứ 5" data-time="Ca chiều (14:00 - 16:00)">
-                            <div class="schedule-card p-2 rounded bg-warning-subtle border border-warning text-start small" data-room="P.103" data-classname="GIAOTIEP-K01">
-                                <div class="fw-bold text-dark">GIAOTIEP-K01</div>
-                                <div class="text-muted"><i class="fa-solid fa-chalkboard-user me-1"></i>GV: Lê Văn Hướng Dẫn</div>
-                                <span class="badge bg-secondary mt-1">P.103</span>
-                            </div>
-                        </td>
-                        <td class="cell-slot" data-day="Thứ 6" data-time="Ca chiều (14:00 - 16:00)"></td>
-                        <td class="cell-slot" data-day="Thứ 7" data-time="Ca chiều (14:00 - 16:00)"></td>
-                        <td class="cell-slot" data-day="Chủ Nhật" data-time="Ca chiều (14:00 - 16:00)"></td>
-                    </tr>
+                    @for (int i = 0; i < cacCa.Length; i++)
+                    {
+                        string tenCa = cacCa[i];
+                        string khungGio = khungGioArr[i];
+                        string gioHienThi = tenCa == "Ca Sáng" ? "08:00 - 10:00" : (tenCa == "Ca Chiều" ? "14:00 - 16:00" : "18:00 - 20:00");
 
-                    <!-- Ca Tối -->
-                    <tr>
-                        <td class="bg-light fw-bold text-secondary">
-                            <div>Ca Tối</div>
-                            <small class="text-muted fw-normal">18:00 - 20:00</small>
-                        </td>
-                        <td class="cell-slot" data-day="Thứ 2" data-time="Ca tối (18:00 - 20:00)">
-                            <div class="schedule-card p-2 rounded bg-primary-subtle border border-primary text-start small" data-room="P.101" data-classname="TOEIC500-K01">
-                                <div class="fw-bold text-dark">TOEIC500-K01</div>
-                                <div class="text-muted"><i class="fa-solid fa-chalkboard-user me-1"></i>GV: Trần Thị Giảng Viên</div>
-                                <span class="badge bg-success mt-1">P.101</span>
-                            </div>
-                        </td>
-                        <td class="cell-slot" data-day="Thứ 3" data-time="Ca tối (18:00 - 20:00)"></td>
-                        <td class="cell-slot" data-day="Thứ 4" data-time="Ca tối (18:00 - 20:00)">
-                            <div class="schedule-card p-2 rounded bg-primary-subtle border border-primary text-start small" data-room="P.101" data-classname="TOEIC500-K01">
-                                <div class="fw-bold text-dark">TOEIC500-K01</div>
-                                <div class="text-muted"><i class="fa-solid fa-chalkboard-user me-1"></i>GV: Trần Thị Giảng Viên</div>
-                                <span class="badge bg-success mt-1">P.101</span>
-                            </div>
-                        </td>
-                        <td class="cell-slot" data-day="Thứ 5" data-time="Ca tối (18:00 - 20:00)"></td>
-                        <td class="cell-slot" data-day="Thứ 6" data-time="Ca tối (18:00 - 20:00)">
-                            <div class="schedule-card p-2 rounded bg-primary-subtle border border-primary text-start small" data-room="P.101" data-classname="TOEIC500-K01">
-                                <div class="fw-bold text-dark">TOEIC500-K01</div>
-                                <div class="text-muted"><i class="fa-solid fa-chalkboard-user me-1"></i>GV: Trần Thị Giảng Viên</div>
-                                <span class="badge bg-success mt-1">P.101</span>
-                            </div>
-                        </td>
-                        <td class="cell-slot" data-day="Thứ 7" data-time="Ca tối (18:00 - 20:00)"></td>
-                        <td class="cell-slot" data-day="Chủ Nhật" data-time="Ca tối (18:00 - 20:00)"></td>
-                    </tr>
+                        <tr>
+                            <td class="bg-light fw-bold text-secondary">
+                                <div>@tenCa</div>
+                                <small class="text-muted fw-normal">@gioHienThi</small>
+                            </td>
+
+                            @foreach (var thu in thuArr)
+                            {
+                                <td class="cell-slot" data-day="@thu" data-time="@khungGio">
+                                    @{
+                                        var listLichCell = danhSachLich.Where(l =>
+                                        {
+                                            string thuCuaLich = l.NgayHoc.DayOfWeek switch
+                                            {
+                                                DayOfWeek.Monday => "Thứ 2",
+                                                DayOfWeek.Tuesday => "Thứ 3",
+                                                DayOfWeek.Wednesday => "Thứ 4",
+                                                DayOfWeek.Thursday => "Thứ 5",
+                                                DayOfWeek.Friday => "Thứ 6",
+                                                DayOfWeek.Saturday => "Thứ 7",
+                                                DayOfWeek.Sunday => "Chủ Nhật",
+                                                _ => ""
+                                            };
+                                            bool matchThu = (thuCuaLich == thu);
+
+                                            // Khớp chính xác giờ bắt đầu với ca học tương ứng
+                                            bool matchGio = false;
+                                            if (tenCa == "Ca Sáng") { matchGio = l.GioBatDau.Hours == 8; }
+                                            else if (tenCa == "Ca Chiều") { matchGio = l.GioBatDau.Hours == 14; }
+                                            else if (tenCa == "Ca Tối") { matchGio = l.GioBatDau.Hours >= 18; }
+
+                                            return matchThu && matchGio;
+                                        }).ToList();
+                                    }
+
+                                    @foreach (var item in listLichCell)
+                                    {
+                                        string roomName = item.PhongHoc?.TenPhong ?? "P.101";
+                                        string className = item.LopHoc?.TenLop ?? "Lớp học";
+                                        string teacherName = item.LopHoc?.GiaoVienPhuTrach?.HoTen ?? "Chưa phân công";
+                                        string ghiChu = item.GhiChu ?? "Không có ghi chú";
+
+                                        <div class="schedule-card p-2 rounded bg-primary-subtle border border-primary text-start small mb-1 shadow-sm"
+                                             style="cursor: pointer;"
+                                             data-id="@item.LichHocID"
+                                             data-room="@roomName"
+                                             data-classname="@className"
+                                             data-teacher="@teacherName"
+                                             data-date="@item.NgayHoc.ToString("dd/MM/yyyy")"
+                                             data-time="@item.GioBatDau.ToString(@"hh\:mm") - @item.GioKetThuc.ToString(@"hh\:mm")"
+                                             data-note="@ghiChu">
+                                            <div class="fw-bold text-dark">@className</div>
+                                            <div class="text-muted"><i class="fa-solid fa-chalkboard-user me-1"></i>GV: @teacherName</div>
+                                            <span class="badge bg-success mt-1">@roomName</span>
+                                        </div>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- Modal 1: Xếp Ca Học Mới -->
+<!-- Modal: Xếp Ca Học Mới -->
 <div class="modal fade" id="modalSchedule" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -146,9 +140,19 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Lớp Học <span class="text-danger">*</span></label>
                         <select class="form-select" id="schedClass" required>
-                            <option value="1" data-name="TOEIC500-K01" data-teacher="Trần Thị Giảng Viên">TOEIC500-K01 (GV: Trần Thị Giảng Viên)</option>
-                            <option value="2" data-name="IELTS6.5-K02" data-teacher="Nguyễn Quản Lý">IELTS6.5-K02 (GV: Nguyễn Quản Lý)</option>
-                            <option value="3" data-name="GIAOTIEP-K01" data-teacher="Lê Văn Hướng Dẫn">GIAOTIEP-K01 (GV: Lê Văn Hướng Dẫn)</option>
+                            @if (danhSachLop.Any())
+                            {
+                                foreach (var lop in danhSachLop)
+                                {
+                                    <option value="@lop.LopHocID" data-name="@lop.TenLop" data-teacher="@(lop.GiaoVienPhuTrach?.HoTen ?? "Chưa phân công")">
+                                        @lop.TenLop (GV: @(lop.GiaoVienPhuTrach?.HoTen ?? "Chưa phân công"))
+                                    </option>
+                                }
+                            }
+                            else
+                            {
+                                <option value="0">-- Chưa có lớp học trong SQL --</option>
+                            }
                         </select>
                     </div>
 
@@ -178,90 +182,78 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Phòng Học <span class="text-danger">*</span></label>
                         <select class="form-select" id="schedRoom" required>
-                            <option value="P.101">Phòng 101 (25 chỗ - Máy chiếu)</option>
-                            <option value="P.102">Phòng 102 (30 chỗ - Phòng Lab)</option>
-                            <option value="P.103">Phòng 103 (20 chỗ - Cơ bản)</option>
+                            @if (danhSachPhong.Any())
+                            {
+                                foreach (var p in danhSachPhong)
+                                {
+                                    <option value="@p.TenPhong">@p.TenPhong (@p.TrangThai)</option>
+                                }
+                            }
+                            else
+                            {
+                                <option value="P.101">Phòng 101</option>
+                            }
                         </select>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Ghi Chú Ca Học</label>
-                        <input type="text" class="form-control" id="schedNote" placeholder="VD: Buổi thực hành phòng Lab nghe nói..." />
+                        <input type="text" class="form-control" id="schedNote" placeholder="VD: Buổi lý thuyết / thực hành..." />
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 <button type="button" class="btn btn-primary" id="btnSaveSchedule">
-                    <i class="fa-solid fa-check me-1"></i> Lưu Vào Thời Khóa Biểu
+                    <i class="fa-solid fa-check me-1"></i> Lưu Vào CSDL
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal 2: Chỉnh Sửa / Điều Chỉnh Ca Học -->
-<div class="modal fade" id="modalEditSchedule" tabindex="-1" aria-hidden="true">
+<!-- Modal: Chi Tiết Lịch Học & Xóa -->
+<div class="modal fade" id="modalDetailSchedule" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Điều Chỉnh Ca Học</h5>
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-circle-info me-2"></i>Chi Tiết Ca Học</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="formEditSchedule">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Lớp Học</label>
-                        <input type="text" class="form-control bg-light fw-bold" id="editClassName" readonly />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Giảng Viên Phụ Trách</label>
-                        <input type="text" class="form-control bg-light" id="editTeacher" readonly />
-                    </div>
-
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Thứ Trong Tuần</label>
-                            <select class="form-select" id="editDay">
-                                <option value="Thứ 2">Thứ 2</option>
-                                <option value="Thứ 3">Thứ 3</option>
-                                <option value="Thứ 4">Thứ 4</option>
-                                <option value="Thứ 5">Thứ 5</option>
-                                <option value="Thứ 6">Thứ 6</option>
-                                <option value="Thứ 7">Thứ 7</option>
-                                <option value="Chủ Nhật">Chủ Nhật</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Khung Giờ</label>
-                            <select class="form-select" id="editTime">
-                                <option value="Ca sáng (08:00 - 10:00)">Ca Sáng (08:00 - 10:00)</option>
-                                <option value="Ca chiều (14:00 - 16:00)">Ca Chiều (14:00 - 16:00)</option>
-                                <option value="Ca tối (18:00 - 20:00)">Ca Tối (18:00 - 20:00)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Phòng Học <span class="text-danger">*</span></label>
-                        <select class="form-select" id="editRoom" required>
-                            <option value="P.101">Phòng 101 (25 chỗ - Máy chiếu)</option>
-                            <option value="P.102">Phòng 102 (30 chỗ - Phòng Lab)</option>
-                            <option value="P.103">Phòng 103 (20 chỗ - Cơ bản)</option>
-                        </select>
-                    </div>
-                </form>
+                <input type="hidden" id="detailLichId" />
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between py-3">
+                        <span class="text-muted fw-semibold">Lớp Học:</span>
+                        <span id="detailClassName" class="fw-bold text-dark">--</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between py-3">
+                        <span class="text-muted fw-semibold">Giảng Viên:</span>
+                        <span id="detailTeacher" class="text-dark">--</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between py-3">
+                        <span class="text-muted fw-semibold">Ngày Học:</span>
+                        <span id="detailDate" class="text-dark">--</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between py-3">
+                        <span class="text-muted fw-semibold">Khung Giờ:</span>
+                        <span id="detailTime" class="text-dark">--</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between py-3">
+                        <span class="text-muted fw-semibold">Phòng Học:</span>
+                        <span id="detailRoom" class="badge bg-success align-self-center">--</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between py-3">
+                        <span class="text-muted fw-semibold">Ghi Chú:</span>
+                        <span id="detailNote" class="text-muted fst-italic">--</span>
+                    </li>
+                </ul>
             </div>
             <div class="modal-footer d-flex justify-content-between">
                 <button type="button" class="btn btn-outline-danger" id="btnDeleteSchedule">
-                    <i class="fa-solid fa-trash me-1"></i> Hủy Ca Học Này
+                    <i class="fa-solid fa-trash me-1"></i> Xóa Lịch Học Này
                 </button>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="button" class="btn btn-primary" id="btnUpdateSchedule">
-                        <i class="fa-solid fa-floppy-disk me-1"></i> Cập Nhật
-                    </button>
-                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
@@ -269,117 +261,93 @@
 
 @section Scripts {
     <script>
-        $(document).ready(function () {
-            let activeCard = null; // Lưu thẻ ca học đang được click chọn sửa
+        $(document).ready(function() {
+            // 1. Chức năng tìm kiếm / lọc lịch học theo lớp trên bảng TKB
+            $('#filterClass').change(function() {
+                const selectedClass = $(this).val();
 
-            // Nút bấm tuần
-            $('#btnPrevWeek, #btnNextWeek').click(function () {
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'info',
-                    title: 'Đang tải lịch tuần tiếp theo...',
-                    showConfirmButton: false,
-                    timer: 1000
-                });
-            });
-
-            // 1. SỰ KIỆN CLICK VÀO BẤT KỲ CA HỌC NÀO ĐỂ SỬA
-            $(document).on('click', '.schedule-card', function () {
-                activeCard = $(this);
-                const currentTd = activeCard.closest('td.cell-slot');
-
-                const className = activeCard.data('classname');
-                const teacher = activeCard.find('.text-muted').text().replace('GV: ', '').trim();
-                const room = activeCard.data('room');
-                const day = currentTd.data('day');
-                const time = currentTd.data('time');
-
-                // Nạp dữ liệu vào modal chỉnh sửa
-                $('#editClassName').val(className);
-                $('#editTeacher').val(teacher);
-                $('#editDay').val(day);
-                $('#editTime').val(time);
-                $('#editRoom').val(room);
-
-                $('#modalEditSchedule').modal('show');
-            });
-
-            // 2. XỬ LÝ LƯU CẬP NHẬT CA HỌC (Có kiểm tra chống trùng phòng ở vị trí mới)
-            $('#btnUpdateSchedule').click(function () {
-                if (!activeCard) return;
-
-                const newDay = $('#editDay').val();
-                const newTime = $('#editTime').val();
-                const newRoom = $('#editRoom').val();
-                const className = $('#editClassName').val();
-
-                const targetCell = $(`td.cell-slot[data-day="${newDay}"][data-time="${newTime}"]`);
-
-                // Kiểm tra xung đột: Quét xem ô mới đã có lớp nào chiếm phòng đó chưa (trừ chính thẻ đang sửa)
-                let isConflict = false;
-                let conflictClassName = "";
-
-                targetCell.find('.schedule-card').each(function () {
-                    if (!$(this).is(activeCard) &&$(this).data('room') === newRoom) {
-                        isConflict = true;
-                        conflictClassName = $(this).data('classname');
-                        return false;
+                $('.schedule-card').each(function() {
+                    const cardClassName = $(this).data('classname');
+                    if (selectedClass === "0" || cardClassName === selectedClass) {
+                        $(this).show();
+                        if (selectedClass !== "0") {
+                            $(this).addClass('border-danger shadow'); // Làm nổi bật lớp được tìm
+                        } else {
+                            $(this).removeClass('border-danger shadow');
+                        }
+                    } else {
+                        $(this).hide();
                     }
                 });
-
-                if (isConflict) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Xung đột phòng học!',
-                        html: `Phòng <b>${newRoom}</b> vào <b>${newDay}</b> (${newTime}) đã có lớp <b>${conflictClassName}</b>!<br/>Vui lòng chọn phòng khác hoặc giờ khác.`,
-                        confirmButtonColor: '#ef4444'
-                    });
-                    return;
-                }
-
-                // Cập nhật lại dữ liệu cho thẻ và di chuyển sang ô mới
-                activeCard.data('room', newRoom);
-                activeCard.find('.badge').text(newRoom);
-
-                // Di chuyển thẻ sang ô tọa độ mới trên lưới
-                targetCell.append(activeCard);
-
-                $('#modalEditSchedule').modal('hide');
-                Swal.fire('Thành công', `Đã chuyển lớp ${className} sang phòng ${newRoom} (${newDay} - ${newTime})!`, 'success');
             });
 
-            // 3. XỬ LÝ HỦY / XÓA CA HỌC
-            $('#btnDeleteSchedule').click(function () {
-                if (!activeCard) return;
+            // 2. Kích vào thẻ lịch học trên TKB -> Sổ ra Modal thông tin chi tiết
+            $(document).on('click', '.schedule-card', function() {
+                const id = $(this).data('id');
+                const className = $(this).data('classname');
+                const teacher = $(this).data('teacher');
+                const date = $(this).data('date');
+                const time = $(this).data('time');
+                const room = $(this).data('room');
+                const note = $(this).data('note');
+
+                $('#detailLichId').val(id);
+                $('#detailClassName').text(className);
+                $('#detailTeacher').text(teacher);
+                $('#detailDate').text(date);
+                $('#detailTime').text(time);
+                $('#detailRoom').text(room);
+                $('#detailNote').text(note);
+
+                $('#modalDetailSchedule').modal('show');
+            });
+
+            // 3. Xử lý nút Xóa lịch học từ Modal chi tiết
+            $('#btnDeleteSchedule').click(function() {
+                const lichId = $('#detailLichId').val();
 
                 Swal.fire({
-                    title: 'Hủy ca học này?',
-                    text: "Lịch học này sẽ được gỡ khỏi thời khóa biểu tuần!",
+                    title: 'Xác nhận xóa lịch học?',
+                    text: "Thao tác này sẽ xóa vĩnh viễn ca học khỏi cơ sở dữ liệu SQL Server!",
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#ef4444',
-                    confirmButtonText: 'Đồng ý hủy',
-                    cancelButtonText: 'Đóng'
-                }).then((r) => {
-                    if (r.isConfirmed) {
-                        activeCard.fadeOut(250, function () {
-                            $(this).remove();$('#modalEditSchedule').modal('hide');
-                            Swal.fire({
-                                toast: true,
-                                position: 'top-end',
-                                icon: 'success',
-                                title: 'Đã hủy ca học thành công',
-                                showConfirmButton: false,
-                                timer: 1500
-                            });
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/LichHoc/XoaLich',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ lichHocId: parseInt(lichId) }),
+                            success: function(res) {
+                                if (res.success) {
+                                    $('#modalDetailSchedule').modal('hide');
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Đã xóa!',
+                                        text: res.message,
+                                        timer: 1500,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        location.reload();
+                                    });
+                                } else {
+                                    Swal.fire('Lỗi', res.message, 'error');
+                                }
+                            },
+                            error: function() {
+                                Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để xóa lịch học!', 'error');
+                            }
                         });
                     }
                 });
             });
 
-            // 4. XỬ LÝ XẾP LỊCH HỌC MỚI (Thêm mới)
-            $('#btnSaveSchedule').click(function () {
+            // 4. Xử lý thêm lịch mới và lưu xuống SQL
+            $('#btnSaveSchedule').click(function() {
                 const classOpt = $('#schedClass option:selected');
                 const classId = parseInt($('#schedClass').val());
                 const className = classOpt.data('name');
@@ -389,42 +357,46 @@
                 const room = $('#schedRoom').val();
                 const note = $('#schedNote').val();
 
-                const targetCell = $(`td.cell-slot[data-day="${day}"][data-time="${time}"]`);
-
-                let isConflict = false;
-                let conflictClassName = "";
-
-                targetCell.find('.schedule-card').each(function () {
-                    if ($(this).data('room') === room) {
-                        isConflict = true;
-                        conflictClassName = $(this).data('classname');
-                        return false;
-                    }
-                });
-
-                if (isConflict) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Xung đột phòng học!',
-                        html: `Phòng <b>${room}</b> vào <b>${day}</b> (${time}) đã được gán cho lớp <b>${conflictClassName}</b>!<br/>Vui lòng chọn phòng học khác hoặc đổi khung giờ.`,
-                        confirmButtonColor: '#ef4444'
-                    });
+                if (!classId || classId <= 0) {
+                    Swal.fire('Cảnh báo', 'Vui lòng chọn lớp học hợp lệ!', 'warning');
                     return;
                 }
 
-                const newCard = `
-                    <div class="schedule-card p-2 rounded bg-success-subtle border border-success text-start small mt-1" 
-                         data-room="${room}" data-classname="${className}">
-                        <div class="fw-bold text-dark">${className}</div>
-                        <div class="text-muted"><i class="fa-solid fa-chalkboard-user me-1"></i>GV: ${teacher}</div>
-                        <span class="badge bg-dark mt-1">${room}</span>
-                    </div>
-                `;
+                const payload = {
+                    lopHocId: classId,
+                    tenLop: className,
+                    giangVien: teacher,
+                    thuTrongTuan: day,
+                    khungGio: time,
+                    phongHoc: room,
+                    ghiChu: note
+                };
 
-                targetCell.append(newCard);
-                $('#modalSchedule').modal('hide');
-                $('#formSchedule')[0].reset();
-                Swal.fire('Thành công!', `Đã xếp lịch lớp ${className} vào phòng ${room}!`, 'success');
+                $.ajax({
+                    url: '/LichHoc/XepLich',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function(res) {
+                        if (res.success) {
+                            $('#modalSchedule').modal('hide');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: res.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Xung đột lịch', res.message, 'error');
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Lỗi', 'Không thể kết nối lưu lịch học xuống cơ sở dữ liệu!', 'error');
+                    }
+                });
             });
         });
     </script>

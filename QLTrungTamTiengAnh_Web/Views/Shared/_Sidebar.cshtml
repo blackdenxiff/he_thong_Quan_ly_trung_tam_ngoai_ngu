@@ -58,7 +58,8 @@
             AddGroup("QUẢN TRỊ NHÂN SỰ",
                 Item("Hồ sơ Nhân sự & Giáo viên", "fa-id-card-clip", "/NhanSu"),
                 Item("Điều chuyển công tác", "fa-arrows-left-right", "/CoSo"),
-                Item("Bảng lương & Chấm công", "fa-money-bill-wave", "/BangLuong"));
+                Item("Bảng lương & Chấm công", "fa-money-bill-wave", "/BangLuong"),
+                Item("Điểm danh học viên", "fa-clipboard-check", "/DiemDanh")); // Đã thêm mục Điểm danh ở đây
             AddGroup("VẬN HÀNH ĐÀO TẠO",
                 Item("Khóa học & Tài liệu", "fa-book-open", "/KhoaHoc"),
                 Item("Lớp học & Phân công", "fa-chalkboard-user", "/LopHoc"),
@@ -77,11 +78,9 @@
 }
 
 @{
-    // Biến để xác định xem có hiển thị phụ đề sidebar hay không
     var currentRole = Context.Session.GetString("UserRole") ?? "Admin";
     var shouldShowSubtitle = currentRole == "Admin" || currentRole == "Quản lý";
 }
-
 <aside id="sidebar-wrapper" aria-label="Điều hướng chính">
     <div class="sidebar-heading">
         <i class="fa-solid fa-graduation-cap text-primary fs-4"></i>

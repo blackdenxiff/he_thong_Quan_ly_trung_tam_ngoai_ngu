@@ -1,7 +1,24 @@
-﻿@{
+﻿@model IEnumerable<QuanLyTrungTamNgoaiNgu.Models.HoaDon>
+
+@{
     ViewData["Title"] = "Quản lý Học phí & Hóa đơn";
+
+    // Tính toán thống kê dựa HOÀN TOÀN vào CSDL SQL
+    decimal totalPayable = Model.Sum(h => h.TongPhaiTra);
+
+    // Tổng đã thu = Tiền của các hóa đơn đã đánh dấu "Đã thu đủ" + Tiền thực tế đã thanh toán của các hóa đơn "Chưa đủ"
+    decimal totalCollected = Model.Sum(h =>
+        (h.TrangThai == "Đã thu đủ" || h.TrangThai == "Đã thanh toán")
+        ? h.TongPhaiTra
+        : (h.ThanhToans != null ? h.ThanhToans.Sum(t => t.SoTien) : 0));
+
+    decimal totalRemaining = totalPayable - totalCollected;
+
+    // Đếm chính xác theo cột TrangThai
+    int unpaidCount = Model.Count(h => h.TrangThai != "Đã thu đủ" && h.TrangThai != "Đã thanh toán");
 }
 
+<!-- Tiêu đề trang và Nút Lập Hóa Đơn Mới -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="mb-1 text-dark fw-bold">Quản Lý Học Phí & Hóa Đơn</h4>
@@ -17,30 +34,30 @@
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
             <span class="text-muted small fw-semibold">TỔNG PHẢI THU</span>
-            <h4 class="fw-bold mb-0 text-dark" id="statTotalPayable">8,500,000 đ</h4>
+            <h4 class="fw-bold mb-0 text-dark" id="statTotalPayable">@totalPayable.ToString("N0") đ</h4>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
             <span class="text-success small fw-semibold">ĐÃ THU</span>
-            <h4 class="fw-bold mb-0 text-success" id="statTotalCollected">6,500,000 đ</h4>
+            <h4 class="fw-bold mb-0 text-success" id="statTotalCollected">@totalCollected.ToString("N0") đ</h4>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
             <span class="text-danger small fw-semibold">CÔNG NỢ CÒN LẠI</span>
-            <h4 class="fw-bold mb-0 text-danger" id="statRemainingDebt">2,000,000 đ</h4>
+            <h4 class="fw-bold mb-0 text-danger" id="statRemainingDebt">@totalRemaining.ToString("N0") đ</h4>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
             <span class="text-warning small fw-semibold">HÓA ĐƠN CHƯA THU ĐỦ</span>
-            <h4 class="fw-bold mb-0 text-warning" id="statUnpaidCount">1</h4>
+            <h4 class="fw-bold mb-0 text-warning" id="statUnpaidCount">@unpaidCount</h4>
         </div>
     </div>
 </div>
 
-<!-- Bộ lọc tìm kiếm Hóa đơn -->
+<!-- Khung Bộ lọc tìm kiếm Hóa đơn -->
 <div class="card mb-4 shadow-sm border-0">
     <div class="card-body">
         <div class="row g-3">
@@ -69,7 +86,7 @@
     </div>
 </div>
 
-<!-- Bảng dữ liệu Hóa đơn (Table) -->
+<!-- Bảng dữ liệu Hóa đơn -->
 <div class="card shadow-sm border-0">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -88,65 +105,89 @@
                     </tr>
                 </thead>
                 <tbody id="invoiceTableBody">
-                    <!-- Hóa đơn 1: Chưa thu đủ (Khớp với dữ liệu mẫu CSDL) -->
-                    <tr id="row_inv_1" data-invoice-id="1" data-student-name="Lê Văn Học Viên" data-class-name="TOEIC500-K01" data-total="4500000" data-discount="500000" data-payable="4000000" data-paid="2000000" data-remaining="2000000">
-                        <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">HD-001</span></td>
-                        <td>
-                            <div class="fw-bold text-dark">Lê Văn Học Viên</div>
-                            <small class="text-muted">HV-001 • 0900000003</small>
-                        </td>
-                        <td>
-                            <span class="fw-semibold text-primary">TOEIC500-K01</span>
-                            <div class="small text-muted">Học phí chuẩn đầu ra</div>
-                        </td>
-                        <td><small class="text-muted">01/10/2026</small></td>
-                        <td>4,500,000 đ</td>
-                        <td class="text-danger">-500,000 đ</td>
-                        <td class="fw-bold text-dark">4,000,000 đ</td>
-                        <td class="status-cell">
-                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle status-badge">Chưa đủ</span>
-                            <div class="small text-muted paid-text">Đã thu: 2,000,000 đ</div>
-                        </td>
-                        <td class="text-end pe-3 action-cell">
-                            <button class="btn btn-sm btn-outline-success me-1 btn-pay" title="Thu tiền lần 2" onclick="openPaymentModal(this)">
-                                <i class="fa-solid fa-hand-holding-dollar"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary" title="In hóa đơn" onclick="printInvoice(this)">
-                                <i class="fa-solid fa-print"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    <!-- Hóa đơn 2: Đã thu đủ -->
-                    <tr id="row_inv_2" data-invoice-id="2" data-student-name="Trần Thị Mai Phương" data-class-name="TOEIC500-K01" data-total="4500000" data-discount="0" data-payable="4500000" data-paid="4500000" data-remaining="0">
-                        <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">HD-002</span></td>
-                        <td>
-                            <div class="fw-bold text-dark">Trần Thị Mai Phương</div>
-                            <small class="text-muted">HV-002 • 0900000012</small>
-                        </td>
-                        <td>
-                            <span class="fw-semibold text-primary">TOEIC500-K01</span>
-                            <div class="small text-muted">Học phí chuẩn đầu ra</div>
-                        </td>
-                        <td><small class="text-muted">02/10/2026</small></td>
-                        <td>4,500,000 đ</td>
-                        <td class="text-muted">0 đ</td>
-                        <td class="fw-bold text-dark">4,500,000 đ</td>
-                        <td class="status-cell">
-                            <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Đã thu đủ</span>
-                            <div class="small text-muted paid-text">Đã thu: 4,500,000 đ</div>
-                        </td>
-                        <td class="text-end pe-3 action-cell">
-                            <button class="btn btn-sm btn-outline-secondary" title="In hóa đơn" onclick="printInvoice(this)">
-                                <i class="fa-solid fa-print"></i>
-                            </button>
-                        </td>
-                    </tr>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            bool isCompleted = (item.TrangThai == "Đã thu đủ" || item.TrangThai == "Đã thanh toán");
+
+                            // Tính toán số tiền đã thu:
+                            // - Nếu SQL báo đã thu đủ -> Đã thu bằng đúng tổng phải thu.
+                            // - Nếu chưa đủ -> Lấy thực tế từ bảng ThanhToans (nếu có), nếu không có thì bằng 0.
+                            decimal daThu = 0;
+                            if (isCompleted)
+                            {
+                                daThu = item.TongPhaiTra;
+                            }
+                            else
+                            {
+                                daThu = item.ThanhToans != null ? item.ThanhToans.Sum(t => t.SoTien) : 0;
+                            }
+
+                            decimal conLai = item.TongPhaiTra - daThu;
+                            if (conLai < 0) conLai = 0;
+
+                            <tr id="row_inv_@item.HoaDonID"
+                                data-invoice-id="@item.HoaDonID"
+                                data-student-name="@(item.HocVien?.HoTen ?? "Khách lẻ")"
+                                data-class-name="Khóa học đào tạo"
+                                data-total="@item.TongTien"
+                                data-discount="@item.GiamGia"
+                                data-payable="@item.TongPhaiTra"
+                                data-paid="@daThu"
+                                data-remaining="@conLai">
+
+                                <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">HD-@item.HoaDonID</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark">@(item.HocVien?.HoTen ?? "N/A")</div>
+                                    <small class="text-muted">HV-@(item.HocVienID) • @(item.HocVien?.SoDienThoai ?? "")</small>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-primary">Khóa học ngoại ngữ</span>
+                                    <div class="small text-muted">@(item.GhiChu ?? "Học phí chuẩn đầu ra")</div>
+                                </td>
+                                <td><small class="text-muted">@item.NgayLap.ToString("dd/MM/yyyy")</small></td>
+                                <td>@item.TongTien.ToString("N0") đ</td>
+                                <td class="text-danger">-@item.GiamGia.ToString("N0") đ</td>
+                                <td class="fw-bold text-dark">@item.TongPhaiTra.ToString("N0") đ</td>
+                                <td class="status-cell">
+                                    @if (isCompleted)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Đã thu đủ</span>
+                                        <div class="small text-muted paid-text">Đã thu: @daThu.ToString("N0") đ</div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle status-badge">Chưa đủ</span>
+                                        <div class="small text-muted paid-text">Đã thu: @daThu.ToString("N0") đ</div>
+                                    }
+                                </td>
+                                <td class="text-end pe-3 action-cell">
+                                    @if (!isCompleted)
+                                    {
+                                        <button class="btn btn-sm btn-outline-success me-1 btn-pay" title="Thu tiền" onclick="openPaymentModal(this)">
+                                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                                        </button>
+                                    }
+                                    <button class="btn btn-sm btn-outline-secondary" title="In hóa đơn" onclick="printInvoice(this)">
+                                        <i class="fa-solid fa-print"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-4 text-muted">Không có dữ liệu hóa đơn nào trong hệ thống.</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
     </div>
     <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
-        <small class="text-muted">Hiển thị <span id="displayCount">2</span> hóa đơn trong hệ thống</small>
+        <small class="text-muted">Hiển thị <span id="displayCount">@(Model?.Count() ?? 0)</span> hóa đơn trong hệ thống</small>
         <ul class="pagination pagination-sm mb-0">
             <li class="page-item disabled"><a class="page-link" href="#">Trước</a></li>
             <li class="page-item active"><a class="page-link" href="#">1</a></li>
@@ -155,7 +196,7 @@
     </div>
 </div>
 
-<!-- Modal 1: Lập Hóa Đơn Mới (Client-side Validation & Calculation) -->
+<!-- Modal 1: Lập Hóa Đơn Mới -->
 <div class="modal fade" id="modalInvoice" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -208,7 +249,7 @@
     </div>
 </div>
 
-<!-- Modal 2: Ghi Nhận Thu Tiền / Thanh Toán (ThanhToan) -->
+<!-- Modal 2: Ghi Nhận Thu Tiền / Thanh Toán -->
 <div class="modal fade" id="modalPayment" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -255,7 +296,7 @@
     </div>
 </div>
 
-<!-- Modal Ẩn để In Phiếu Thu (Print Preview) -->
+<!-- Modal Ẩn để In Phiếu Thu -->
 <div class="modal fade" id="modalPrintReceipt" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -300,11 +341,11 @@
 
 @section Scripts {
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             let activeInvoiceRow = null;
 
-            // 1. Tự động nạp lớp & học phí khi chọn học viên trong Modal Lập Hóa Đơn
-            $('#selectStudent').change(function () {
+            // 1. Tự động nạp lớp & học phí khi chọn học viên
+            $('#selectStudent').change(function() {
                 const opt = $(this).find(':selected');
                 const className = opt.data('class') || '';
                 const fee = parseFloat(opt.data('fee')) || 0;
@@ -314,8 +355,8 @@
                 calculateInvoice();
             });
 
-            // 2. Client-side Validation: Kiểm soát giảm giá và tính toán số tiền thực thu
-            $('#txtDiscount').on('input', function () {
+            // 2. Client-side Validation cho Form lập hóa đơn
+            $('#txtDiscount').on('input', function() {
                 calculateInvoice();
             });
 
@@ -341,14 +382,11 @@
                 $('#txtFinalAmount').val(finalAmt);
             }
 
-            // 3. Xử lý Lập Hóa Đơn mới qua AJAX & Render DOM ngay lập tức
-            $('#btnSaveInvoice').click(function () {
+            // 3. Xử lý Lập Hóa Đơn mới
+            $('#btnSaveInvoice').click(function() {
                 const studentId = $('#selectStudent').val();
                 const total = parseFloat($('#txtTotalFee').val()) || 0;
                 const discount = parseFloat($('#txtDiscount').val()) || 0;
-                const finalAmt = parseFloat($('#txtFinalAmount').val()) || 0;
-                const studentName = $('#selectStudent option:selected').data('name');
-                const className = $('#txtClassName').val();
 
                 if (!studentId) {
                     Swal.fire('Thiếu thông tin', 'Vui lòng chọn học viên cần lập hóa đơn!', 'warning');
@@ -357,7 +395,7 @@
 
                 const payload = {
                     hocVienId: parseInt(studentId),
-                    dangKyId: 1,
+                    dangKyId: null,
                     tongTien: total,
                     giamGia: discount,
                     ghiChu: $('#txtInvoiceNote').val()
@@ -368,74 +406,57 @@
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(payload),
-                    success: function (res) {
+                    success: function(res) {
                         if (res.success) {
                             $('#modalInvoice').modal('hide');
-                            Swal.fire('Thành công!', res.message, 'success');
-
-                            const randomId = Math.floor(Math.random() * 900) + 100;
-                            const newTr = `
-                                <tr id="row_inv_${randomId}" data-invoice-id="${randomId}" data-student-name="${studentName}" data-class-name="${className}" data-total="${total}" data-discount="${discount}" data-payable="${finalAmt}" data-paid="0" data-remaining="${finalAmt}">
-                                    <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">HD-${randomId}</span></td>
-                                    <td>
-                                        <div class="fw-bold text-dark">${studentName}</div>
-                                        <small class="text-muted">HV-${studentId}</small>
-                                    </td>
-                                    <td>
-                                        <span class="fw-semibold text-primary">${className}</span>
-                                        <div class="small text-muted">Học phí chuẩn đầu ra</div>
-                                    </td>
-                                    <td><small class="text-muted">07/10/2026</small></td>
-                                    <td>${total.toLocaleString()} đ</td>
-                                    <td class="text-danger">-${discount.toLocaleString()} đ</td>
-                                    <td class="fw-bold text-dark">${finalAmt.toLocaleString()} đ</td>
-                                    <td class="status-cell">
-                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle status-badge">Chưa thu</span>
-                                        <div class="small text-muted paid-text">Đã thu: 0 đ</div>
-                                    </td>
-                                    <td class="text-end pe-3 action-cell">
-                                        <button class="btn btn-sm btn-outline-success me-1 btn-pay" title="Thu tiền" onclick="openPaymentModal(this)">
-                                            <i class="fa-solid fa-hand-holding-dollar"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary" title="In hóa đơn" onclick="printInvoice(this)">
-                                            <i class="fa-solid fa-print"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-
-                            $('#invoiceTableBody').prepend(newTr);
-                            $('#formNewInvoice')[0].reset();
-                            updateFinancialStats();
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: res.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload();
+                            });
                         } else {
                             Swal.fire('Lỗi', res.message, 'error');
                         }
                     },
-                    error: function () {
+                    error: function() {
                         Swal.fire('Lỗi kết nối', 'Không thể gửi dữ liệu đến server', 'error');
                     }
                 });
             });
 
             // 4. Mở Modal Thu tiền cho hóa đơn
-            window.openPaymentModal = function (btnElement) {
+            window.openPaymentModal = function(btnElement) {
                 activeInvoiceRow = $(btnElement).closest("tr");
                 const invId = activeInvoiceRow.data("invoice-id");
                 const studentName = activeInvoiceRow.data("student-name");
-                const remaining = parseFloat(activeInvoiceRow.data("remaining")) || 0;
+
+                const payable = parseFloat(String(activeInvoiceRow.data("payable")).replace(/,/g, '')) || 0;
+                const paid = parseFloat(String(activeInvoiceRow.data("paid")).replace(/,/g, '')) || 0;
+
+                let remaining = payable - paid;
+                if (remaining < 0) remaining = 0;
 
                 $('#payInvoiceId').val(invId);
                 $('#payStudentName').val(studentName);
-                $('#payRemainingDisplay').val(remaining.toLocaleString() + ' đ');
-                $('#payAmountInput').val(remaining).attr('max', remaining);
+                $('#payRemainingDisplay').val(remaining.toLocaleString('vi-VN') + ' đ');
+                $('#payAmountInput').val(remaining > 0 ? remaining : 0).attr('max', remaining > 0 ? remaining : null);
+
                 $('#modalPayment').modal('show');
             };
 
-            // 5. Gửi AJAX Thanh toán & Cập nhật số tiền, nhãn trạng thái trực tiếp
-            $('#btnConfirmPayment').click(function () {
+            // 5. Gửi AJAX Thanh toán
+            $('#btnConfirmPayment').click(function() {
                 const invId = parseInt($('#payInvoiceId').val());
                 const payAmt = parseFloat($('#payAmountInput').val()) || 0;
-                const remaining = parseFloat(activeInvoiceRow.data("remaining")) || 0;
+
+                const payable = parseFloat(String(activeInvoiceRow.data("payable")).replace(/,/g, '')) || 0;
+                const paid = parseFloat(String(activeInvoiceRow.data("paid")).replace(/,/g, '')) || 0;
+                let remaining = payable - paid;
+                if (remaining < 0) remaining = 0;
 
                 if (payAmt <= 0) {
                     Swal.fire('Lỗi số tiền', 'Vui lòng nhập số tiền thanh toán lớn hơn 0!', 'warning');
@@ -458,53 +479,32 @@
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(payload),
-                    success: function (res) {
+                    success: function(res) {
                         $('#modalPayment').modal('hide');
                         if (res.success) {
-                            Swal.fire('Đã thu tiền!', res.message, 'success');
-
-                            // Cập nhật lại số liệu trên dòng tr của hóa đơn
-                            let currentPaid = parseFloat(activeInvoiceRow.data("paid")) || 0;
-                            let currentPayable = parseFloat(activeInvoiceRow.data("payable")) || 0;
-
-                            currentPaid += payAmt;
-                            let newRemaining = currentPayable - currentPaid;
-
-                            activeInvoiceRow.data("paid", currentPaid);
-                            activeInvoiceRow.data("remaining", newRemaining);
-
-                            if (newRemaining <= 0) {
-                                // Đã thu hết nợ -> Chuyển thành Đã thu đủ và gỡ nút thu tiền
-                                activeInvoiceRow.find(".status-badge")
-                                    .removeClass("bg-warning-subtle text-warning border-warning-subtle bg-danger-subtle text-danger border-danger-subtle")
-                                    .addClass("bg-success-subtle text-success border border-success-subtle")
-                                    .text("Đã thu đủ");
-                                activeInvoiceRow.find(".paid-text").text(`Đã thu: ${currentPaid.toLocaleString()} đ`);
-                                activeInvoiceRow.find(".btn-pay").remove();
-                            } else {
-                                // Thu một phần -> Cập nhật số tiền đã thu
-                                activeInvoiceRow.find(".paid-text").text(`Đã thu: ${currentPaid.toLocaleString()} đ`);
-                            }
-
-                            // Chớp sáng dòng vừa cập nhật
-                            activeInvoiceRow.addClass("table-success");
-                            setTimeout(() => activeInvoiceRow.removeClass("table-success"), 800);
-
-                            updateFinancialStats();
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Đã thu tiền!',
+                                text: res.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload();
+                            });
                         } else {
                             Swal.fire('Lỗi', res.message, 'error');
                         }
                     },
-                    error: function () {
+                    error: function() {
                         Swal.fire('Lỗi kết nối', 'Không thể lưu thanh toán', 'error');
                     }
                 });
             });
 
             // 6. Mở Popup In Phiếu Thu
-            window.printInvoice = function (btnElement) {
+            window.printInvoice = function(btnElement) {
                 const tr = $(btnElement).closest("tr");
-                $('#printReceiptCode').text('HD-00' + tr.data("invoice-id"));
+                $('#printReceiptCode').text('HD-' + tr.data("invoice-id"));
                 $('#printStudent').text(tr.data("student-name"));
                 $('#printClass').text(tr.data("class-name"));
                 $('#printTotal').text(parseFloat(tr.data("total")).toLocaleString() + ' đ');
@@ -516,40 +516,12 @@
                 $('#modalPrintReceipt').modal('show');
             };
 
-            // 7. Hàm tự động tính toán lại 4 ô chỉ số thống kê trên đầu trang
-            function updateFinancialStats() {
-                let totalPayable = 0;
-                let totalCollected = 0;
-                let totalRemaining = 0;
-                let unpaidCount = 0;
-
-                $('#invoiceTableBody tr').each(function () {
-                    const payable = parseFloat($(this).data('payable')) || 0;
-                    const paid = parseFloat($(this).data('paid')) || 0;
-                    const remaining = parseFloat($(this).data('remaining')) || 0;
-
-                    totalPayable += payable;
-                    totalCollected += paid;
-                    totalRemaining += remaining;
-
-                    if (remaining > 0) {
-                        unpaidCount++;
-                    }
-                });
-
-                $('#statTotalPayable').text(totalPayable.toLocaleString() + ' đ');
-                $('#statTotalCollected').text(totalCollected.toLocaleString() + ' đ');
-                $('#statRemainingDebt').text(totalRemaining.toLocaleString() + ' đ');
-                $('#statUnpaidCount').text(unpaidCount);
-                $('#displayCount').text($('#invoiceTableBody tr').length);
-            }
-
-            // Bộ lọc hóa đơn
-            $('#btnFilterInv').click(function () {
+            // 7. Bộ lọc hóa đơn trực tiếp
+            $('#btnFilterInv').click(function() {
                 const kw = $('#searchInvoice').val().toLowerCase().trim();
                 const status = $('#filterInvoiceStatus').val();
 
-                $('#invoiceTableBody tr').each(function () {
+                $('#invoiceTableBody tr').each(function() {
                     const rowText = $(this).text().toLowerCase();
                     const rowStatus = $(this).find('.status-badge').text().trim();
 
@@ -560,7 +532,7 @@
                 });
             });
 
-            $('#btnResetInvFilter').click(function () {
+            $('#btnResetInvFilter').click(function() {
                 $('#searchInvoice').val('');
                 $('#filterInvoiceStatus').val('');
                 $('#invoiceTableBody tr').show();
