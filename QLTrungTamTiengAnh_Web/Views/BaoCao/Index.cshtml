@@ -113,8 +113,36 @@
             }
             function download(url, extension) {
                 if (!appliedFilter) return Swal.fire('Thông báo', 'Hãy tải báo cáo trước khi xuất.', 'info');
-                const button = extension === 'xlsx' ? $('#btnExportExcel') : $('#btnExportPdf'); button.prop('disabled', true);
-                post(url, appliedFilter).done((data, status, xhr) => { const blob = new Blob([data], { type: xhr.getResponseHeader('Content-Type') || 'application/octet-stream' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = xhr.getResponseHeader('Content-Disposition')?.match(/filename="?([^";]+)"?/i)?.[1] || `BaoCaoTongHop.${extension}`; link.click(); URL.revokeObjectURL(link.href); }).fail(xhr => Swal.fire('Lỗi', xhr.responseJSON?.message || 'Không xuất được file.', 'error')).always(() => button.prop('disabled', false));
+                const button = extension === 'xlsx' ? $('#btnExportExcel') : $('#btnExportPdf');
+                button.prop('disabled', true);
+                $.ajax({
+                    url,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: { RequestVerificationToken: token },
+                    data: JSON.stringify(appliedFilter),
+                    xhrFields: { responseType: 'blob' }
+                }).done((blob, status, xhr) => {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = xhr.getResponseHeader('Content-Disposition')?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i)?.[1]
+                        || `BaoCaoTongHop.${extension}`;
+                    link.click();
+                    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+                }).fail(xhr => {
+                    if (xhr.response instanceof Blob) {
+                        xhr.response.text().then(text => {
+                            try {
+                                const error = JSON.parse(text);
+                                Swal.fire('Lỗi', error.message || 'Không xuất được file.', 'error');
+                            } catch {
+                                Swal.fire('Lỗi', 'Không xuất được file.', 'error');
+                            }
+                        });
+                    } else {
+                        Swal.fire('Lỗi', xhr.responseJSON?.message || 'Không xuất được file.', 'error');
+                    }
+                }).always(() => button.prop('disabled', false));
             }
             const now = new Date(); $('#reportMonth').val(now.getMonth() + 1); $('#reportYear').val(now.getFullYear()); updateFields();
             $.getJSON(urls.branches).done(res => (res.data || []).forEach(x => $('#reportBranch').append(`<option value="${x.coSoId}">${String(x.tenCoSo).replace(/[&<>\"']/g, '')}</option>`)));
