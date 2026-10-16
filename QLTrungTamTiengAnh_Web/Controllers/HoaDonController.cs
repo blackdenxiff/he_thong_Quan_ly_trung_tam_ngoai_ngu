@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using QuanLyTrungTamNgoaiNgu.Data;
 using QuanLyTrungTamNgoaiNgu.Models;
 using System;
@@ -12,42 +13,107 @@ namespace QLTrungTamTiengAnh_Web.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        // Tiêm ApplicationDbContext để kết nối CSDL
         public HoaDonController(ApplicationDbContext context)
         {
             _context = context;
         }
 
         // GET: /HoaDon (Hiển thị danh sách hóa đơn từ CSDL)
-        // GET: /HoaDon (Hiển thị danh sách hóa đơn và danh sách học viên từ CSDL)
         public async Task<IActionResult> Index(string searchString, string statusFilter)
         {
+            // 1. Đọc Session xác định quyền và tên đăng nhập
+            var role = HttpContext.Session.GetString("UserRole")
+                       ?? HttpContext.Session.GetString("Role")
+                       ?? "";
+            var username = HttpContext.Session.GetString("UserName")
+                          ?? HttpContext.Session.GetString("TenDangNhap")
+                          ?? HttpContext.Session.GetString("Username")
+                          ?? "";
+
+            string normalizedRole = role.Trim().ToLower();
+            bool isHocVien = normalizedRole.Contains("học viên") || normalizedRole.Contains("hocvien") || normalizedRole.Contains("student");
+
+            ViewBag.UserRole = role;
+            ViewBag.IsHocVien = isHocVien;
+
             var query = _context.HoaDons
                 .Include(h => h.HocVien)
                 .Include(h => h.ThanhToans)
                 .AsQueryable();
 
+            // 2. Phân quyền Lọc dữ liệu theo đối tượng đăng nhập
+            if (isHocVien)
+            {
+                // Tìm Học Viên tương ứng với tài khoản đăng nhập
+                var user = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.TenDangNhap.ToLower() == username.ToLower());
+                var hocVien = user != null ? await _context.HocViens.FirstOrDefaultAsync(hv => hv.NguoiDungID == user.NguoiDungID) : null;
+
+                if (hocVien == null)
+                {
+                    int? sessionHvId = HttpContext.Session.GetInt32("HocVienID");
+                    if (sessionHvId.HasValue)
+                    {
+                        hocVien = await _context.HocViens.FirstOrDefaultAsync(hv => hv.HocVienID == sessionHvId.Value);
+                    }
+                }
+
+                if (hocVien != null)
+                {
+                    // Chỉ lấy danh sách hóa đơn của CHÍNH HỌC VIÊN ĐÓ
+                    query = query.Where(h => h.HocVienID == hocVien.HocVienID);
+                }
+                else
+                {
+                    // Không tìm thấy thông tin học viên -> Trả về danh sách rỗng
+                    query = query.Where(h => false);
+                }
+            }
+
+            // 3. Xử lý tìm kiếm theo từ khóa
             if (!string.IsNullOrEmpty(searchString))
             {
                 query = query.Where(h => h.HoaDonID.ToString().Contains(searchString)
-                                      || h.HocVien.HoTen.Contains(searchString)
-                                      || h.HocVien.SoDienThoai.Contains(searchString));
+                                      || (h.HocVien != null && h.HocVien.HoTen.Contains(searchString))
+                                      || (h.HocVien != null && h.HocVien.SoDienThoai.Contains(searchString)));
+            }
+
+            // 4. Lọc theo trạng thái thanh toán
+            if (!string.IsNullOrEmpty(statusFilter))
+            {
+                if (statusFilter == "Đã thu đủ" || statusFilter == "Đã thanh toán")
+                {
+                    query = query.Where(h => h.TrangThai == "Đã thu đủ" || h.TrangThai == "Đã thanh toán");
+                }
+                else if (statusFilter == "Chưa đủ")
+                {
+                    query = query.Where(h => h.TrangThai != "Đã thu đủ" && h.TrangThai != "Đã thanh toán");
+                }
             }
 
             var listHoaDon = await query.OrderByDescending(h => h.NgayLap).ToListAsync();
 
-            // Lấy danh sách học viên từ SQL Server để đổ vào dropdown lập hóa đơn
-            ViewBag.DanhSachHocVien = await _context.HocViens
-                .OrderBy(hv => hv.HoTen)
-                .ToListAsync();
+            // Lấy danh sách học viên đổ vào Modal lập hóa đơn (Chỉ dành cho Admin / Nhân viên)
+            if (!isHocVien)
+            {
+                ViewBag.DanhSachHocVien = await _context.HocViens
+                    .OrderBy(hv => hv.HoTen)
+                    .ToListAsync();
+            }
 
             return View(listHoaDon);
         }
 
-        // POST: /HoaDon/LapHoaDon (Lập hóa đơn học phí mới và lưu vào SQL)
+        // POST: /HoaDon/LapHoaDon (Lập hóa đơn mới - Chặn Học viên)
         [HttpPost]
         public IActionResult LapHoaDon([FromBody] HoaDonRequestDto model)
         {
+            var role = HttpContext.Session.GetString("UserRole") ?? HttpContext.Session.GetString("Role") ?? "";
+            string normalizedRole = role.Trim().ToLower();
+            if (normalizedRole.Contains("học viên") || normalizedRole.Contains("hocvien") || normalizedRole.Contains("student"))
+            {
+                return Json(new { success = false, message = "Học viên không có quyền phát hành hóa đơn!" });
+            }
+
             if (model == null || model.HocVienId <= 0)
             {
                 return Json(new { success = false, message = "Vui lòng chọn học viên hợp lệ!" });
@@ -66,7 +132,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 {
                     HocVienID = model.HocVienId,
                     DangKyID = model.DangKyId > 0 ? model.DangKyId : (int?)null,
-                    NhanSuLapID = 1, // ID nhân viên lập mặc định
+                    NhanSuLapID = 1,
                     NgayLap = DateTime.Now,
                     TongTien = model.TongTien,
                     GiamGia = model.GiamGia,
@@ -101,11 +167,17 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             }
         }
 
-        // POST: /HoaDon/ThuTien (Ghi nhận đợt thanh toán vào bảng ThanhToan và lưu vào SQL)
-        // POST: /HoaDon/ThuTien (Ghi nhận đợt thanh toán, lưu vào bảng ThanhToan và cập nhật trạng thái HoaDon)
+        // POST: /HoaDon/ThuTien (Ghi nhận đợt thanh toán - Chặn Học viên)
         [HttpPost]
         public IActionResult ThuTien([FromBody] ThanhToanRequestDto model)
         {
+            var role = HttpContext.Session.GetString("UserRole") ?? HttpContext.Session.GetString("Role") ?? "";
+            string normalizedRole = role.Trim().ToLower();
+            if (normalizedRole.Contains("học viên") || normalizedRole.Contains("hocvien") || normalizedRole.Contains("student"))
+            {
+                return Json(new { success = false, message = "Học viên không có quyền thực hiện chức năng thu tiền!" });
+            }
+
             if (model == null || model.HoaDonId <= 0)
             {
                 return Json(new { success = false, message = "Mã hóa đơn không hợp lệ!" });
@@ -118,7 +190,6 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
             try
             {
-                // 1. Tìm hóa đơn trong CSDL kèm theo danh sách các lần thanh toán trước đó
                 var hoaDon = _context.HoaDons
                     .Include(h => h.ThanhToans)
                     .FirstOrDefault(h => h.HoaDonID == model.HoaDonId);
@@ -128,7 +199,6 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                     return Json(new { success = false, message = "Không tìm thấy hóa đơn trong cơ sở dữ liệu!" });
                 }
 
-                // 2. Tính tổng tiền đã thu hiện tại + số tiền vừa thu đợt này
                 decimal daThuCu = hoaDon.ThanhToans != null ? hoaDon.ThanhToans.Sum(t => t.SoTien) : 0;
                 decimal tongDaThuMoi = daThuCu + model.SoTien;
                 decimal conLai = hoaDon.TongPhaiTra - tongDaThuMoi;
@@ -138,11 +208,10 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                     return Json(new { success = false, message = "Số tiền thu không được lớn hơn số tiền công nợ còn lại!" });
                 }
 
-                // 3. Thêm bản ghi vào bảng ThanhToan
                 var thanhToanMoi = new ThanhToan
                 {
                     HoaDonID = model.HoaDonId,
-                    NhanSuID = 1, // ID nhân viên thu tiền mặc định
+                    NhanSuID = 1,
                     NgayThanhToan = DateTime.Now,
                     SoTien = model.SoTien,
                     PhuongThuc = model.PhuongThuc ?? "Chuyển khoản QR",
@@ -150,7 +219,6 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 };
                 _context.ThanhToans.Add(thanhToanMoi);
 
-                // 4. Cập nhật trạng thái của Hóa Đơn nếu đã trả đủ
                 if (conLai <= 0)
                 {
                     hoaDon.TrangThai = "Đã thu đủ";
@@ -160,7 +228,6 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                     hoaDon.TrangThai = "Chưa đủ";
                 }
 
-                // Lưu thay đổi xuống CSDL SQL Server
                 _context.SaveChanges();
 
                 return Json(new

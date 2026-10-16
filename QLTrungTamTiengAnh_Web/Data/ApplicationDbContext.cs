@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using QuanLyTrungTamNgoaiNgu.Models;
+using System.Linq.Expressions;
 
 namespace QuanLyTrungTamNgoaiNgu.Data
 {
@@ -54,6 +55,7 @@ namespace QuanLyTrungTamNgoaiNgu.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<LopHoc>().ToTable("LopHoc");
             modelBuilder.Entity<LichHoc>().ToTable("LichHoc");
             modelBuilder.Entity<BangLuong>().ToTable("BangLuong");
@@ -65,6 +67,14 @@ namespace QuanLyTrungTamNgoaiNgu.Data
             modelBuilder.Entity<HocVien>().ToTable("HocVien");
             modelBuilder.Entity<HoaDon>().ToTable("HoaDon");
             modelBuilder.Entity<ThanhToan>().ToTable("ThanhToan");
+
+
+            modelBuilder.Entity<NguoiDung>().ToTable("NguoiDung");
+            modelBuilder.Entity<VaiTro>().ToTable("VaiTro");
+            modelBuilder.Entity<HocVien>().ToTable("HocVien");
+            modelBuilder.Entity<NhanSu>().ToTable("NhanSu");
+
+
             // CoSoCuID -> CoSo
             modelBuilder.Entity<LichSuDieuChuyen>()
                 .HasOne(x => x.CoSoCu)
@@ -92,6 +102,24 @@ namespace QuanLyTrungTamNgoaiNgu.Data
                 .WithMany()
                 .HasForeignKey(x => x.NguoiDuyetID)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Apply global query filter for soft-delete on all entities that inherit BaseEntity
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                var clrType = entityType.ClrType;
+                if (clrType == null)
+                    continue;
+
+                if (typeof(QuanLyTrungTamNgoaiNgu.Models.BaseEntity).IsAssignableFrom(clrType))
+                {
+                    var parameter = Expression.Parameter(clrType, "e");
+                    var property = Expression.Property(parameter, nameof(BaseEntity.IsDeleted));
+                    var compare = Expression.Equal(property, Expression.Constant(false));
+                    var lambda = Expression.Lambda(compare, parameter);
+                    modelBuilder.Entity(clrType).HasQueryFilter(lambda);
+                }
+            }
+
         }
     }
 }

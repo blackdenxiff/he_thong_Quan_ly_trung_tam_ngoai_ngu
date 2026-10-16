@@ -2,7 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-    public class KhoaHoc
+    public class KhoaHoc : BaseEntity
     {
         [Key]
         public int KhoaHocID { get; set; }

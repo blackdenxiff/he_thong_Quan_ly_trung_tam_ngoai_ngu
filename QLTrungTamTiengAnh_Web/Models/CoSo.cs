@@ -2,7 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-    public class CoSo
+    public class CoSo : BaseEntity
     {
         [Key]
         public int CoSoID { get; set; }

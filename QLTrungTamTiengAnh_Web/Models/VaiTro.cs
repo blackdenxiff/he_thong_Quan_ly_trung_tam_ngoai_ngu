@@ -2,7 +2,7 @@
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
-    public class VaiTro
+    public class VaiTro : BaseEntity
     {
         [Key]
         public int VaiTroID { get; set; }
