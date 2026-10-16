@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
     public class HomeController : Controller
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        [Authorize(Roles = "Admin,QuanLy,Quản lý")]
+        public IActionResult Index() => RedirectToAction("Index", "BaoCao");
 
         // Action trả về dữ liệu biểu đồ qua AJAX (đáp ứng tiêu chí xử lý AJAX đề cương)
         [HttpGet]

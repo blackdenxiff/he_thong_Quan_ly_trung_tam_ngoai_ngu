@@ -1,12 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using QuanLyTrungTamNgoaiNgu.Data;
-using QuanLyTrungTamNgoaiNgu.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using QuanLyTrungTamNgoaiNgu.Data;
+using QuanLyTrungTamNgoaiNgu.Models;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
@@ -23,15 +28,10 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         // PHẦN F01: ĐĂNG NHẬP / ĐĂNG XUẤT (AUTHENTICATION)
         // ==========================================
 
-        // GET: /Account/Login
+        [HttpGet]
         public IActionResult Login()
         {
-            var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<QuanLyTrungTamNgoaiNgu.Models.NguoiDung>();
-            string sampleHash = hasher.HashPassword(null, "123456"); // "123456" là mật khẩu bạn muốn đặt cho tài khoản
-            System.Diagnostics.Debug.WriteLine("=== CHUOI HASH CUA BAN: " + sampleHash + " ===");
-
-            // Kiểm tra nếu đã có Cookie ghi nhớ thì nạp sẵn tên đăng nhập
-            if (Request.Cookies.TryGetValue("RememberedUser", out string rememberedUser))
+            if (Request.Cookies.TryGetValue("RememberedUser", out var rememberedUser))
             {
                 ViewBag.RememberedUser = rememberedUser;
             }
@@ -39,26 +39,34 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return View();
         }
 
-        // POST: /Account/Login (Xử lý xác thực, Session và Cookie)
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult AccessDenied(string? returnUrl)
+        {
+            ViewBag.ReturnUrl = returnUrl;
+            return View();
+        }
+
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto model)
         {
-            if (model == null || string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
+            if (model == null ||
+                string.IsNullOrWhiteSpace(model.Username) ||
+                string.IsNullOrWhiteSpace(model.Password))
             {
-                return Json(new { success = false, message = "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!" });
+                return Json(new { success = false, message = "Vui lòng nhập tên đăng nhập và mật khẩu." });
             }
 
-            // Tìm người dùng trong bảng NguoiDungs
+            var username = model.Username.Trim();
             var user = await _context.NguoiDungs
-                .Include(u => u.VaiTro)
-                .Include(u => u.HocVien)
-                .Include(u => u.NhanSu)
-                .FirstOrDefaultAsync(u => u.TenDangNhap == model.Username && u.TrangThai);
+                .Include(x => x.VaiTro)
+                .Include(x => x.HocVien)
+                .Include(x => x.NhanSu)
+                .FirstOrDefaultAsync(x => x.TenDangNhap == username && x.TrangThai && !x.IsDeleted);
 
             if (user == null)
-            {
-                return Json(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác!" });
-            }
+                return Json(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác." });
 
             var hasher = new PasswordHasher<NguoiDung>();
             PasswordVerificationResult verify;
@@ -66,59 +74,47 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             {
                 verify = hasher.VerifyHashedPassword(user, user.MatKhauHash, model.Password);
             }
-            catch (FormatException)
+            catch
             {
                 verify = PasswordVerificationResult.Failed;
             }
 
             if (verify == PasswordVerificationResult.Failed)
-            {
-                return Json(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác!" });
-            }
+                return Json(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác." });
 
-            string role = user.VaiTro?.TenVaiTro ?? "User";
-            string fullName = user.HocVien?.HoTen ?? user.NhanSu?.HoTen ?? user.TenDangNhap;
+            var role = user.VaiTro?.TenVaiTro ?? "User";
+            var fullName = user.HocVien?.HoTen ?? user.NhanSu?.HoTen ?? user.TenDangNhap;
 
-            // 1. Lưu thông tin người dùng vào Session (Đầy đủ Key để tương thích hoàn toàn với LichHocController)
-            HttpContext.Session.SetString("Username", model.Username);
-            HttpContext.Session.SetString("UserName", model.Username);
-            HttpContext.Session.SetString("TenDangNhap", model.Username);
+            // Đầy đủ key Session để đảm bảo tương thích tuyệt đối với các Controller khác
+            HttpContext.Session.SetString("Username", user.TenDangNhap);
+            HttpContext.Session.SetString("UserName", user.TenDangNhap);
+            HttpContext.Session.SetString("TenDangNhap", user.TenDangNhap);
             HttpContext.Session.SetString("UserRole", role);
             HttpContext.Session.SetString("Role", role);
             HttpContext.Session.SetString("UserFullName", fullName);
-
-            // 2. Lưu ID cho phép kiểm chứng quyền hạn trên server-side
-            if (user.NhanSu != null)
-            {
-                HttpContext.Session.SetInt32("NhanSuID", user.NhanSu.NhanSuID);
-                var bytes = System.BitConverter.GetBytes(user.NhanSu.NhanSuID);
-                HttpContext.Session.Set("NhanSuID", bytes);
-            }
-            if (user.HocVien != null)
-            {
-                HttpContext.Session.SetInt32("HocVienID", user.HocVien.HocVienID);
-                var bytes = System.BitConverter.GetBytes(user.HocVien.HocVienID);
-                HttpContext.Session.Set("HocVienID", bytes);
-            }
             HttpContext.Session.SetInt32("NguoiDungID", user.NguoiDungID);
 
-            // 3. Ghi nhớ Cookie nếu người dùng tích chọn "Ghi nhớ đăng nhập"
+            if (user.NhanSu != null)
+                HttpContext.Session.SetInt32("NhanSuID", user.NhanSu.NhanSuID);
+            if (user.HocVien != null)
+                HttpContext.Session.SetInt32("HocVienID", user.HocVien.HocVienID);
+
             if (model.RememberMe)
             {
-                CookieOptions cookieOpts = new CookieOptions
+                Response.Cookies.Append("RememberedUser", user.TenDangNhap, new CookieOptions
                 {
                     Expires = DateTimeOffset.Now.AddDays(30),
                     HttpOnly = true,
-                    IsEssential = true
-                };
-                Response.Cookies.Append("RememberedUser", model.Username, cookieOpts);
+                    IsEssential = true,
+                    Secure = Request.IsHttps,
+                    SameSite = SameSiteMode.Lax
+                });
             }
             else
             {
                 Response.Cookies.Delete("RememberedUser");
             }
 
-            // 4. Tạo claims và đăng nhập bằng Cookie authentication để hỗ trợ [Authorize]
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.NguoiDungID.ToString()),
@@ -126,415 +122,66 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 new Claim(ClaimTypes.Role, role)
             };
 
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var principal = new ClaimsPrincipal(identity);
+            var principal = new ClaimsPrincipal(
+                new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
 
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                principal,
                 new AuthenticationProperties { IsPersistent = model.RememberMe });
-
-            var redirect = user.DoiMatKhauLanDau ? "/Account/DoiMatKhau" : "/";
 
             return Json(new
             {
                 success = true,
-                message = $"Đăng nhập thành công! Xin chào {fullName}.",
-                role = role,
-                redirectUrl = redirect
+                message = $"Đăng nhập thành công. Xin chào {fullName}.",
+                role,
+                redirectUrl = user.DoiMatKhauLanDau ? "/Account/DoiMatKhau" : "/"
             });
         }
 
-        // GET: /Account/Logout (Xóa Session và trở về trang Login)
-        public IActionResult Logout()
+        [HttpGet]
+        public async Task<IActionResult> Logout()
         {
-            HttpContext.Session.Clear(); // Hủy toàn bộ dữ liệu Session
-            return RedirectToAction("Login");
+            HttpContext.Session.Clear();
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction(nameof(Login));
         }
 
         // ==========================================
-        // PHẦN F02: QUẢN LÝ TÀI KHOẢN & PHÂN QUYỀN (ADMIN)
+        // QUẢN LÝ TÀI KHOẢN (ACCOUNT MANAGEMENT)
         // ==========================================
 
-        // GET: /Account/Index (Hiển thị bảng danh sách tài khoản & phân quyền)
+        [HttpGet]
         [Authorize(Roles = "Admin,QuanLy")]
         public async Task<IActionResult> Index()
         {
-            var roles = await _context.VaiTros.OrderBy(r => r.VaiTroID)
-                .Select(r => new { r.VaiTroID, r.TenVaiTro })
+            ViewBag.VaiTros = await _context.VaiTros
+                .AsNoTracking()
+                .OrderBy(x => x.VaiTroID)
+                .Select(x => new RoleOptionDto
+                {
+                    VaiTroID = x.VaiTroID,
+                    TenVaiTro = x.TenVaiTro
+                })
                 .ToListAsync();
-            ViewBag.VaiTros = roles;
+
             return View();
         }
 
-        // GET: /Account/GetUnlinkedPersons?loai=HocVien|NhanSu
-        [Authorize(Roles = "Admin,QuanLy")]
+        // Lấy danh sách tài khoản có phân trang
         [HttpGet]
-        public async Task<IActionResult> GetUnlinkedPersons(string loai)
-        {
-            if (string.IsNullOrWhiteSpace(loai))
-                return Json(new { success = false, message = "Thiếu loại đối tượng (loai)." });
-
-            if (loai.Equals("HocVien", StringComparison.OrdinalIgnoreCase))
-            {
-                var list = await _context.HocViens
-                    .Where(h => h.NguoiDungID == null)
-                    .Select(h => new { h.HocVienID, h.HoTen, h.NgaySinh })
-                    .ToListAsync();
-
-                var items = list.Select(x => new
-                {
-                    id = x.HocVienID,
-                    ma = "HV" + x.HocVienID.ToString("D3"),
-                    hoTen = x.HoTen,
-                    ngaySinh = x.NgaySinh.HasValue ? x.NgaySinh.Value.ToString("dd/MM/yyyy") : null
-                }).ToList();
-
-                return Json(new { success = true, items });
-            }
-
-            if (loai.Equals("NhanSu", StringComparison.OrdinalIgnoreCase) || loai.Equals("GiangVien", StringComparison.OrdinalIgnoreCase))
-            {
-                var list = await _context.NhanSus
-                    .Where(n => n.NguoiDungID == null)
-                    .Select(n => new { n.NhanSuID, n.HoTen, n.NgaySinh })
-                    .ToListAsync();
-
-                var items = list.Select(x => new
-                {
-                    id = x.NhanSuID,
-                    ma = "NS" + x.NhanSuID.ToString("D3"),
-                    hoTen = x.HoTen,
-                    ngaySinh = x.NgaySinh.HasValue ? x.NgaySinh.Value.ToString("dd/MM/yyyy") : null
-                }).ToList();
-
-                return Json(new { success = true, items });
-            }
-
-            return Json(new { success = false, message = "Loại đối tượng không hợp lệ. Hãy dùng 'HocVien' hoặc 'NhanSu'." });
-        }
-
-        // POST: /Account/LuuTaiKhoan
-        [HttpPost]
         [Authorize(Roles = "Admin,QuanLy")]
-        public async Task<IActionResult> LuuTaiKhoan([FromBody] TaiKhoanDto model)
-        {
-            if (model == null || string.IsNullOrWhiteSpace(model.TenDangNhap))
-            {
-                return Json(new { success = false, message = "Vui lòng nhập tên đăng nhập!" });
-            }
-
-            if (model.TenDangNhap.Trim().ToLower() == "admin")
-            {
-                return Json(new { success = false, message = "Tên đăng nhập 'admin' đã tồn tại trong hệ thống!" });
-            }
-
-            return Json(new
-            {
-                success = true,
-                message = "Khởi tạo tài khoản và phân quyền thành công!",
-                data = model
-            });
-        }
-
-        // POST: /Account/CapTaiKhoanDonLe
-        [HttpPost]
-        [Authorize(Roles = "Admin,QuanLy")]
-        public async Task<IActionResult> CapTaiKhoanDonLe([FromBody] CapTaiKhoanDonLeDto model)
-        {
-            if (model == null || string.IsNullOrWhiteSpace(model.loai) || model.personId <= 0 || string.IsNullOrWhiteSpace(model.tenDangNhap) || model.vaiTroId <= 0)
-                return Json(new { success = false, message = "Dữ liệu không hợp lệ." });
-
-            var role = await _context.VaiTros.FindAsync(model.vaiTroId);
-            if (role == null) return Json(new { success = false, message = "Vai trò không tồn tại." });
-
-            NguoiDung createdUser = null;
-            try
-            {
-                if (model.loai.Equals("HocVien", StringComparison.OrdinalIgnoreCase))
-                {
-                    var hv = await _context.HocViens.FirstOrDefaultAsync(h => h.HocVienID == model.personId && h.NguoiDungID == null);
-                    if (hv == null) return Json(new { success = false, message = "Học viên không tồn tại hoặc đã có tài khoản." });
-
-                    var exists = await _context.NguoiDungs.AnyAsync(u => u.TenDangNhap == model.tenDangNhap);
-                    if (exists) return Json(new { success = false, message = "Tên đăng nhập đã tồn tại." });
-
-                    string defaultPwd = hv.NgaySinh?.ToString("ddMMyyyy") ?? "123456";
-
-                    using (var tx = await _context.Database.BeginTransactionAsync())
-                    {
-                        var user = new NguoiDung
-                        {
-                            TenDangNhap = model.tenDangNhap,
-                            VaiTroID = model.vaiTroId,
-                            TrangThai = true,
-                            DoiMatKhauLanDau = true,
-                            CreatedAt = DateTime.Now
-                        };
-                        var hasher = new PasswordHasher<NguoiDung>();
-                        user.MatKhauHash = hasher.HashPassword(user, defaultPwd);
-                        _context.NguoiDungs.Add(user);
-                        await _context.SaveChangesAsync();
-
-                        hv.NguoiDungID = user.NguoiDungID;
-                        hv.UpdatedAt = DateTime.Now;
-                        _context.HocViens.Update(hv);
-                        await _context.SaveChangesAsync();
-
-                        await tx.CommitAsync();
-                        createdUser = user;
-                    }
-                }
-                else if (model.loai.Equals("NhanSu", StringComparison.OrdinalIgnoreCase) || model.loai.Equals("GiangVien", StringComparison.OrdinalIgnoreCase))
-                {
-                    var ns = await _context.NhanSus.FirstOrDefaultAsync(n => n.NhanSuID == model.personId && n.NguoiDungID == null);
-                    if (ns == null) return Json(new { success = false, message = "Nhân sự/giảng viên không tồn tại hoặc đã có tài khoản." });
-
-                    var exists = await _context.NguoiDungs.AnyAsync(u => u.TenDangNhap == model.tenDangNhap);
-                    if (exists) return Json(new { success = false, message = "Tên đăng nhập đã tồn tại." });
-
-                    string defaultPwd = ns.NgaySinh?.ToString("ddMMyyyy") ?? "123456";
-
-                    using (var tx = await _context.Database.BeginTransactionAsync())
-                    {
-                        var user = new NguoiDung
-                        {
-                            TenDangNhap = model.tenDangNhap,
-                            VaiTroID = model.vaiTroId,
-                            TrangThai = true,
-                            DoiMatKhauLanDau = true,
-                            CreatedAt = DateTime.Now
-                        };
-                        var hasher = new PasswordHasher<NguoiDung>();
-                        user.MatKhauHash = hasher.HashPassword(user, defaultPwd);
-                        _context.NguoiDungs.Add(user);
-                        await _context.SaveChangesAsync();
-
-                        ns.NguoiDungID = user.NguoiDungID;
-                        ns.UpdatedAt = DateTime.Now;
-                        _context.NhanSus.Update(ns);
-                        await _context.SaveChangesAsync();
-
-                        await tx.CommitAsync();
-                        createdUser = user;
-                    }
-                }
-                else
-                {
-                    return Json(new { success = false, message = "Loại đối tượng không hợp lệ." });
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Lỗi nội bộ khi tạo tài khoản: " + ex.Message });
-            }
-
-            return Json(new { success = true, message = "Tạo tài khoản thành công.", nguoiDungId = createdUser?.NguoiDungID });
-        }
-
-        // POST: /Account/CapTaiKhoanHangLoat
-        [HttpPost]
-        [Authorize(Roles = "Admin,QuanLy")]
-        public async Task<IActionResult> CapTaiKhoanHangLoat([FromBody] CapTaiKhoanHangLoatDto model)
-        {
-            if (model == null || string.IsNullOrWhiteSpace(model.loai) || model.vaiTroId <= 0)
-                return Json(new { success = false, message = "Dữ liệu không hợp lệ." });
-
-            var role = await _context.VaiTros.FindAsync(model.vaiTroId);
-            if (role == null) return Json(new { success = false, message = "Vai trò không tồn tại." });
-
-            var loaiDoiTuong = model.loai;
-
-            if (loaiDoiTuong.Equals("HocVien", StringComparison.OrdinalIgnoreCase))
-            {
-                var students = await _context.HocViens.Where(h => h.NguoiDungID == null).ToListAsync();
-                var generated = students.Select(h => new { Profile = (object)h, Username = $"HV{h.HocVienID}" }).ToList();
-
-                var usernames = generated.Select(g => g.Username).ToList();
-                var dupInBatch = usernames.GroupBy(x => x).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
-                var existsInDb = await _context.NguoiDungs.Where(u => usernames.Contains(u.TenDangNhap)).Select(u => u.TenDangNhap).ToListAsync();
-
-                var duplicates = dupInBatch.Union(existsInDb).ToList();
-                if (duplicates.Any())
-                {
-                    return Json(new { success = false, message = "Trùng tên đăng nhập phát hiện.", duplicates });
-                }
-
-                int created = 0;
-                try
-                {
-                    using (var tx = await _context.Database.BeginTransactionAsync())
-                    {
-                        var usersToAdd = new List<NguoiDung>();
-                        var hasher = new PasswordHasher<NguoiDung>();
-                        foreach (var g in generated)
-                        {
-                            var hv = (QuanLyTrungTamNgoaiNgu.Models.HocVien)g.Profile;
-                            var user = new NguoiDung
-                            {
-                                TenDangNhap = g.Username,
-                                VaiTroID = model.vaiTroId,
-                                TrangThai = true,
-                                DoiMatKhauLanDau = true,
-                                CreatedAt = DateTime.Now
-                            };
-                            string defaultPwd = hv.NgaySinh?.ToString("ddMMyyyy") ?? "123456";
-                            user.MatKhauHash = hasher.HashPassword(user, defaultPwd);
-                            usersToAdd.Add(user);
-                        }
-
-                        _context.NguoiDungs.AddRange(usersToAdd);
-                        await _context.SaveChangesAsync();
-
-                        for (int i = 0; i < generated.Count; i++)
-                        {
-                            var hv = (QuanLyTrungTamNgoaiNgu.Models.HocVien)generated[i].Profile;
-                            hv.NguoiDungID = usersToAdd[i].NguoiDungID;
-                            hv.UpdatedAt = DateTime.Now;
-                            _context.HocViens.Update(hv);
-                            created++;
-                        }
-                        await _context.SaveChangesAsync();
-                        await tx.CommitAsync();
-                    }
-                }
-                catch (Exception)
-                {
-                    return Json(new { success = false, message = "Lỗi nội bộ khi tạo tài khoản hàng loạt." });
-                }
-
-                return Json(new { success = true, created });
-            }
-            else if (loaiDoiTuong.Equals("NhanSu", StringComparison.OrdinalIgnoreCase) || loaiDoiTuong.Equals("GiangVien", StringComparison.OrdinalIgnoreCase))
-            {
-                var staffs = await _context.NhanSus.Where(n => n.NguoiDungID == null).ToListAsync();
-                var generated = staffs.Select(n => new { Profile = (object)n, Username = $"NS{n.NhanSuID}" }).ToList();
-
-                var usernames = generated.Select(g => g.Username).ToList();
-                var dupInBatch = usernames.GroupBy(x => x).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
-                var existsInDb = await _context.NguoiDungs.Where(u => usernames.Contains(u.TenDangNhap)).Select(u => u.TenDangNhap).ToListAsync();
-                var duplicates = dupInBatch.Union(existsInDb).ToList();
-                if (duplicates.Any())
-                {
-                    return Json(new { success = false, message = "Trùng tên đăng nhập phát hiện.", duplicates });
-                }
-
-                int created = 0;
-                try
-                {
-                    using (var tx = await _context.Database.BeginTransactionAsync())
-                    {
-                        var usersToAdd = new List<NguoiDung>();
-                        var hasher = new PasswordHasher<NguoiDung>();
-                        foreach (var g in generated)
-                        {
-                            var ns = (QuanLyTrungTamNgoaiNgu.Models.NhanSu)g.Profile;
-                            var user = new NguoiDung
-                            {
-                                TenDangNhap = g.Username,
-                                VaiTroID = model.vaiTroId,
-                                TrangThai = true,
-                                DoiMatKhauLanDau = true,
-                                CreatedAt = DateTime.Now
-                            };
-                            string defaultPwd = ns.NgaySinh?.ToString("ddMMyyyy") ?? "123456";
-                            user.MatKhauHash = hasher.HashPassword(user, defaultPwd);
-                            usersToAdd.Add(user);
-                        }
-
-                        _context.NguoiDungs.AddRange(usersToAdd);
-                        await _context.SaveChangesAsync();
-
-                        for (int i = 0; i < generated.Count; i++)
-                        {
-                            var ns = (QuanLyTrungTamNgoaiNgu.Models.NhanSu)generated[i].Profile;
-                            ns.NguoiDungID = usersToAdd[i].NguoiDungID;
-                            ns.UpdatedAt = DateTime.Now;
-                            _context.NhanSus.Update(ns);
-                            created++;
-                        }
-
-                        await _context.SaveChangesAsync();
-                        await tx.CommitAsync();
-                    }
-                }
-                catch (Exception)
-                {
-                    return Json(new { success = false, message = "Lỗi nội bộ khi tạo tài khoản hàng loạt." });
-                }
-
-                return Json(new { success = true, created });
-            }
-
-            return Json(new { success = false, message = "Loại đối tượng không hợp lệ." });
-        }
-
-        // GET: /Account/DoiMatKhau
-        [Authorize]
-        public IActionResult DoiMatKhau()
-        {
-            return View();
-        }
-
-        // POST: /Account/DoiMatKhau
-        [HttpPost]
-        [Authorize]
-        public async Task<IActionResult> DoiMatKhau([FromBody] DoiMatKhauDto model)
-        {
-            if (model == null || string.IsNullOrWhiteSpace(model.OldPassword) || string.IsNullOrWhiteSpace(model.NewPassword))
-                return Json(new { success = false, message = "Vui lòng nhập đầy đủ thông tin." });
-
-            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdClaim, out int userId))
-                return Json(new { success = false, message = "Không xác định được người dùng." });
-
-            var user = await _context.NguoiDungs.FindAsync(userId);
-            if (user == null)
-                return Json(new { success = false, message = "Người dùng không tồn tại." });
-
-            var hasher = new PasswordHasher<NguoiDung>();
-            PasswordVerificationResult verify;
-            try
-            {
-                verify = hasher.VerifyHashedPassword(user, user.MatKhauHash, model.OldPassword);
-            }
-            catch (FormatException)
-            {
-                verify = PasswordVerificationResult.Failed;
-            }
-
-            if (verify == PasswordVerificationResult.Failed)
-                return Json(new { success = false, message = "Mật khẩu cũ không đúng." });
-
-            user.MatKhauHash = hasher.HashPassword(user, model.NewPassword);
-            user.DoiMatKhauLanDau = false;
-            user.UpdatedAt = DateTime.Now;
-            _context.NguoiDungs.Update(user);
-            await _context.SaveChangesAsync();
-
-            return Json(new { success = true, message = "Đổi mật khẩu thành công." });
-        }
-
-        // GET: /Account/Trash (Danh sách tài khoản đã xóa)
-        [Authorize(Roles = "Admin,QuanLy")]
-        public async Task<IActionResult> Trash()
-        {
-            var list = await _context.NguoiDungs.IgnoreQueryFilters().Where(u => u.IsDeleted)
-                .Include(u => u.VaiTro)
-                .Include(u => u.HocVien)
-                .Include(u => u.NhanSu)
-                .Select(u => new { nguoiDungId = u.NguoiDungID, tenDangNhap = u.TenDangNhap, deletedAt = u.DeletedAt, vaiTro = u.VaiTro.TenVaiTro })
-                .ToListAsync();
-
-            return Json(new { success = true, data = list });
-        }
-
-        // GET: /Account/GetAccounts (Lấy danh sách phân trang)
-        [Authorize(Roles = "Admin,QuanLy")]
-        [HttpGet]
         public async Task<IActionResult> GetAccounts(string keyword = "", string role = "", string trangThai = "", int page = 1, int pageSize = 10)
         {
-            if (page < 1) page = 1;
+            page = Math.Clamp(page, 1, 1000000);
+            pageSize = 10;
+            keyword = (keyword ?? "").Trim();
+            role = (role ?? "").Trim();
+            trangThai = (trangThai ?? "").Trim();
 
             var query = _context.NguoiDungs
+                .AsNoTracking()
+                .Where(u => !u.IsDeleted)
                 .Include(u => u.VaiTro)
                 .Include(u => u.HocVien)
                 .Include(u => u.NhanSu)
@@ -542,22 +189,33 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
-                query = query.Where(u => u.TenDangNhap.Contains(keyword) || (u.HocVien != null && u.HocVien.HoTen.Contains(keyword)) || (u.NhanSu != null && u.NhanSu.HoTen.Contains(keyword)));
+                query = query.Where(u =>
+                    u.TenDangNhap.Contains(keyword) ||
+                    (u.HocVien != null &&
+                        ((u.HocVien.HoTen != null && u.HocVien.HoTen.Contains(keyword)) ||
+                         (u.HocVien.Email != null && u.HocVien.Email.Contains(keyword)))) ||
+                    (u.NhanSu != null &&
+                        ((u.NhanSu.HoTen != null && u.NhanSu.HoTen.Contains(keyword)) ||
+                         (u.NhanSu.Email != null && u.NhanSu.Email.Contains(keyword)))));
             }
 
-            if (!string.IsNullOrWhiteSpace(role))
+            if (!string.IsNullOrWhiteSpace(role) && role != "all" && role != "0")
             {
-                query = query.Where(u => u.VaiTro != null && u.VaiTro.TenVaiTro == role);
+                if (int.TryParse(role, out var roleId))
+                    query = query.Where(u => u.VaiTroID == roleId);
+                else
+                    query = query.Where(u => u.VaiTro != null && u.VaiTro.TenVaiTro == role);
             }
 
-            if (!string.IsNullOrWhiteSpace(trangThai))
-            {
-                if (trangThai == "Hoạt động") query = query.Where(u => u.TrangThai == true);
-                else if (trangThai == "Đã khóa") query = query.Where(u => u.TrangThai == false);
-            }
+            if (trangThai == "Hoạt động" || trangThai == "active" || trangThai == "1")
+                query = query.Where(u => u.TrangThai);
+            else if (trangThai == "Đã khóa" || trangThai == "locked" || trangThai == "0")
+                query = query.Where(u => !u.TrangThai);
 
             var totalItems = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            if (totalPages > 0 && page > totalPages)
+                page = totalPages;
 
             var items = await query
                 .OrderBy(u => u.NguoiDungID)
@@ -567,162 +225,566 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 {
                     nguoiDungId = u.NguoiDungID,
                     tenDangNhap = u.TenDangNhap,
-                    hoTen = u.HocVien != null ? u.HocVien.HoTen : (u.NhanSu != null ? u.NhanSu.HoTen : u.TenDangNhap),
-                    email = u.HocVien != null ? u.HocVien.Email : (u.NhanSu != null ? u.NhanSu.Email : null),
-                    vaiTro = u.VaiTro != null ? u.VaiTro.TenVaiTro : "",
+                    hoTen = u.HocVien != null
+                        ? u.HocVien.HoTen
+                        : (u.NhanSu != null ? u.NhanSu.HoTen : u.TenDangNhap),
+                    email = u.HocVien != null
+                        ? u.HocVien.Email
+                        : (u.NhanSu != null ? u.NhanSu.Email : null),
+                    vaiTro = u.VaiTro != null ? u.VaiTro.TenVaiTro : "Chưa phân quyền",
+                    vaiTroId = u.VaiTroID,
                     trangThai = u.TrangThai ? "Hoạt động" : "Đã khóa"
+                })
+                .ToListAsync();
+
+            return Json(new
+            {
+                success = true,
+                items,
+                currentPage = page,
+                totalPages,
+                totalItems
+            });
+        }
+
+        // Lấy danh sách hồ sơ chưa được cấp tài khoản
+        [HttpGet]
+        [Authorize(Roles = "Admin,QuanLy")]
+        public async Task<IActionResult> GetUnlinkedPersons(string loai, string keyword = "", int page = 1)
+        {
+            const int pageSize = 10;
+            page = Math.Clamp(page, 1, 1000000);
+            loai = (loai ?? "").Trim();
+            keyword = (keyword ?? "").Trim();
+
+            if (keyword.Length > 100)
+                return BadRequest(new { success = false, message = "Từ khóa quá dài." });
+
+            if (loai.Equals("HocVien", StringComparison.OrdinalIgnoreCase))
+            {
+                var query = _context.HocViens.AsNoTracking().Where(h => h.NguoiDungID == null);
+                if (!string.IsNullOrWhiteSpace(keyword))
+                {
+                    if (keyword.StartsWith("HV", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!int.TryParse(keyword.Substring(2), out int hocVienId))
+                            return Json(new
+                            {
+                                success = true,
+                                items = Array.Empty<object>(),
+                                currentPage = 1,
+                                totalPages = 0,
+                                totalItems = 0,
+                                hasMore = false
+                            });
+                        query = query.Where(h => h.HocVienID == hocVienId);
+                    }
+                    else query = query.Where(h => h.HoTen.Contains(keyword) || h.HocVienID.ToString().Contains(keyword));
+                }
+
+                var totalItems = await query.CountAsync();
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+                page = totalPages == 0 ? 1 : Math.Min(page, totalPages);
+                var rows = await query.OrderBy(h => h.HocVienID)
+                    .Skip((page - 1) * pageSize).Take(pageSize)
+                    .Select(h => new { id = h.HocVienID, hoTen = h.HoTen, ngaySinh = h.NgaySinh })
+                    .ToListAsync();
+
+                return Json(new
+                {
+                    success = true,
+                    items = rows.Select(x => new
+                    {
+                        x.id,
+                        ma = "HV" + x.id.ToString("D3"),
+                        x.hoTen,
+                        ngaySinh = x.ngaySinh.HasValue ? x.ngaySinh.Value.ToString("dd/MM/yyyy") : ""
+                    }),
+                    currentPage = page,
+                    totalPages,
+                    totalItems,
+                    hasMore = page < totalPages
+                });
+            }
+
+            if (loai.Equals("NhanSu", StringComparison.OrdinalIgnoreCase) ||
+                loai.Equals("GiangVien", StringComparison.OrdinalIgnoreCase))
+            {
+                var query = _context.NhanSus.AsNoTracking().Where(n => n.NguoiDungID == null);
+                if (loai.Equals("GiangVien", StringComparison.OrdinalIgnoreCase))
+                    query = query.Where(n => n.LoaiNhanSu == "Giáo viên" || n.LoaiNhanSu == "Cả hai");
+                if (!string.IsNullOrWhiteSpace(keyword))
+                {
+                    if (keyword.StartsWith("NS", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!int.TryParse(keyword.Substring(2), out int nhanSuId))
+                            return Json(new
+                            {
+                                success = true,
+                                items = Array.Empty<object>(),
+                                currentPage = 1,
+                                totalPages = 0,
+                                totalItems = 0,
+                                hasMore = false
+                            });
+                        query = query.Where(n => n.NhanSuID == nhanSuId);
+                    }
+                    else query = query.Where(n => n.HoTen.Contains(keyword) || n.NhanSuID.ToString().Contains(keyword));
+                }
+
+                var totalItems = await query.CountAsync();
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+                page = totalPages == 0 ? 1 : Math.Min(page, totalPages);
+                var rows = await query.OrderBy(n => n.NhanSuID)
+                    .Skip((page - 1) * pageSize).Take(pageSize)
+                    .Select(n => new { id = n.NhanSuID, hoTen = n.HoTen, ngaySinh = n.NgaySinh })
+                    .ToListAsync();
+
+                return Json(new
+                {
+                    success = true,
+                    items = rows.Select(x => new
+                    {
+                        x.id,
+                        ma = "NS" + x.id.ToString("D3"),
+                        x.hoTen,
+                        ngaySinh = x.ngaySinh.HasValue ? x.ngaySinh.Value.ToString("dd/MM/yyyy") : ""
+                    }),
+                    currentPage = page,
+                    totalPages,
+                    totalItems,
+                    hasMore = page < totalPages
+                });
+            }
+
+            return BadRequest(new { success = false, message = "Loại đối tượng không hợp lệ." });
+        }
+
+        // Thống kê tài khoản tổng quan
+        [HttpGet]
+        [Authorize(Roles = "Admin,QuanLy")]
+        public async Task<IActionResult> GetAccountStats()
+        {
+            var accounts = _context.NguoiDungs.AsNoTracking();
+            var totalAccounts = await accounts.CountAsync();
+            var adminManagers = await accounts.CountAsync(u => u.VaiTro != null &&
+                (u.VaiTro.TenVaiTro == "Admin" || u.VaiTro.TenVaiTro == "QuanLy" || u.VaiTro.TenVaiTro == "Quản lý"));
+            var staffAccounts = await accounts.CountAsync(u => u.NhanSu != null);
+            var lockedAccounts = await accounts.CountAsync(u => !u.TrangThai);
+
+            return Json(new { success = true, totalAccounts, adminManagers, staffAccounts, lockedAccounts });
+        }
+
+        // Cấp tài khoản đơn lẻ
+        [HttpPost]
+        [Authorize(Roles = "Admin,QuanLy")]
+        public async Task<IActionResult> CapTaiKhoanDonLe([FromBody] CapTaiKhoanDonLeDto model)
+        {
+            if (model == null || string.IsNullOrWhiteSpace(model.loai) ||
+                model.personId <= 0 || string.IsNullOrWhiteSpace(model.tenDangNhap) ||
+                model.vaiTroId <= 0)
+                return Json(new { success = false, message = "Vui lòng nhập đủ thông tin." });
+
+            var username = model.tenDangNhap.Trim();
+            if (username.Length > 50)
+                return Json(new { success = false, message = "Tên đăng nhập không được vượt quá 50 ký tự." });
+            if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
+                return Json(new { success = false, message = "Tên đăng nhập admin không được sử dụng." });
+
+            var role = await _context.VaiTros.FindAsync(model.vaiTroId);
+            if (role == null)
+                return Json(new { success = false, message = "Vai trò không tồn tại." });
+
+            if (await _context.NguoiDungs.IgnoreQueryFilters().AnyAsync(u => u.TenDangNhap == username))
+                return Json(new { success = false, message = "Tên đăng nhập đã tồn tại, kể cả trong thùng rác." });
+
+            try
+            {
+                using var tx = await _context.Database.BeginTransactionAsync();
+                var hasher = new PasswordHasher<NguoiDung>();
+                var user = new NguoiDung
+                {
+                    TenDangNhap = username,
+                    VaiTroID = model.vaiTroId,
+                    TrangThai = true,
+                    DoiMatKhauLanDau = true,
+                    CreatedAt = DateTime.Now
+                };
+
+                if (model.loai.Equals("HocVien", StringComparison.OrdinalIgnoreCase))
+                {
+                    var person = await _context.HocViens
+                        .FirstOrDefaultAsync(h => h.HocVienID == model.personId && h.NguoiDungID == null);
+                    if (person == null)
+                        return Json(new { success = false, message = "Học viên không tồn tại hoặc đã có tài khoản." });
+
+                    var password = person.NgaySinh?.ToString("ddMMyyyy") ?? "123456";
+                    user.MatKhauHash = hasher.HashPassword(user, password);
+                    _context.NguoiDungs.Add(user);
+                    await _context.SaveChangesAsync();
+
+                    person.NguoiDungID = user.NguoiDungID;
+                    person.UpdatedAt = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                }
+                else if (model.loai.Equals("NhanSu", StringComparison.OrdinalIgnoreCase) ||
+                         model.loai.Equals("GiangVien", StringComparison.OrdinalIgnoreCase))
+                {
+                    var person = await _context.NhanSus
+                        .FirstOrDefaultAsync(n => n.NhanSuID == model.personId && n.NguoiDungID == null);
+                    if (person == null)
+                        return Json(new { success = false, message = "Nhân sự không tồn tại hoặc đã có tài khoản." });
+
+                    var password = person.NgaySinh?.ToString("ddMMyyyy") ?? "123456";
+                    user.MatKhauHash = hasher.HashPassword(user, password);
+                    _context.NguoiDungs.Add(user);
+                    await _context.SaveChangesAsync();
+
+                    person.NguoiDungID = user.NguoiDungID;
+                    person.UpdatedAt = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    return Json(new { success = false, message = "Loại đối tượng không hợp lệ." });
+                }
+
+                await tx.CommitAsync();
+                return Json(new
+                {
+                    success = true,
+                    message = "Tạo tài khoản thành công. Mật khẩu mặc định theo ngày sinh (ddMMyyyy), nếu không có ngày sinh là 123456.",
+                    nguoiDungId = user.NguoiDungID
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"CapTaiKhoanDonLe error: {ex}");
+                return Json(new { success = false, message = "Không thể tạo tài khoản. Kiểm tra log lỗi của ứng dụng." });
+            }
+        }
+
+        // Cấp tài khoản hàng loạt
+        [HttpPost]
+        [Authorize(Roles = "Admin,QuanLy")]
+        public async Task<IActionResult> CapTaiKhoanHangLoat([FromBody] CapTaiKhoanHangLoatDto model)
+        {
+            if (model == null || string.IsNullOrWhiteSpace(model.loai) || model.vaiTroId <= 0)
+                return Json(new { success = false, message = "Vui lòng chọn nhóm đối tượng và vai trò." });
+
+            var roleExists = await _context.VaiTros.AnyAsync(r => r.VaiTroID == model.vaiTroId);
+            if (!roleExists)
+                return Json(new { success = false, message = "Vai trò không tồn tại." });
+
+            var loai = model.loai.Trim();
+            var hasher = new PasswordHasher<NguoiDung>();
+            var created = 0;
+
+            try
+            {
+                using var tx = await _context.Database.BeginTransactionAsync();
+
+                if (loai.Equals("HocVien", StringComparison.OrdinalIgnoreCase))
+                {
+                    var people = await _context.HocViens.Where(h => h.NguoiDungID == null).ToListAsync();
+                    foreach (var p in people)
+                    {
+                        var username = $"HV{p.HocVienID}";
+                        if (await _context.NguoiDungs.IgnoreQueryFilters().AnyAsync(u => u.TenDangNhap == username))
+                            continue;
+
+                        var user = new NguoiDung
+                        {
+                            TenDangNhap = username,
+                            VaiTroID = model.vaiTroId,
+                            TrangThai = true,
+                            DoiMatKhauLanDau = true,
+                            CreatedAt = DateTime.Now
+                        };
+                        user.MatKhauHash = hasher.HashPassword(user, p.NgaySinh?.ToString("ddMMyyyy") ?? "123456");
+                        _context.NguoiDungs.Add(user);
+                        await _context.SaveChangesAsync();
+                        p.NguoiDungID = user.NguoiDungID;
+                        p.UpdatedAt = DateTime.Now;
+                        created++;
+                    }
+                    await _context.SaveChangesAsync();
+                }
+                else if (loai.Equals("NhanSu", StringComparison.OrdinalIgnoreCase) ||
+                         loai.Equals("GiangVien", StringComparison.OrdinalIgnoreCase))
+                {
+                    var people = await _context.NhanSus.Where(n => n.NguoiDungID == null).ToListAsync();
+                    foreach (var p in people)
+                    {
+                        var username = $"NS{p.NhanSuID}";
+                        if (await _context.NguoiDungs.IgnoreQueryFilters().AnyAsync(u => u.TenDangNhap == username))
+                            continue;
+
+                        var user = new NguoiDung
+                        {
+                            TenDangNhap = username,
+                            VaiTroID = model.vaiTroId,
+                            TrangThai = true,
+                            DoiMatKhauLanDau = true,
+                            CreatedAt = DateTime.Now
+                        };
+                        user.MatKhauHash = hasher.HashPassword(user, p.NgaySinh?.ToString("ddMMyyyy") ?? "123456");
+                        _context.NguoiDungs.Add(user);
+                        await _context.SaveChangesAsync();
+                        p.NguoiDungID = user.NguoiDungID;
+                        p.UpdatedAt = DateTime.Now;
+                        created++;
+                    }
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    return Json(new { success = false, message = "Loại đối tượng không hợp lệ." });
+                }
+
+                await tx.CommitAsync();
+                return Json(new { success = true, created, message = $"Đã tạo {created} tài khoản." });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"CapTaiKhoanHangLoat error: {ex}");
+                return Json(new { success = false, message = "Không thể cấp tài khoản hàng loạt. Kiểm tra log lỗi." });
+            }
+        }
+
+        // Khóa / Mở khóa tài khoản
+        [HttpPost]
+        [Authorize(Roles = "Admin,QuanLy")]
+        public async Task<IActionResult> DoiTrangThaiKhoa(int id, bool khoa)
+        {
+            if (id <= 0)
+                return Json(new { success = false, message = "ID tài khoản không hợp lệ." });
+
+            var user = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.NguoiDungID == id && !u.IsDeleted);
+            if (user == null)
+                return Json(new { success = false, message = "Không tìm thấy tài khoản." });
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (khoa && currentUserId == id.ToString())
+                return Json(new { success = false, message = "Bạn không thể tự khóa tài khoản đang đăng nhập." });
+
+            user.TrangThai = !khoa;
+            user.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                message = khoa ? "Đã khóa tài khoản." : "Đã mở khóa tài khoản.",
+                trangThai = user.TrangThai ? "Hoạt động" : "Đã khóa"
+            });
+        }
+
+        // Xóa mềm tài khoản (chuyển vào thùng rác)
+        [HttpPost]
+        [Authorize(Roles = "Admin,QuanLy")]
+        public async Task<IActionResult> SoftDelete([FromBody] int id)
+        {
+            if (id <= 0)
+                return Json(new { success = false, message = "ID không hợp lệ." });
+
+            var user = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.NguoiDungID == id && !u.IsDeleted);
+            if (user == null)
+                return Json(new { success = false, message = "Tài khoản không tồn tại hoặc đã bị xóa." });
+
+            if (User.FindFirstValue(ClaimTypes.NameIdentifier) == id.ToString())
+                return Json(new { success = false, message = "Bạn không thể xóa mềm tài khoản đang đăng nhập." });
+
+            user.IsDeleted = true;
+            user.DeletedAt = DateTime.Now;
+            user.TrangThai = false;
+            user.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Đã chuyển tài khoản vào thùng rác.", nguoiDungId = id });
+        }
+
+        // Cập nhật vai trò / quyền
+        [HttpPost]
+        [Authorize(Roles = "Admin,QuanLy")]
+        public async Task<IActionResult> CapNhatQuyen(int id, int vaiTroMoi)
+        {
+            if (id <= 0 || vaiTroMoi <= 0)
+                return Json(new { success = false, message = "Tài khoản hoặc vai trò không hợp lệ." });
+
+            var user = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.NguoiDungID == id && !u.IsDeleted);
+            if (user == null)
+                return Json(new { success = false, message = "Không tìm thấy tài khoản." });
+
+            if (!await _context.VaiTros.AnyAsync(r => r.VaiTroID == vaiTroMoi))
+                return Json(new { success = false, message = "Vai trò không tồn tại." });
+
+            user.VaiTroID = vaiTroMoi;
+            user.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            var roleName = await _context.VaiTros
+                .Where(r => r.VaiTroID == vaiTroMoi)
+                .Select(r => r.TenVaiTro)
+                .FirstAsync();
+
+            return Json(new { success = true, message = "Cập nhật vai trò thành công.", vaiTro = roleName, vaiTroId = vaiTroMoi });
+        }
+
+        // ==========================================
+        // ĐỔI MẬT KHẨU (PASSWORD CHANGE)
+        // ==========================================
+
+        [HttpGet]
+        [Authorize]
+        public IActionResult DoiMatKhau() => View();
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> DoiMatKhau([FromBody] DoiMatKhauDto model)
+        {
+            if (model == null || string.IsNullOrWhiteSpace(model.OldPassword) ||
+                string.IsNullOrWhiteSpace(model.NewPassword) ||
+                string.IsNullOrWhiteSpace(model.ConfirmNewPassword))
+                return Json(new { success = false, message = "Vui lòng nhập đầy đủ thông tin." });
+
+            if (model.NewPassword.Length < 8)
+                return Json(new { success = false, message = "Mật khẩu mới phải có ít nhất 8 ký tự." });
+
+            if (model.NewPassword != model.ConfirmNewPassword)
+                return Json(new { success = false, message = "Mật khẩu xác nhận không khớp." });
+
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                return Json(new { success = false, message = "Không xác định được người dùng." });
+
+            var user = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.NguoiDungID == userId && !u.IsDeleted);
+            if (user == null)
+                return Json(new { success = false, message = "Người dùng không tồn tại." });
+
+            var hasher = new PasswordHasher<NguoiDung>();
+            PasswordVerificationResult verify;
+            try { verify = hasher.VerifyHashedPassword(user, user.MatKhauHash, model.OldPassword); }
+            catch { verify = PasswordVerificationResult.Failed; }
+
+            if (verify == PasswordVerificationResult.Failed)
+                return Json(new { success = false, message = "Mật khẩu cũ không đúng." });
+
+            user.MatKhauHash = hasher.HashPassword(user, model.NewPassword);
+            user.DoiMatKhauLanDau = false;
+            user.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Đổi mật khẩu thành công." });
+        }
+
+        // ==========================================
+        // THÙNG RÁC (RECYCLE BIN & RESTORE)
+        // ==========================================
+
+        [HttpGet]
+        [Authorize(Roles = "Admin,QuanLy")]
+        public async Task<IActionResult> Trash(string keyword = "", int page = 1)
+        {
+            const int pageSize = 10;
+            page = Math.Clamp(page, 1, 1000000);
+            keyword = (keyword ?? "").Trim();
+            if (keyword.Length > 100)
+                return BadRequest(new { success = false, message = "Từ khóa quá dài." });
+
+            var query = _context.NguoiDungs.IgnoreQueryFilters().AsNoTracking()
+                .Where(u => u.IsDeleted);
+            if (keyword.Length > 0)
+                query = query.Where(u => u.TenDangNhap.Contains(keyword));
+
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = totalPages == 0 ? 1 : Math.Min(page, totalPages);
+            var items = await query
+                .OrderByDescending(u => u.DeletedAt)
+                .ThenByDescending(u => u.NguoiDungID)
+                .Skip((page - 1) * pageSize).Take(pageSize)
+                .Select(u => new
+                {
+                    nguoiDungId = u.NguoiDungID,
+                    tenDangNhap = u.TenDangNhap,
+                    deletedAt = u.DeletedAt,
+                    vaiTro = u.VaiTro != null ? u.VaiTro.TenVaiTro : "Chưa xác định"
                 })
                 .ToListAsync();
 
             return Json(new { success = true, items, currentPage = page, totalPages, totalItems });
         }
 
-        // POST: /Account/Restore/{id}
+        // Khôi phục tài khoản từ thùng rác
         [HttpPost]
         [Authorize(Roles = "Admin,QuanLy")]
         public async Task<IActionResult> Restore(int id)
         {
-            var user = await _context.NguoiDungs.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.NguoiDungID == id && u.IsDeleted);
-            if (user == null) return Json(new { success = false, message = "Người dùng không tồn tại." });
+            var user = await _context.NguoiDungs.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.NguoiDungID == id && u.IsDeleted);
+
+            if (user == null)
+                return Json(new { success = false, message = "Tài khoản không tồn tại trong thùng rác." });
+
             user.IsDeleted = false;
             user.DeletedAt = null;
-            user.UpdatedAt = DateTime.Now;
             user.TrangThai = true;
-            _context.NguoiDungs.Update(user);
+            user.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
-            return Json(new { success = true, message = "Khôi phục tài khoản thành công.", nguoiDungId = id });
+
+            return Json(new { success = true, message = "Khôi phục tài khoản thành công." });
         }
 
-        // POST: /Account/HardDelete/{id}
+        // Xóa vĩnh viễn tài khoản khỏi CSDL
         [HttpPost]
         [Authorize(Roles = "Admin,QuanLy")]
         public async Task<IActionResult> HardDelete(int id)
         {
             var user = await _context.NguoiDungs.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.NguoiDungID == id && u.IsDeleted);
-            if (user == null) return Json(new { success = false, message = "Người dùng không tồn tại." });
+            if (user == null) return Json(new { success = false, message = "Tài khoản không tồn tại trong thùng rác." });
+
             _context.NguoiDungs.Remove(user);
             await _context.SaveChangesAsync();
-            return Json(new { success = true });
-        }
-
-        // POST: /Account/DoiTrangThaiKhoa (Khóa hoặc Mở khóa tài khoản thực tế trong SQL)
-        [HttpPost]
-        [Authorize(Roles = "Admin,QuanLy")]
-        public async Task<IActionResult> DoiTrangThaiKhoa(int id, bool khoa)
-        {
-            var user = await _context.NguoiDungs.FindAsync(id);
-            if (user == null)
-            {
-                return Json(new { success = false, message = "Tài khoản không tồn tại trong CSDL!" });
-            }
-
-            user.TrangThai = !khoa; // khoa = true -> TrangThai = false (Đã khóa)
-            user.UpdatedAt = DateTime.Now;
-            _context.NguoiDungs.Update(user);
-            await _context.SaveChangesAsync();
-
-            string trangThaiMoi = user.TrangThai ? "Hoạt động" : "Đã khóa";
-            return Json(new
-            {
-                success = true,
-                message = $"Đã {(khoa ? "khóa" : "mở khóa")} tài khoản thành công!",
-                trangThai = trangThaiMoi
-            });
-        }
-
-        // POST: /Account/SoftDelete (Xóa mềm tài khoản)
-        [HttpPost]
-        [Authorize(Roles = "Admin,QuanLy")]
-        public async Task<IActionResult> SoftDelete([FromBody] int id)
-        {
-            if (id <= 0) return Json(new { success = false, message = "Id không hợp lệ." });
-            var user = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.NguoiDungID == id && !u.IsDeleted);
-            if (user == null) return Json(new { success = false, message = "Người dùng không tồn tại hoặc đã bị xóa." });
-            user.IsDeleted = true;
-            user.DeletedAt = DateTime.Now;
-            user.TrangThai = false;
-            user.UpdatedAt = DateTime.Now;
-            _context.NguoiDungs.Update(user);
-            await _context.SaveChangesAsync();
-            return Json(new { success = true, message = "Đã xóa mềm tài khoản.", nguoiDungId = id });
-        }
-
-        // POST: /Account/CapNhatQuyen (Đổi vai trò hệ thống thực tế trong SQL)
-        [HttpPost]
-        [Authorize(Roles = "Admin,QuanLy")]
-        public async Task<IActionResult> CapNhatQuyen(int id, int vaiTroId)
-        {
-            if (id <= 0 || vaiTroId <= 0)
-            {
-                return Json(new { success = false, message = "Dữ liệu phân quyền không hợp lệ!" });
-            }
-
-            var user = await _context.NguoiDungs.FindAsync(id);
-            if (user == null)
-            {
-                return Json(new { success = false, message = "Tài khoản không tồn tại!" });
-            }
-
-            var role = await _context.VaiTros.FindAsync(vaiTroId);
-            if (role == null)
-            {
-                return Json(new { success = false, message = "Vai trò không tồn tại trong CSDL!" });
-            }
-
-            user.VaiTroID = vaiTroId;
-            user.UpdatedAt = DateTime.Now;
-            _context.NguoiDungs.Update(user);
-            await _context.SaveChangesAsync();
-
-            return Json(new
-            {
-                success = true,
-                message = $"Đã cập nhật vai trò [{role.TenVaiTro}] cho tài khoản thành công!"
-            });
+            return Json(new { success = true, message = "Đã xóa vĩnh viễn tài khoản thành công." });
         }
     }
 
     // ==========================================
-    // CÁC DATA TRANSFER OBJECTS (DTO)
+    // DTO CLASSES
     // ==========================================
 
     public class LoginRequestDto
     {
-        public string Username { get; set; }
-        public string Password { get; set; }
+        public string Username { get; set; } = "";
+        public string Password { get; set; } = "";
         public bool RememberMe { get; set; }
-    }
-
-    public class TaiKhoanDto
-    {
-        public int Id { get; set; }
-        public string TenDangNhap { get; set; }
-        public string MatKhau { get; set; }
-        public string HoTen { get; set; }
-        public string Email { get; set; }
-        public string VaiTro { get; set; }   // Admin, Quản lý, Giáo viên, Nhân viên, Học viên
-        public string TrangThai { get; set; } // Hoạt động, Đã khóa
     }
 
     public class CapTaiKhoanDonLeDto
     {
-        public string loai { get; set; }
+        public string loai { get; set; } = "";
         public int personId { get; set; }
-        public string tenDangNhap { get; set; }
-        public string matKhauPlain { get; set; }
+        public string tenDangNhap { get; set; } = "";
+        public string matKhauPlain { get; set; } = "";
         public int vaiTroId { get; set; }
     }
 
     public class CapTaiKhoanHangLoatDto
     {
-        public string loai { get; set; }
+        public string loai { get; set; } = "";
         public int vaiTroId { get; set; }
     }
 
     public class DoiMatKhauDto
     {
-        public string OldPassword { get; set; }
-        public string NewPassword { get; set; }
-        public string ConfirmNewPassword { get; set; }
+        public string OldPassword { get; set; } = "";
+        public string NewPassword { get; set; } = "";
+        public string ConfirmNewPassword { get; set; } = "";
+    }
+
+    public class RoleOptionDto
+    {
+        public int VaiTroID { get; set; }
+        public string TenVaiTro { get; set; } = "";
     }
 }

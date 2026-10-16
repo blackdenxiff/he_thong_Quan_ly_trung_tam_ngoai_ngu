@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using QuanLyTrungTamNgoaiNgu.Data;
+using QLTrungTamTiengAnh_Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,7 @@ builder.Services.AddSession(options =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IBaoCaoService, BaoCaoService>();
 
 // Register cookie authentication so [Authorize] and role claims work
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

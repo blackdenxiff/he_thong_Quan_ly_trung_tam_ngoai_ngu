@@ -9,8 +9,6 @@
     void AddGroup(string title, params (string Label, string Icon, string Url, bool Available)[] items)
         => menuGroups.Add((title, items));
 
-    AddGroup("TỔNG QUAN", Item("Dashboard", "fa-chart-pie", "/"));
-
     switch (role)
     {
         case "Nhân viên":
@@ -74,7 +72,7 @@
                 Item("Hóa đơn & Học phí", "fa-receipt", "/HoaDon"),
                 Item("Quản lý Thanh toán", "fa-money-check-dollar", "/HoaDon"));
             AddGroup("BÁO CÁO & THỐNG KÊ",
-                Item("Báo cáo tổng hợp", "fa-chart-line", "#", false));
+                Item("Báo cáo tổng hợp", "fa-chart-line", "/BaoCao"));
             break;
     }
 }
