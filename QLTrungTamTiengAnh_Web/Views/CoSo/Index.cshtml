@@ -6,59 +6,6 @@
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
     <div>
-        <h4 class="mb-1 text-dark fw-bold">Báo cáo tổng hợp</h4>
-        <p class="text-muted small mb-0">Báo cáo theo bộ lọc đã áp dụng: <span id="reportPeriod">Đang tải...</span></p>
-        <small class="text-muted">Cập nhật: <span id="reportUpdatedAt">—</span></small>
-    </div>
-    <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-success btn-sm" id="btnExportReportCsv"><i class="fa-solid fa-file-excel me-1"></i> Xuất Excel</button>
-        <button type="button" class="btn btn-outline-danger btn-sm" id="btnPrintReport"><i class="fa-solid fa-file-pdf me-1"></i> Xuất PDF</button>
-    </div>
-</div>
-
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-body">
-        <div class="row g-3 align-items-end">
-            <div class="col-md-2">
-                <label class="form-label small fw-semibold" for="reportTimeType">Kiểu thời gian</label>
-                <select class="form-select" id="reportTimeType">
-                    <option value="month">Theo tháng</option>
-                    <option value="quarter">Theo quý</option>
-                    <option value="year">Theo năm</option>
-                    <option value="range">Khoảng ngày</option>
-                </select>
-            </div>
-            <div class="col-md-2 report-month-field"><label class="form-label small fw-semibold" for="reportMonth">Tháng</label><input class="form-control" id="reportMonth" type="number" min="1" max="12" /></div>
-            <div class="col-md-2 report-year-field"><label class="form-label small fw-semibold" for="reportYear">Năm</label><input class="form-control" id="reportYear" type="number" min="1" max="9999" /></div>
-            <div class="col-md-2 report-quarter-field d-none"><label class="form-label small fw-semibold" for="reportQuarter">Quý</label><select class="form-select" id="reportQuarter"><option value="1">Quý 1</option><option value="2">Quý 2</option><option value="3">Quý 3</option><option value="4">Quý 4</option></select></div>
-            <div class="col-md-2 report-range-field d-none"><label class="form-label small fw-semibold" for="reportFrom">Từ ngày</label><input class="form-control" id="reportFrom" type="date" /></div>
-            <div class="col-md-2 report-range-field d-none"><label class="form-label small fw-semibold" for="reportTo">Đến ngày</label><input class="form-control" id="reportTo" type="date" /></div>
-            <div class="col-md-3"><label class="form-label small fw-semibold" for="reportBranch">Cơ sở</label><select class="form-select" id="reportBranch"><option value="">Tất cả cơ sở</option></select></div>
-            <div class="col-md-3 d-flex gap-2"><button type="button" class="btn btn-primary" id="btnApplyReport"><i class="fa-solid fa-filter me-1"></i> Áp dụng</button><button type="button" class="btn btn-outline-secondary" id="btnReloadReport"><i class="fa-solid fa-rotate me-1"></i> Tải lại</button><button type="button" class="btn btn-outline-secondary" id="btnCurrentMonth">Tháng hiện tại</button></div>
-        </div>
-        <div class="small text-danger mt-2" id="reportFilterError"></div>
-    </div>
-</div>
-
-<div class="row g-3 mb-4" id="reportKpis">
-    <div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm p-3"><span class="text-muted small">DOANH THU THỰC THU</span><strong class="fs-4" id="reportRevenue">—</strong></div></div>
-    <div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm p-3"><span class="text-muted small">HỌC VIÊN MỚI</span><strong class="fs-4" id="reportNewStudents">—</strong></div></div>
-    <div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm p-3"><span class="text-muted small">ĐANG HỌC</span><strong class="fs-4" id="reportActiveStudents">—</strong></div></div>
-    <div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm p-3"><span class="text-muted small">HOÀN THÀNH</span><strong class="fs-4" id="reportCompletedStudents">—</strong></div></div>
-</div>
-
-<div class="row g-4 mb-4 report-charts">
-    <div class="col-lg-8"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white fw-semibold">Doanh thu học phí <small class="text-muted" id="revenueGrouping"></small></div><div class="card-body"><canvas id="reportRevenueChart"></canvas><div class="report-empty text-muted text-center d-none">Chưa có dữ liệu</div></div></div></div>
-    <div class="col-lg-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white fw-semibold">Phân bố học viên theo khóa học</div><div class="card-body"><canvas id="reportDistributionChart"></canvas><div class="report-empty text-muted text-center d-none">Chưa có dữ liệu</div></div></div></div>
-    <div class="col-lg-7"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white fw-semibold">Tăng trưởng học viên</div><div class="card-body"><canvas id="reportGrowthChart"></canvas><div class="report-empty text-muted text-center d-none">Chưa có dữ liệu</div></div></div></div>
-    <div class="col-lg-5"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white fw-semibold">Quy mô hiện tại theo cơ sở</div><div class="card-body"><canvas id="reportBranchChart"></canvas><div class="report-empty text-muted text-center d-none">Chưa có dữ liệu</div></div></div></div>
-    <div class="col-12"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold">Chuyên cần & điểm danh <small class="text-muted">Chưa điểm danh không tính là vắng</small></div><div class="card-body"><canvas id="reportAttendanceChart"></canvas><div class="report-empty text-muted text-center d-none">Chưa có dữ liệu</div></div></div></div>
-</div>
-
-<div id="reportStatus" class="small text-muted mb-4" aria-live="polite"></div>
-
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
-    <div>
         <h4 class="mb-1 text-dark fw-bold">Quản Lý Chi Nhánh & Điều Chuyển Công Tác</h4>
         <p class="text-muted small mb-0">Hệ thống mạng lưới cơ sở trung tâm và lịch sử luân chuyển nhân sự</p>
     </div>
@@ -289,7 +236,6 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(function() {
             const branchModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBranch'));
@@ -304,9 +250,7 @@
                 restore: '@Url.Action("KhoiPhucCoSo", "CoSo")',
                 staff: '@Url.Action("DanhSachNhanSu", "CoSo")',
                 transfer: '@Url.Action("DieuChuyenNhanSu", "CoSo")',
-                history: '@Url.Action("DanhSachLichSu", "CoSo")',
-                report: '@Url.Action("BaoCaoDuLieu", "CoSo")',
-                reportBranches: '@Url.Action("BaoCaoCoSoLuaChon", "CoSo")'
+                history: '@Url.Action("DanhSachLichSu", "CoSo")'
             };
             let branches = [];
             let trashBranches = [];
@@ -320,14 +264,10 @@
             let transferPage = 1;
             let transferTotalPages = 0;
             let historyLoaded = false;
-            let reportRequestVersion = 0;
-            let reportCharts = {};
-            let appliedReportFilter = null;
-            let latestReport = null;
 
             function esc(value) {
                 return String(value ?? '').replace(/[&<>"']/g, ch => ({
-                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;
                 })[ch]);
             }
             function errorMessage(xhr) {
@@ -349,88 +289,6 @@
                 const d = new Date(value);
                 return isNaN(d.getTime()) ? '—' : d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
             }
-
-            function currentReportFilter() {
-                const type = $('#reportTimeType').val();
-                const result = { kieuThoiGian: type, nam: Number($('#reportYear').val()), coSoId: $('#reportBranch').val() ? Number($('#reportBranch').val()) : null };
-                if (type === 'month') result.thang = Number($('#reportMonth').val());
-                if (type === 'quarter') result.quy = Number($('#reportQuarter').val());
-                if (type === 'range') { result.tuNgay = $('#reportFrom').val(); result.denNgay = $('#reportTo').val(); }
-                return result;
-            }
-            function showReportFields() {
-                const type = $('#reportTimeType').val();
-                $('.report-month-field, .report-quarter-field, .report-range-field').addClass('d-none');
-                if (type === 'month') $('.report-month-field').removeClass('d-none');
-                else if (type === 'quarter') $('.report-quarter-field').removeClass('d-none');
-                else if (type === 'range') $('.report-range-field').removeClass('d-none');
-                $('.report-year-field').toggleClass('d-none', type === 'range');
-            }
-            function destroyReportCharts() {
-                Object.values(reportCharts).forEach(chart => chart?.destroy());
-                reportCharts = {};
-            }
-            function hasValues(items) { return Array.isArray(items) && items.length > 0; }
-            function makeChart(id, config, hasData) {
-                const canvas = document.getElementById(id);
-                if (!canvas) return;
-                const empty = $(canvas).siblings('.report-empty');
-                $(canvas).toggleClass('d-none', !hasData);
-                empty.toggleClass('d-none', hasData);
-                if (hasData && window.Chart) reportCharts[id] = new Chart(canvas, config);
-            }
-            function renderReport(report) {
-                latestReport = report;
-                destroyReportCharts();
-                $('#reportPeriod').text(report.kyBaoCao.nhanKy);
-                $('#reportUpdatedAt').text(dateText(report.capNhatLuc));
-                $('#reportRevenue').text(Number(report.tongDoanhThu || 0).toLocaleString('vi-VN') + ' VNĐ');
-                $('#reportNewStudents').text(report.hocVienMoi || 0);
-                $('#reportActiveStudents').text(report.hocVienDangHoc || 0);
-                $('#reportCompletedStudents').text(report.hocVienHoanThanh || 0);
-                $('#revenueGrouping').text(`(theo ${report.kyBaoCao.mucNhom.toLowerCase()})`);
-                const revenue = report.doanhThu || [];
-                makeChart('reportRevenueChart', { type: 'line', data: { labels: revenue.map(x => x.nhan), datasets: [{ label: 'VNĐ', data: revenue.map(x => x.giaTri), borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,.15)', fill: true, tension: .25 }] }, options: { responsive: true, plugins: { tooltip: { callbacks: { label: x => Number(x.raw).toLocaleString('vi-VN') + ' VNĐ' } } } } }, hasValues(revenue));
-                const growth = report.tangTruongHocVien || [];
-                makeChart('reportGrowthChart', { type: 'bar', data: { labels: growth.map(x => x.nhan), datasets: [{ label: 'Học viên mới', data: growth.map(x => x.hocVienMoi), backgroundColor: '#198754' }, { label: 'Đang học', data: growth.map(x => x.dangHoc), backgroundColor: '#0d6efd' }, { label: 'Hoàn thành', data: growth.map(x => x.hoanThanh), type: 'line', borderColor: '#fd7e14' }] }, options: { responsive: true } }, hasValues(growth));
-                const distribution = report.phanBoKhoaHoc || [];
-                makeChart('reportDistributionChart', { type: 'doughnut', data: { labels: distribution.map(x => x.nhan), datasets: [{ data: distribution.map(x => x.soLuong), backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1', '#20c997'] }] }, options: { responsive: true, plugins: { tooltip: { callbacks: { label: x => `${x.label}: ${x.raw} (${distribution[x.dataIndex].tyLe}%)` } } } } }, hasValues(distribution));
-                const branches = report.quyMoCoSo || [];
-                makeChart('reportBranchChart', { type: 'bar', data: { labels: branches.map(x => x.tenCoSo), datasets: [{ label: 'Phòng học', data: branches.map(x => x.soPhong), backgroundColor: '#20c997' }, { label: 'Nhân sự đang làm', data: branches.map(x => x.soNhanSu), backgroundColor: '#6f42c1' }] }, options: { responsive: true } }, hasValues(branches));
-                const attendance = report.chuyenCan || [];
-                makeChart('reportAttendanceChart', { type: 'bar', data: { labels: attendance.map(x => x.nhan), datasets: [{ label: 'Đúng giờ', data: attendance.map(x => x.dungGio), backgroundColor: '#198754' }, { label: 'Đi muộn', data: attendance.map(x => x.diMuon), backgroundColor: '#ffc107' }, { label: 'Vắng có phép', data: attendance.map(x => x.vangCoPhep), backgroundColor: '#0dcaf0' }, { label: 'Vắng không phép', data: attendance.map(x => x.vangKhongPhep), backgroundColor: '#dc3545' }, { label: 'Chưa điểm danh', data: attendance.map(x => x.chuaDiemDanh), backgroundColor: '#adb5bd' }] }, options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } } }, hasValues(attendance));
-            }
-            function loadReport(filter) {
-                const version = ++reportRequestVersion;
-                $('#reportStatus').text('Đang tải dữ liệu báo cáo...');
-                return postJson(urls.report, filter).done(res => {
-                    if (version !== reportRequestVersion) return;
-                    if (!res.success) { $('#reportStatus').text(res.message || 'Không có dữ liệu.'); return; }
-                    renderReport(res.data);
-                    $('#reportStatus').text('Số liệu được tính tại máy chủ theo bộ lọc đã áp dụng.');
-                }).fail(xhr => { if (version === reportRequestVersion) { $('#reportStatus').text(errorMessage(xhr)); } });
-            }
-            function csvCell(value) { return `"${String(value ?? '').replace(/"/g, '""')}"`; }
-            function exportReportCsv() {
-                if (!latestReport) return Swal.fire('Thông báo', 'Hãy tải báo cáo trước khi xuất.', 'info');
-                const rows = [['BÁO CÁO TỔNG HỢP'], ['Kỳ báo cáo', latestReport.kyBaoCao.nhanKy], ['Cập nhật', latestReport.capNhatLuc], [], ['DOANH THU'], ['Mốc', 'Doanh thu VNĐ'], ...latestReport.doanhThu.map(x => [x.nhan, x.giaTri]), [], ['TĂNG TRƯỞNG HỌC VIÊN'], ['Mốc', 'Học viên mới', 'Đang học', 'Hoàn thành'], ...latestReport.tangTruongHocVien.map(x => [x.nhan, x.hocVienMoi, x.dangHoc, x.hoanThanh]), [], ['PHÂN BỐ KHÓA HỌC'], ['Nhóm', 'Số lượng', 'Tỷ lệ %'], ...latestReport.phanBoKhoaHoc.map(x => [x.nhan, x.soLuong, x.tyLe]), [], ['QUY MÔ CƠ SỞ'], ['Cơ sở', 'Phòng học', 'Nhân sự'], ...latestReport.quyMoCoSo.map(x => [x.tenCoSo, x.soPhong, x.soNhanSu]), [], ['CHUYÊN CẦN'], ['Lớp', 'Đúng giờ', 'Đi muộn', 'Vắng có phép', 'Vắng không phép', 'Chưa điểm danh'], ...latestReport.chuyenCan.map(x => [x.nhan, x.dungGio, x.diMuon, x.vangCoPhep, x.vangKhongPhep, x.chuaDiemDanh])];
-                const blob = new Blob(['\ufeff' + rows.map(row => row.map(csvCell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
-                const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'BaoCaoTongHop.csv'; link.click(); URL.revokeObjectURL(link.href);
-            }
-            function printReport() {
-                if (!latestReport) return Swal.fire('Thông báo', 'Hãy tải báo cáo trước khi xuất.', 'info');
-                window.print();
-            }
-            $('#reportTimeType').on('change', showReportFields);
-            $('#btnApplyReport').on('click', function() { appliedReportFilter = currentReportFilter(); $('#reportFilterError').text(''); loadReport(appliedReportFilter); });
-            $('#btnReloadReport').on('click', () => { if (appliedReportFilter) loadReport(appliedReportFilter); });
-            $('#btnCurrentMonth').on('click', () => { const now = new Date(); $('#reportTimeType').val('month'); $('#reportMonth').val(now.getMonth() + 1); $('#reportYear').val(now.getFullYear()); showReportFields(); appliedReportFilter = currentReportFilter(); loadReport(appliedReportFilter); });
-            $('#btnExportReportCsv').on('click', exportReportCsv);
-            $('#btnPrintReport').on('click', printReport);
-            const now = new Date(); $('#reportMonth').val(now.getMonth() + 1); $('#reportYear').val(now.getFullYear()); showReportFields();
-            $.getJSON(urls.reportBranches).done(res => (res.data || []).forEach(x => $('#reportBranch').append(`<option value="${x.coSoId}">${esc(x.tenCoSo)}</option>`)));
-            appliedReportFilter = currentReportFilter();
-            loadReport(appliedReportFilter);
 
             function renderBranches() {
                 const tbody = $('#branchTableBody').empty();

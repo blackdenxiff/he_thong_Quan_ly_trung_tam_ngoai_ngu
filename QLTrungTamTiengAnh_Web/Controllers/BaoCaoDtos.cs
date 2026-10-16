@@ -76,4 +76,10 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         public int ChuaDiemDanh { get; set; }
         public int TongDaDiemDanh { get; set; }
     }
+
+    public sealed class BaoCaoBranchOptionDto
+    {
+        public int CoSoId { get; set; }
+        public string TenCoSo { get; set; } = "";
+    }
 }
