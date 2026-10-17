@@ -102,6 +102,9 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             var status = NormalizeStatus(model.TrangThai);
             if (status.Length == 0)
                 return BadRequest(new { success = false, message = "Trạng thái nhân sự không hợp lệ." });
+            var allowedRoles = new[] { "Giảng viên", "Giáo vụ", "Tư vấn tuyển sinh", "Kế toán" };
+            if (!allowedRoles.Contains(role, StringComparer.Ordinal))
+                return BadRequest(new { success = false, message = "Vai trò nhân sự không hợp lệ." });
             if (name.Length == 0 || name.Length > 100 || role.Length == 0 || role.Length > 20)
                 return BadRequest(new { success = false, message = "Họ tên và vai trò là bắt buộc, không vượt quá độ dài cho phép." });
             if (phone.Length > 0 && !Regex.IsMatch(phone, "^[0-9+ .-]{10,20}$"))

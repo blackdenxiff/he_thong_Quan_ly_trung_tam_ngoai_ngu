@@ -56,70 +56,115 @@ namespace QuanLyTrungTamNgoaiNgu.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<LopHoc>().ToTable("LopHoc");
-            modelBuilder.Entity<LichHoc>().ToTable("LichHoc");
-            modelBuilder.Entity<BangLuong>().ToTable("BangLuong");
-            modelBuilder.Entity<NhanSu>().ToTable("NhanSu");
-            modelBuilder.Entity<DiemDanh>().ToTable("DiemDanh");
+            // Ánh xạ DbSet sang đúng tên bảng trong SQL Server.
+            modelBuilder.Entity<VaiTro>().ToTable("VaiTro");
+            modelBuilder.Entity<CoSo>().ToTable("CoSo");
             modelBuilder.Entity<PhongHoc>().ToTable("PhongHoc");
-            modelBuilder.Entity<DangKy>().ToTable("DangKy");
-            //10/13 sang thê,
+            modelBuilder.Entity<NguoiDung>().ToTable("NguoiDung");
+            modelBuilder.Entity<NhanSu>()
+                .ToTable("NhanSu", table =>
+                {
+                    // Phải khớp CK_NhanSu_Loai trong script SQL.
+                    table.HasCheckConstraint(
+                        "CK_NhanSu_Loai",
+                        "[LoaiNhanSu] IN (N'Nhân viên', N'Giáo viên', N'Cả hai')");
+                });
+
             modelBuilder.Entity<HocVien>().ToTable("HocVien");
+            modelBuilder.Entity<KhoaHoc>().ToTable("KhoaHoc");
+            modelBuilder.Entity<LopHoc>().ToTable("LopHoc");
+            modelBuilder.Entity<DangKy>().ToTable("DangKy");
+            modelBuilder.Entity<LichHoc>().ToTable("LichHoc");
+            modelBuilder.Entity<PhanCongDay>().ToTable("PhanCongDay");
+            modelBuilder.Entity<DiemDanh>().ToTable("DiemDanh");
+            modelBuilder.Entity<BaiTap>().ToTable("BaiTap");
+            modelBuilder.Entity<ChiTietNopBai>().ToTable("ChiTietNopBai");
+            modelBuilder.Entity<TaiLieu>().ToTable("TaiLieu");
+            modelBuilder.Entity<CamKet>().ToTable("CamKet");
             modelBuilder.Entity<HoaDon>().ToTable("HoaDon");
             modelBuilder.Entity<ThanhToan>().ToTable("ThanhToan");
+            modelBuilder.Entity<BangLuong>().ToTable("BangLuong");
+            modelBuilder.Entity<LichSuDieuChuyen>().ToTable("LichSuDieuChuyen");
 
+            // Các cột trong SQL khai báo VARCHAR, không phải NVARCHAR.
+            modelBuilder.Entity<NguoiDung>()
+                .Property(x => x.TenDangNhap)
+                .HasColumnType("varchar(50)");
 
-            modelBuilder.Entity<NguoiDung>().ToTable("NguoiDung");
-            modelBuilder.Entity<VaiTro>().ToTable("VaiTro");
-            modelBuilder.Entity<HocVien>().ToTable("HocVien");
-            modelBuilder.Entity<NhanSu>().ToTable("NhanSu");
+            modelBuilder.Entity<CoSo>()
+                .Property(x => x.SoDienThoai)
+                .HasColumnType("varchar(20)");
 
+            modelBuilder.Entity<NhanSu>()
+                .Property(x => x.SoDienThoai)
+                .HasColumnType("varchar(20)");
 
-            // CoSoCuID -> CoSo
+            modelBuilder.Entity<NhanSu>()
+                .Property(x => x.Email)
+                .HasColumnType("varchar(100)");
+
+            modelBuilder.Entity<HocVien>()
+                .Property(x => x.SoDienThoai)
+                .HasColumnType("varchar(20)");
+
+            modelBuilder.Entity<HocVien>()
+                .Property(x => x.Email)
+                .HasColumnType("varchar(100)");
+
+            // Một cơ sở có thể xuất hiện trong nhiều bản ghi điều chuyển
+            // với vai trò cơ sở cũ.
             modelBuilder.Entity<LichSuDieuChuyen>()
                 .HasOne(x => x.CoSoCu)
                 .WithMany(x => x.LichSuDieuChuyenCosocu)
                 .HasForeignKey(x => x.CoSoCuID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // CoSoMoiID -> CoSo
+            // Một cơ sở có thể xuất hiện trong nhiều bản ghi điều chuyển
+            // với vai trò cơ sở mới.
             modelBuilder.Entity<LichSuDieuChuyen>()
                 .HasOne(x => x.CoSoMoi)
                 .WithMany(x => x.LichSuDieuChuyenCosomoi)
                 .HasForeignKey(x => x.CoSoMoiID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // NguoiDeXuatID -> NhanSu
+            // Người đề xuất là nhân sự.
             modelBuilder.Entity<LichSuDieuChuyen>()
                 .HasOne(x => x.NguoiDeXuat)
                 .WithMany()
                 .HasForeignKey(x => x.NguoiDeXuatID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // NguoiDuyetID -> NguoiDung
+            // Người duyệt là người dùng.
             modelBuilder.Entity<LichSuDieuChuyen>()
                 .HasOne(x => x.NguoiDuyet)
                 .WithMany()
                 .HasForeignKey(x => x.NguoiDuyetID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Apply global query filter for soft-delete on all entities that inherit BaseEntity
+            // Lọc các entity kế thừa BaseEntity để ẩn bản ghi đã xóa mềm.
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
                 var clrType = entityType.ClrType;
-                if (clrType == null)
-                    continue;
 
-                if (typeof(QuanLyTrungTamNgoaiNgu.Models.BaseEntity).IsAssignableFrom(clrType))
+                if (clrType == null ||
+                    !typeof(BaseEntity).IsAssignableFrom(clrType))
                 {
-                    var parameter = Expression.Parameter(clrType, "e");
-                    var property = Expression.Property(parameter, nameof(BaseEntity.IsDeleted));
-                    var compare = Expression.Equal(property, Expression.Constant(false));
-                    var lambda = Expression.Lambda(compare, parameter);
-                    modelBuilder.Entity(clrType).HasQueryFilter(lambda);
+                    continue;
                 }
-            }
 
+                var parameter = Expression.Parameter(clrType, "e");
+                var property = Expression.Property(
+                    parameter,
+                    nameof(BaseEntity.IsDeleted));
+
+                var condition = Expression.Equal(
+                    property,
+                    Expression.Constant(false));
+
+                var filter = Expression.Lambda(condition, parameter);
+
+                modelBuilder.Entity(clrType).HasQueryFilter(filter);
+            }
         }
     }
 }
