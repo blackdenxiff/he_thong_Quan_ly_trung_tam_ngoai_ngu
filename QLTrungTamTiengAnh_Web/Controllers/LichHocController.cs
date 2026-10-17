@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 using QuanLyTrungTamNgoaiNgu.Models;
 using QuanLyTrungTamNgoaiNgu.Data;
 using System;
@@ -8,6 +10,7 @@ using System.Linq;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
+    [Authorize]
     public class LichHocController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -22,9 +25,17 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         {
             try
             {
-                // Lấy thông tin quyền và tên đăng nhập chuẩn từ Session (khi người dùng Login)
-                var role = HttpContext.Session.GetString("UserRole") ?? "";
-                var username = HttpContext.Session.GetString("UserName") ?? "";
+                var role = User.FindFirstValue(ClaimTypes.Role)
+                    ?? HttpContext.Session.GetString("UserRole") ?? "";
+                var username = User.Identity?.Name
+                    ?? HttpContext.Session.GetString("UserName") ?? "";
+                var isTeacher = role.Equals("Giáo viên", StringComparison.OrdinalIgnoreCase)
+                    || role.Equals("GiaoVien", StringComparison.OrdinalIgnoreCase);
+                int? teacherId = null;
+                if (isTeacher && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                    teacherId = _context.NhanSus.AsNoTracking()
+                        .Where(x => x.NguoiDungID == userId && !x.IsDeleted)
+                        .Select(x => (int?)x.NhanSuID).FirstOrDefault();
 
                 var today = DateTime.Today;
                 DateTime baseMonday = today.AddDays(-(int)today.DayOfWeek + (today.DayOfWeek == DayOfWeek.Sunday ? -6 : 1));
@@ -33,8 +44,11 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
                 // Khởi tạo câu truy vấn gốc lấy toàn bộ lịch trong tuần
                 var query = _context.LichHocs
+                    .AsNoTracking()
                     .Include(l => l.LopHoc)
                         .ThenInclude(lp => lp.GiaoVienPhuTrach)
+                    .Include(l => l.LopHoc)
+                        .ThenInclude(lp => lp.KhoaHoc)
                     .Include(l => l.PhongHoc)
                     .Where(l => l.NgayHoc.Date >= startMonday.Date && l.NgayHoc.Date <= endSunday.Date);
 
@@ -81,18 +95,13 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                         query = query.Where(l => false); // Lỗi không tìm thấy tài khoản
                     }
                 }
-                else if (role == "Giáo viên" && !string.IsNullOrEmpty(username))
+                else if (isTeacher)
                 {
-                    var user = _context.NguoiDungs.FirstOrDefault(u => u.TenDangNhap == username);
-                    if (user != null)
-                    {
-                        // Lọc đúng theo cột GiaoVienPhuTrachID trong bảng LopHoc
-                        query = query.Where(l => l.LopHoc.GiaoVienPhuTrachID == user.NguoiDungID);
-                    }
-                    else
-                    {
-                        query = query.Where(l => false);
-                    }
+                    // Phạm vi giáo viên là lớp phụ trách hoặc buổi được phân công đã duyệt.
+                    query = teacherId.HasValue
+                        ? query.Where(l => l.LopHoc.GiaoVienPhuTrachID == teacherId.Value ||
+                            l.PhanCongDays!.Any(p => p.NhanSuID == teacherId.Value && !p.IsDeleted && p.TrangThai == "Đã duyệt"))
+                        : query.Where(l => false);
                 }
                 else
                 {
@@ -108,16 +117,23 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 ViewBag.EndSunday = endSunday;
                 ViewBag.WeekOffset = weekOffset;
                 ViewBag.UserRole = role;
+                ViewBag.IsTeacher = isTeacher;
 
-                // 2. Lấy danh sách lớp học
-                var danhSachLop = _context.LopHocs
-                    .Include(lp => lp.GiaoVienPhuTrach)
-                    .ToList();
-                ViewBag.DanhSachLop = danhSachLop;
+                var lopQuery = _context.LopHocs.AsNoTracking()
+                    .Include(lp => lp.GiaoVienPhuTrach).AsQueryable();
+                if (isTeacher)
+                    lopQuery = teacherId.HasValue
+                        ? lopQuery.Where(lp => lp.GiaoVienPhuTrachID == teacherId.Value)
+                        : lopQuery.Where(lp => false);
+                ViewBag.DanhSachLop = lopQuery.ToList();
+                ViewBag.DanhSachPhong = isTeacher
+                    ? new List<PhongHoc>()
+                    : _context.PhongHocs.AsNoTracking().ToList();
 
-                // 3. Lấy danh sách phòng học
-                var danhSachPhong = _context.PhongHocs.ToList();
-                ViewBag.DanhSachPhong = danhSachPhong;
+                var courseIds = danhSachLich.Select(l => l.LopHoc?.KhoaHocID ?? 0).Where(id => id > 0).Distinct().ToList();
+                ViewBag.TaiLieuChung = _context.TaiLieus.AsNoTracking()
+                    .Where(x => courseIds.Contains(x.KhoaHocID) && !x.IsDeleted && x.TrangThai == "Đang dùng")
+                    .OrderByDescending(x => x.NgayDang).ToList();
 
                 return View();
             }
@@ -129,6 +145,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
         // POST: /LichHoc/XoaLich
         [HttpPost]
+        [Authorize(Roles = "Admin,QuanLy,Quản lý")]
+        [ValidateAntiForgeryToken]
         public IActionResult XoaLich([FromBody] XoaLichDto model)
         {
             if (model == null || model.LichHocId <= 0)
@@ -144,13 +162,12 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                     return Json(new { success = false, message = "Lịch học không tồn tại trong cơ sở dữ liệu!" });
                 }
 
-                var danhSachDiemDanh = _context.DiemDanhs.Where(d => d.LichHocID == model.LichHocId).ToList();
-                if (danhSachDiemDanh.Any())
-                {
-                    _context.DiemDanhs.RemoveRange(danhSachDiemDanh);
-                }
+                if (_context.DiemDanhs.Any(d => d.LichHocID == model.LichHocId))
+                    return Json(new { success = false, message = "Không thể xóa buổi học đã có dữ liệu điểm danh." });
 
-                _context.LichHocs.Remove(lichHoc);
+                lichHoc.IsDeleted = true;
+                lichHoc.DeletedAt = DateTime.Now;
+                lichHoc.UpdatedAt = DateTime.Now;
                 _context.SaveChanges();
 
                 return Json(new { success = true, message = "Đã hủy và xóa lịch học khỏi SQL thành công!" });
@@ -164,7 +181,9 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
         // POST: /LichHoc/XepLich
         [HttpPost]
-        public IActionResult XepLich([FromBody] XepLichDto model)
+        [Authorize(Roles = "Admin,QuanLy,Quản lý")]
+        [ValidateAntiForgeryToken]
+        public IActionResult XepLich([FromBody] XepLichDto? model)
         {
             if (model == null || model.LopHocId <= 0 || string.IsNullOrWhiteSpace(model.PhongHoc))
             {
@@ -198,7 +217,9 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 }
 
                 var phong = _context.PhongHocs.FirstOrDefault(p => p.TenPhong == model.PhongHoc || p.TenPhong == "Phòng " + model.PhongHoc.Replace("P.", ""));
-                int phongHocId = phong?.PhongHocID ?? 1;
+                if (phong == null || phong.IsDeleted || phong.TrangThai != "Đang sử dụng")
+                    return Json(new { success = false, message = "Không tìm thấy phòng học đang hoạt động." });
+                int phongHocId = phong.PhongHocID;
 
                 bool isClassConflict = _context.LichHocs.Any(l => l.LopHocID == model.LopHocId && l.NgayHoc.Date == ngayHoc.Date && l.GioBatDau == gioBatDau);
                 if (isClassConflict)

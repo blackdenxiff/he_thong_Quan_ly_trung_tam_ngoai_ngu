@@ -31,6 +31,10 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 var data = await _service.GetBranchOptionsAsync(cancellationToken);
                 return Json(new { success = true, data });
             }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
             catch (Exception exception)
             {
                 return Fail(exception, "Branches");
@@ -49,6 +53,10 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             catch (ArgumentException exception)
             {
                 return BadRequest(new { success = false, message = exception.Message });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
             }
             catch (Exception exception)
             {
@@ -71,6 +79,10 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             {
                 return BadRequest(new { success = false, message = exception.Message });
             }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
             catch (Exception exception)
             {
                 return Fail(exception, "ExportExcel");
@@ -89,6 +101,10 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             catch (ArgumentException exception)
             {
                 return BadRequest(new { success = false, message = exception.Message });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
             }
             catch (Exception exception)
             {

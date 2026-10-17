@@ -1,4 +1,5 @@
 ﻿@model IEnumerable<QuanLyTrungTamNgoaiNgu.Models.HoaDon>
+@using QLTrungTamTiengAnh_Web.Controllers
 
 @{
     ViewData["Title"] = "Quản lý Học phí & Hóa đơn";
@@ -215,17 +216,18 @@
                 </div>
                 <div class="modal-body">
                     <form id="formNewInvoice">
+                                            @Html.AntiForgeryToken()
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Chọn Học Viên <span class="text-danger">*</span></label>
                                 <select class="form-select" id="selectStudent" required>
                                     <option value="">-- Chọn học viên cần lập hóa đơn --</option>
-                                    @if (ViewBag.DanhSachHocVien != null)
+                                    @if (ViewBag.DanhSachHocVien is IEnumerable<HoaDonController.HoaDonStudentOptionDto> students)
                                     {
-                                        foreach (var hv in ViewBag.DanhSachHocVien as List<QuanLyTrungTamNgoaiNgu.Models.HocVien>)
+                                        foreach (var student in students)
                                         {
-                                            <option value="@hv.HocVienID" data-name="@hv.HoTen" data-class="Khóa học ngoại ngữ chuẩn" data-fee="4500000">
-                                                HV-0@(hv.HocVienID): @hv.HoTen (@hv.SoDienThoai)
+                                            <option value="@student.HocVienId" data-name="@student.HoTen" data-class="@student.LopHoc" data-fee="@student.HocPhi" data-registration-id="@student.DangKyId">
+                                                HV-@student.HocVienId.ToString("D3"): @student.HoTen (@student.SoDienThoai)
                                             </option>
                                         }
                                     }
@@ -359,6 +361,7 @@
         $(document).ready(function() {
             let activeInvoiceRow = null;
             const isHocVien = @(isHocVien ? "true" : "false");
+            $.ajaxSetup({ headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() } });
 
             if (!isHocVien) {
                 // 1. Tự động nạp lớp & học phí khi chọn học viên
@@ -411,7 +414,7 @@
 
                     const payload = {
                         hocVienId: parseInt(studentId),
-                        dangKyId: null,
+                        dangKyId: parseInt($('#selectStudent option:selected').data('registration-id')) || null,
                         tongTien: total,
                         giamGia: discount,
                         ghiChu: $('#txtInvoiceNote').val()

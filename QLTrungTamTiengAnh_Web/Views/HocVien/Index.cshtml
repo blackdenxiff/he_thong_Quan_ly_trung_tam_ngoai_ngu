@@ -2,6 +2,8 @@
     ViewData["Title"] = "Quản lý Học viên";
 }
 
+@Html.AntiForgeryToken()
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="mb-1 text-dark fw-bold">Hồ Sơ Học Viên & Tuyển Sinh</h4>
@@ -178,7 +180,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Ngày sinh</label>
-                            <input type="date" class="form-control" id="txtDob" value="2005-01-01" />
+                            <input type="date" class="form-control" id="txtDob" />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
@@ -203,7 +205,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Điểm thi đầu vào (0 - 100) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="txtScore" min="0" max="100" value="60" required />
+                            <input type="number" class="form-control" id="txtScore" min="0" max="100" placeholder="Để trống nếu chưa khảo thí" />
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Nhận xét của giáo viên khảo sát</label>
@@ -269,9 +271,24 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            let currentRowTarget = null; // Biến ghi nhớ dòng học viên đang thao tác
+            let currentRowTarget = null;
+            let studentPage = 1;
+            function loadStudents(page = 1) {
+                studentPage = page;
+                $.getJSON('/HocVien/DanhSach', { keyword: $('#searchKeyword').val().trim(), trinhDo: $('#filterLevel').val(), trangThai: $('#filterStatus').val(), page: page })
+                    .done(res => {
+                        if (!res.success) return Swal.fire('Lỗi', res.message || 'Không tải được học viên.', 'error');
+                        const body = $('#studentTableBody').empty();
+                        if (!res.items.length) body.append('<tr><td colspan="8" class="text-center text-muted py-4">Không có học viên phù hợp.</td></tr>');
+                        res.items.forEach(x => body.append(`<tr><td class="ps-3"><span class="badge bg-light text-dark border">${x.ma}</span></td><td><div class="fw-bold text-dark">${$('<div>').text(x.hoTen).html()}</div><small class="text-muted">${x.trinhDo || 'Chưa khảo thí'}</small></td><td><div>${x.dienThoai || ''}</div><small class="text-muted">${x.email || ''}</small></td><td><span class="badge bg-info text-dark">${x.diem == null ? 'Chưa thi' : x.diem + ' điểm'}</span></td><td><span class="text-muted">${x.soDangKy ? x.soDangKy + ' đăng ký' : 'Chưa xếp lớp'}</span></td><td><span class="badge bg-secondary">Chưa xét</span></td><td><span class="badge bg-success-subtle text-success border">${x.trangThai}</span></td><td class="text-end pe-3"><button class="btn btn-sm btn-outline-success" title="Xếp lớp" onclick="openEnrollModal(${x.id}, '${String(x.hoTen).replace(/'/g, "\\'")}', this)"><i class="fa-solid fa-graduation-cap"></i></button><button class="btn btn-sm btn-outline-danger ms-1" title="Xóa" onclick="confirmDelete(this, ${x.id})"><i class="fa-solid fa-trash"></i></button></td></tr>`));
+                        $('.card-footer small').first().text(`Tổng ${res.total} học viên • Trang ${res.page}/${res.totalPages || 1}`);
+                    }).fail(() => Swal.fire('Lỗi kết nối', 'Không thể tải danh sách học viên.', 'error'));
+            }
+            $('#btnFilter').click(() => loadStudents(1));
+            $('#btnResetFilter').click(() => { $('#searchKeyword,#filterLevel,#filterStatus').val(''); loadStudents(1); });
+            loadStudents();
 
-            // 1. Mở Modal Xếp lớp và lưu lại dòng đang chọn
+            // 1. Mở Modal Xếp lớp
             window.openEnrollModal = function(studentId, studentName, element) {
                 currentRowTarget = $(element).closest("tr");
                 $('#enrollStudentId').val(studentId);
@@ -301,6 +318,7 @@
                     url: '/HocVien/DangKyLop',
                     type: 'POST',
                     contentType: 'application/json',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
                     data: JSON.stringify(payload),
                     success: function(res) {
                         $('#modalEnroll').modal('hide');
@@ -349,7 +367,7 @@
                     Swal.fire('Lỗi nhập liệu', 'Vui lòng nhập họ tên học viên!', 'warning');
                     return;
                 }
-                if (isNaN(score) || score < 0 || score > 100) {
+                if (!isNaN(score) && (score < 0 || score > 100)) {
                     Swal.fire('Lỗi điểm số', 'Điểm kiểm tra đầu vào phải nằm trong thang từ 0 đến 100!', 'warning');
                     return;
                 }
@@ -368,13 +386,18 @@
                     url: '/HocVien/LuuHocVien',
                     type: 'POST',
                     contentType: 'application/json',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
                     data: JSON.stringify(payload),
                     success: function(res) {
                         if (res.success) {
                             $('#modalStudent').modal('hide');
+                            loadStudents(1);
                             Swal.fire('Thành công!', res.message, 'success');
 
-                            const randomId = Math.floor(Math.random() * 1000) + 10;
+                            loadStudents(1);
+                            return;
+
+                            const randomId = res.id;
                             const newTr = `
                                         <tr id="row_student_${randomId}">
                                             <td class="ps-3"><span class="badge bg-light text-dark border">HV-${randomId}</span></td>
@@ -432,17 +455,9 @@
                 }).then((r) => {
                     if (r.isConfirmed) {
                         if (tr && tr.length > 0) {
-                            tr.fadeOut(300, function() {
-                                $(this).remove();
-                                Swal.fire({
-                                    toast: true,
-                                    position: 'top-end',
-                                    icon: 'success',
-                                    title: 'Đã xóa hồ sơ học viên thành công',
-                                    showConfirmButton: false,
-                                    timer: 1500
-                                });
-                            });
+                            $.ajax({ url: '/HocVien/XoaHocVien?hocVienId=' + encodeURIComponent(studentId), type: 'POST', headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() } })
+                                .done(res => { if (res.success) { loadStudents(1); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 1500 }); } else Swal.fire('Lỗi', res.message, 'error'); })
+                                .fail(xhr => Swal.fire('Lỗi', xhr.responseJSON?.message || 'Không thể xóa hồ sơ.', 'error'));
                         }
                     }
                 });

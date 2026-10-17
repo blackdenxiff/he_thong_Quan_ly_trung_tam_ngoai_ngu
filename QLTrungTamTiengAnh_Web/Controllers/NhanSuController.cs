@@ -21,7 +21,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         public async Task<IActionResult> Index()
         {
             ViewBag.CoSos = await _context.CoSos.AsNoTracking()
-                .Where(x => x.TrangThai)
+                .Where(x => !x.IsDeleted && x.TrangThai)
                 .OrderBy(x => x.TenCoSo)
                 .Select(x => new CoSoOptionDto { Id = x.CoSoID, Name = x.TenCoSo })
                 .ToListAsync();
@@ -79,11 +79,11 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
             var stats = new
             {
-                total = await _context.NhanSus.CountAsync(),
-                teaching = await _context.NhanSus.CountAsync(x => x.LoaiNhanSu == "Giảng viên"
+                total = await _context.NhanSus.CountAsync(x => !x.IsDeleted),
+                teaching = await _context.NhanSus.CountAsync(x => !x.IsDeleted && x.LoaiNhanSu == "Giảng viên"
                     && x.LopHocs!.Any(l => !l.IsDeleted && l.NgayKetThuc >= today && l.TrangThai != "Đã kết thúc")),
-                active = await _context.NhanSus.CountAsync(x => x.TrangThai == "Đang làm"),
-                inactive = await _context.NhanSus.CountAsync(x => x.TrangThai != "Đang làm")
+                active = await _context.NhanSus.CountAsync(x => !x.IsDeleted && x.TrangThai == "Đang làm"),
+                inactive = await _context.NhanSus.CountAsync(x => !x.IsDeleted && x.TrangThai != "Đang làm")
             };
             return Json(new { success = true, items, page, pageSize, total, totalPages, stats });
         }

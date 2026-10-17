@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using QuanLyTrungTamNgoaiNgu.Models;
 using QuanLyTrungTamNgoaiNgu.Data;
@@ -9,6 +11,7 @@ using System.Linq;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
+    [Authorize]
     public class DiemDanhController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -24,7 +27,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             try
             {
                 // 1. Đọc Session thông tin đăng nhập
-                var role = HttpContext.Session.GetString("UserRole")
+                var role = User.FindFirstValue(ClaimTypes.Role)
+                           ?? HttpContext.Session.GetString("UserRole")
                            ?? HttpContext.Session.GetString("Role")
                            ?? "";
                 var username = HttpContext.Session.GetString("UserName")
@@ -34,6 +38,11 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
                 string normalizedRole = role.Trim().ToLower();
                 bool isHocVien = normalizedRole.Contains("học viên") || normalizedRole.Contains("hocvien") || normalizedRole.Contains("student");
+                bool isTeacher = normalizedRole.Contains("giáo viên") || normalizedRole.Contains("giaovien");
+                int? teacherId = null;
+                if (isTeacher && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                    teacherId = _context.NhanSus.Where(x => x.NguoiDungID == userId && !x.IsDeleted)
+                        .Select(x => (int?)x.NhanSuID).FirstOrDefault();
 
                 ViewBag.UserRole = role;
                 ViewBag.IsHocVien = isHocVien;
@@ -112,17 +121,27 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 else
                 {
                     // ========================================================
-                    // PHÂN QUYỀN ADMIN / GIÁO VIÊN / QUẢN LÝ (Full quyền)
+                    // Giáo viên chỉ xem lớp phụ trách; quản trị viên xem toàn bộ.
                     // ========================================================
-                    var danhSachLop = _context.LopHocs.ToList();
+                    var lopQuery = _context.LopHocs.AsNoTracking().Where(x => !x.IsDeleted);
+                    if (isTeacher)
+                        lopQuery = teacherId.HasValue
+                            ? lopQuery.Where(x => x.GiaoVienPhuTrachID == teacherId.Value)
+                            : lopQuery.Where(x => false);
+                    var danhSachLop = lopQuery.ToList();
                     ViewBag.DanhSachLop = danhSachLop;
 
                     int selectedLopId = lopHocId ?? (danhSachLop.FirstOrDefault()?.LopHocID ?? 0);
                     ViewBag.SelectedLopId = selectedLopId;
 
-                    var danhSachLich = _context.LichHocs
-                        .Where(l => l.LopHocID == selectedLopId)
-                        .ToList();
+                    var danhSachLichQuery = _context.LichHocs.AsNoTracking()
+                        .Where(l => l.LopHocID == selectedLopId);
+                    if (isTeacher)
+                        danhSachLichQuery = teacherId.HasValue
+                            ? danhSachLichQuery.Where(l => l.LopHoc!.GiaoVienPhuTrachID == teacherId.Value ||
+                                l.PhanCongDays!.Any(p => p.NhanSuID == teacherId.Value && !p.IsDeleted && p.TrangThai == "Đã duyệt"))
+                            : danhSachLichQuery.Where(l => false);
+                    var danhSachLich = danhSachLichQuery.ToList();
                     ViewBag.DanhSachLich = danhSachLich;
 
                     int selectedLichId = lichHocId ?? (danhSachLich.FirstOrDefault()?.LichHocID ?? 0);
@@ -154,6 +173,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
         // Action nhận yêu cầu AJAX cập nhật trạng thái điểm danh
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult UpdateAttendance([FromBody] AttendanceUpdateDto model)
         {
             var role = HttpContext.Session.GetString("UserRole")
@@ -167,9 +187,27 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 return Json(new { success = false, message = "Học viên chỉ có quyền xem, không thể tự chỉnh sửa điểm danh!" });
             }
 
-            if (model == null || model.StudentId <= 0 || model.ScheduleId <= 0)
+            if (model == null || model.StudentId <= 0 || model.ScheduleId <= 0 ||
+                !new[] { "Có mặt", "Đi muộn", "Vắng", "Nghỉ phép", "Chưa điểm danh" }.Contains(model.Status))
             {
                 return Json(new { success = false, message = "Dữ liệu điểm danh không hợp lệ!" });
+            }
+
+            var schedule = _context.LichHocs.AsNoTracking().FirstOrDefault(x => x.LichHocID == model.ScheduleId && !x.IsDeleted);
+            var enrolled = schedule != null && _context.DangKys.Any(x => x.LopHocID == schedule.LopHocID && x.HocVienID == model.StudentId && !x.IsDeleted && x.TrangThai == "Đang học");
+            if (!enrolled)
+                return Json(new { success = false, message = "Học viên không thuộc lớp của buổi học này." });
+
+            if (User.IsInRole("GiaoVien") || User.IsInRole("Giáo viên"))
+            {
+                var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!int.TryParse(userIdText, out var userId))
+                    return Forbid();
+                var teacherId = _context.NhanSus.Where(x => x.NguoiDungID == userId && !x.IsDeleted).Select(x => x.NhanSuID).FirstOrDefault();
+                var assigned = teacherId > 0 && _context.LichHocs.Any(x => x.LichHocID == model.ScheduleId &&
+                    (x.LopHoc!.GiaoVienPhuTrachID == teacherId ||
+                     x.PhanCongDays!.Any(p => p.NhanSuID == teacherId && !p.IsDeleted && p.TrangThai == "Đã duyệt")));
+                if (!assigned) return Forbid();
             }
 
             try

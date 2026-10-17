@@ -1,5 +1,7 @@
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 using QLTrungTamTiengAnh_Web.Controllers;
 using QuanLyTrungTamNgoaiNgu.Data;
 using System.Data;
@@ -9,21 +11,26 @@ namespace QLTrungTamTiengAnh_Web.Services
     public sealed class BaoCaoService : IBaoCaoService
     {
         private readonly ApplicationDbContext _db;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public BaoCaoService(ApplicationDbContext db)
+        public BaoCaoService(ApplicationDbContext db, IHttpContextAccessor httpContextAccessor)
         {
             _db = db;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<IReadOnlyList<BaoCaoBranchOptionDto>> GetBranchOptionsAsync(CancellationToken cancellationToken = default)
         {
             await using var connection = CreateConnection();
             await connection.OpenAsync(cancellationToken);
+            var allowedBranchId = await GetAllowedBranchIdAsync(connection, cancellationToken);
             await using var command = new SqlCommand(@"
                 SELECT CoSoID, TenCoSo
                 FROM dbo.CoSo
                 WHERE IsDeleted = 0 AND TrangThai = 1
+                  AND (@allowedBranchId IS NULL OR CoSoID = @allowedBranchId)
                 ORDER BY TenCoSo, CoSoID", connection);
+            Add(command, "@allowedBranchId", SqlDbType.Int, allowedBranchId);
 
             var result = new List<BaoCaoBranchOptionDto>();
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -48,6 +55,10 @@ namespace QLTrungTamTiengAnh_Web.Services
 
             await using var connection = CreateConnection();
             await connection.OpenAsync(cancellationToken);
+            var allowedBranchId = await GetAllowedBranchIdAsync(connection, cancellationToken);
+            var branchId = allowedBranchId ?? filter?.CoSoId;
+            if (allowedBranchId.HasValue && filter?.CoSoId.HasValue == true && filter.CoSoId != allowedBranchId)
+                throw new UnauthorizedAccessException("B?n ch? ???c xem b?o c?o c?a c? s? ???c ph?n c?ng.");
 
             var result = new BaoCaoTongHopDto
             {
@@ -63,8 +74,12 @@ SELECT CASE WHEN @groupLevel = 0 THEN CONVERT(date, p.NgayThanhToan)
             ELSE DATEFROMPARTS(YEAR(p.NgayThanhToan), MONTH(p.NgayThanhToan), 1) END AS Bucket,
        SUM(p.SoTien) AS Total
 FROM dbo.ThanhToan p
+INNER JOIN dbo.HoaDon h ON h.HoaDonID = p.HoaDonID AND h.IsDeleted = 0
+LEFT JOIN dbo.DangKy pd ON pd.DangKyID = h.DangKyID AND pd.IsDeleted = 0
+LEFT JOIN dbo.LopHoc pl ON pl.LopHocID = pd.LopHocID AND pl.IsDeleted = 0
 WHERE p.IsDeleted = 0 AND p.NgayThanhToan >= @fromExclusive AND p.NgayThanhToan < @toExclusive
   AND p.SoTien > 0
+  AND (@coSoId IS NULL OR pl.CoSoID = @coSoId)
 GROUP BY CASE WHEN @groupLevel = 0 THEN CONVERT(date, p.NgayThanhToan)
               ELSE DATEFROMPARTS(YEAR(p.NgayThanhToan), MONTH(p.NgayThanhToan), 1) END
 ORDER BY Bucket;
@@ -92,6 +107,7 @@ SELECT CASE WHEN @groupLevel = 0 THEN CONVERT(date, d.NgayDangKy)
        SUM(CASE WHEN d.TrangThai = N'Đang học' THEN 1 ELSE 0 END),
        SUM(CASE WHEN d.TrangThai IN (N'Hoàn thành', N'Đã hoàn thành') OR d.KetQua IS NOT NULL THEN 1 ELSE 0 END)
 FROM dbo.DangKy d
+INNER JOIN dbo.LopHoc dl2 ON dl2.LopHocID = d.LopHocID AND dl2.IsDeleted = 0
 WHERE d.IsDeleted = 0 AND d.TrangThai NOT IN (N'Hủy', N'Đã hủy')
   AND d.NgayDangKy >= @fromExclusive AND d.NgayDangKy < @toExclusive
 GROUP BY CASE WHEN @groupLevel = 0 THEN CONVERT(date, d.NgayDangKy)
@@ -104,6 +120,7 @@ INNER JOIN dbo.LopHoc l ON l.LopHocID = d.LopHocID AND l.IsDeleted = 0
 INNER JOIN dbo.KhoaHoc k ON k.KhoaHocID = l.KhoaHocID AND k.IsDeleted = 0
 WHERE d.IsDeleted = 0 AND d.TrangThai NOT IN (N'Hủy', N'Đã hủy')
   AND d.NgayDangKy >= @fromExclusive AND d.NgayDangKy < @toExclusive
+  AND (@coSoId IS NULL OR l.CoSoID = @coSoId)
 GROUP BY k.KhoaHocID, k.TenKhoaHoc
 ORDER BY k.TenKhoaHoc;
 
@@ -126,7 +143,9 @@ SELECT l.LopHocID, l.TenLop,
                                       AND lh2.TrangThai NOT IN (N'Đã hủy', N'Hủy')) AS Expected
 FROM dbo.LopHoc l
 INNER JOIN dbo.LichHoc lh ON lh.LopHocID = l.LopHocID AND lh.IsDeleted = 0
-LEFT JOIN dbo.DiemDanh dd ON dd.LichHocID = lh.LichHocID AND dd.IsDeleted = 0
+INNER JOIN dbo.DangKy dk ON dk.LopHocID = l.LopHocID AND dk.IsDeleted = 0
+    AND dk.TrangThai NOT IN (N'H?y', N'?? h?y')
+LEFT JOIN dbo.DiemDanh dd ON dd.LichHocID = lh.LichHocID AND dd.HocVienID = dk.HocVienID AND dd.IsDeleted = 0
 WHERE l.IsDeleted = 0 AND lh.NgayHoc >= @fromExclusive AND lh.NgayHoc < @toExclusive
   AND lh.TrangThai NOT IN (N'Đã hủy', N'Hủy')
   AND (@coSoId IS NULL OR l.CoSoID = @coSoId)
@@ -137,7 +156,7 @@ ORDER BY l.TenLop, l.LopHocID;";
             Add(command, "@fromDate", SqlDbType.DateTime2, range.TuNgay);
             Add(command, "@toDate", SqlDbType.DateTime2, range.DenNgay.AddDays(1));
             Add(command, "@groupLevel", SqlDbType.Int, range.MucNhom == "Ngày" ? 0 : 1);
-            Add(command, "@coSoId", SqlDbType.Int, filter?.CoSoId);
+            Add(command, "@coSoId", SqlDbType.Int, branchId);
 
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
@@ -220,6 +239,20 @@ ORDER BY l.TenLop, l.LopHocID;";
             }
 
             return result;
+        }
+
+        private async Task<int?> GetAllowedBranchIdAsync(SqlConnection connection, CancellationToken cancellationToken)
+        {
+            if (_httpContextAccessor.HttpContext?.User.IsInRole("Admin") == true) return null;
+            if (_httpContextAccessor.HttpContext?.User.IsInRole("QuanLy") != true && _httpContextAccessor.HttpContext?.User.IsInRole("Qu?n l?") != true)
+                throw new UnauthorizedAccessException("T?i kho?n kh?ng c? ph?m vi b?o c?o.");
+            var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userId, out var parsedUserId)) throw new UnauthorizedAccessException("Kh?ng x?c ??nh ???c t?i kho?n b?o c?o.");
+            await using var command = new SqlCommand(@"SELECT TOP (1) n.CoSoID FROM dbo.NhanSu n INNER JOIN dbo.CoSo c ON c.CoSoID = n.CoSoID AND c.IsDeleted = 0 AND c.TrangThai = 1 WHERE n.NguoiDungID = @userId AND n.IsDeleted = 0 AND n.TrangThai = N'?ang l?m'", connection);
+            Add(command, "@userId", SqlDbType.Int, parsedUserId);
+            var value = await command.ExecuteScalarAsync(cancellationToken);
+            if (value is null || value == DBNull.Value) throw new UnauthorizedAccessException("T?i kho?n qu?n l? ch?a ???c g?n c? s?.");
+            return Convert.ToInt32(value);
         }
 
         private SqlConnection CreateConnection()

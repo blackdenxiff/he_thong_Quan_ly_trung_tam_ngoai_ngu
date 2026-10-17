@@ -2,6 +2,8 @@
     ViewData["Title"] = "Quản lý Khóa học";
 }
 
+@Html.AntiForgeryToken()
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="mb-1 text-dark fw-bold">Danh Mục Chương Trình & Khóa Học</h4>
@@ -17,25 +19,25 @@
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
             <span class="text-muted small fw-semibold">TỔNG KHÓA HỌC</span>
-            <h4 class="fw-bold mb-0 text-dark" id="statTotalCourses">3</h4>
+            <h4 class="fw-bold mb-0 text-dark" id="statTotalCourses">0</h4>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
             <span class="text-primary small fw-semibold">ĐANG TUYỂN SINH</span>
-            <h4 class="fw-bold mb-0 text-primary">3</h4>
+            <h4 class="fw-bold mb-0 text-primary" id="statEnrollingCourses">0</h4>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
             <span class="text-success small fw-semibold">LỚP ĐANG HOẠT ĐỘNG</span>
-            <h4 class="fw-bold mb-0 text-success">8 lớp</h4>
+            <h4 class="fw-bold mb-0 text-success" id="statActiveClasses">0</h4>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
-            <span class="text-info small fw-semibold">CHUẨN ĐẦU RA CAO NHẤT</span>
-            <h4 class="fw-bold mb-0 text-info">IELTS 7.5+</h4>
+            <span class="text-info small fw-semibold">TỔNG BUỔI ĐÀO TẠO</span>
+            <h4 class="fw-bold mb-0 text-info" id="statTotalLessons">0</h4>
         </div>
     </div>
 </div>
@@ -92,82 +94,36 @@
                     </tr>
                 </thead>
                 <tbody id="courseTableBody">
-                    <!-- Khóa học 1 -->
-                    <tr id="row_course_1" data-id="1" data-code="KH-TOEIC500" data-name="TOEIC 500 Mục Tiêu" data-level="B1 (TOEIC 500+)" data-lessons="24" data-fee="4500000" data-desc="Ngữ pháp trọng điểm, bẫy Part 5-6 và kỹ năng nghe Part 1-4" data-status="Đang tuyển sinh">
-                        <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold">KH-TOEIC500</span></td>
-                        <td>
-                            <div class="fw-bold text-dark course-title">TOEIC 500 Mục Tiêu</div>
-                            <small class="text-muted">Chương trình chuẩn ETS</small>
-                        </td>
-                        <td><span class="badge bg-info-subtle text-info border border-info-subtle course-level">B1 (TOEIC 500+)</span></td>
-                        <td class="course-duration"><span class="fw-semibold">24 buổi</span> (48 giờ)</td>
-                        <td class="fw-bold text-dark course-fee">4,500,000 đ</td>
-                        <td><small class="text-muted text-truncate d-inline-block course-desc" style="max-width: 250px;">Ngữ pháp trọng điểm, bẫy Part 5-6 và kỹ năng nghe Part 1-4</small></td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Đang tuyển sinh</span></td>
-                        <td class="text-end pe-3">
-                            <a href="/LopHoc" class="btn btn-sm btn-outline-success me-1" title="Xem danh sách lớp">
-                                <i class="fa-solid fa-chalkboard-user"></i>
-                            </a>
-                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-course" title="Chỉnh sửa">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger btn-delete-course" title="Xóa">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-
-                    <!-- Khóa học 2 -->
-                    <tr id="row_course_2" data-id="2" data-code="KH-IELTS65" data-name="IELTS Intensive 6.5+" data-level="B2 (IELTS 6.5+)" data-lessons="36" data-fee="7500000" data-desc="Chiến thuật Writing Task 1-2, Speaking 1-on-1 và phản xạ nâng cao" data-status="Đang tuyển sinh">
-                        <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold">KH-IELTS65</span></td>
-                        <td>
-                            <div class="fw-bold text-dark course-title">IELTS Intensive 6.5+</div>
-                            <small class="text-muted">Luyện thi học thuật nâng cao</small>
-                        </td>
-                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle course-level">B2 (IELTS 6.5+)</span></td>
-                        <td class="course-duration"><span class="fw-semibold">36 buổi</span> (72 giờ)</td>
-                        <td class="fw-bold text-dark course-fee">7,500,000 đ</td>
-                        <td><small class="text-muted text-truncate d-inline-block course-desc" style="max-width: 250px;">Chiến thuật Writing Task 1-2, Speaking 1-on-1 và phản xạ nâng cao</small></td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Đang tuyển sinh</span></td>
-                        <td class="text-end pe-3">
-                            <a href="/LopHoc" class="btn btn-sm btn-outline-success me-1" title="Xem danh sách lớp">
-                                <i class="fa-solid fa-chalkboard-user"></i>
-                            </a>
-                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-course" title="Chỉnh sửa">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger btn-delete-course" title="Xóa">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-
-                    <!-- Khóa học 3 -->
-                    <tr id="row_course_3" data-id="3" data-code="KH-GIAOTIEP" data-name="Tiếng Anh Giao Tiếp Cơ Bản" data-level="A1 - A2" data-lessons="20" data-fee="3500000" data-desc="Phát âm IPA chuẩn quốc tế, ngữ điệu và giao tiếp đời sống thực tế" data-status="Đang tuyển sinh">
-                        <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold">KH-GIAOTIEP</span></td>
-                        <td>
-                            <div class="fw-bold text-dark course-title">Tiếng Anh Giao Tiếp Cơ Bản</div>
-                            <small class="text-muted">Dành cho người mất gốc</small>
-                        </td>
-                        <td><span class="badge bg-warning-subtle text-warning border border-warning-subtle course-level">A1 - A2</span></td>
-                        <td class="course-duration"><span class="fw-semibold">20 buổi</span> (40 giờ)</td>
-                        <td class="fw-bold text-dark course-fee">3,500,000 đ</td>
-                        <td><small class="text-muted text-truncate d-inline-block course-desc" style="max-width: 250px;">Phát âm IPA chuẩn quốc tế, ngữ điệu và giao tiếp đời sống thực tế</small></td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle status-badge">Đang tuyển sinh</span></td>
-                        <td class="text-end pe-3">
-                            <a href="/LopHoc" class="btn btn-sm btn-outline-success me-1" title="Xem danh sách lớp">
-                                <i class="fa-solid fa-chalkboard-user"></i>
-                            </a>
-                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit-course" title="Chỉnh sửa">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger btn-delete-course" title="Xóa">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top">
+        <small class="text-muted" id="coursePageInfo">Đang tải...</small>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPrevCourse">Trang trước</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnNextCourse">Trang sau</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Tài liệu khóa học -->
+<div class="modal fade" id="modalDocuments" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-folder-open me-2 text-primary"></i>Tài liệu khóa học: <span id="documentCourseName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formDocument" class="row g-2 align-items-end mb-3">
+                    <div class="col-md-6"><label class="form-label fw-semibold">Tệp (PDF, Word, PowerPoint, Excel, TXT; tối đa 10 MB)</label><input class="form-control" type="file" id="documentFile" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" required /></div>
+                    <div class="col-md-4"><label class="form-label fw-semibold">Mô tả</label><input class="form-control" id="documentDescription" maxlength="500" /></div>
+                    <div class="col-md-2"><button class="btn btn-primary w-100" type="submit"><i class="fa-solid fa-upload me-1"></i>Tải lên</button></div>
+                </form>
+                <div id="documentList" class="list-group"><div class="text-muted text-center py-3">Đang tải...</div></div>
+            </div>
         </div>
     </div>
 </div>
@@ -206,11 +162,11 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Số Buổi Học (1 - 120 buổi) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="txtCourseLessons" value="24" min="1" max="120" required />
+                            <input type="number" class="form-control" id="txtCourseLessons" value="1" min="1" max="120" required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Học Phí Niêm Yết (VNĐ) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control fw-bold text-primary" id="txtCourseFee" value="5000000" min="100000" step="100000" required />
+                            <input type="number" class="form-control fw-bold text-primary" id="txtCourseFee" value="0" min="0" step="100000" required />
                         </div>
 
                         <div class="col-md-12">
@@ -242,15 +198,119 @@
     <script>
         $(document).ready(function () {
             let currentEditRow = null;
+            let currentPage = 1;
+            let totalPages = 0;
             const courseModal = new bootstrap.Modal(document.getElementById('modalCourse'));
+            const urls = {
+                list: '@Url.Action("DanhSach", "KhoaHoc")',
+                save: '@Url.Action("LuuKhoaHoc", "KhoaHoc")',
+                remove: '@Url.Action("XoaKhoaHoc", "KhoaHoc")',
+                documents: '@Url.Action("DanhSachTaiLieu", "KhoaHoc")',
+                uploadDocument: '@Url.Action("UploadTaiLieu", "KhoaHoc")',
+                downloadDocument: '@Url.Action("TaiTaiLieu", "KhoaHoc")',
+                removeDocument: '@Url.Action("XoaTaiLieu", "KhoaHoc")'
+            };
+            let currentDocumentCourseId = 0;
+            const documentModal = new bootstrap.Modal(document.getElementById('modalDocuments'));
+
+            function loadDocuments(courseId) {
+                currentDocumentCourseId = courseId;
+                $('#documentList').html('<div class="text-muted text-center py-3">Đang tải...</div>');
+                $.getJSON(urls.documents, { khoaHocId: courseId }).done(res => {
+                    const list = $('#documentList').empty();
+                    if (!res.success || !res.items.length) {
+                        list.html('<div class="text-muted text-center py-3">Chưa có tài liệu dùng chung.</div>');
+                        return;
+                    }
+                    res.items.forEach(x => list.append(`<div class="list-group-item d-flex justify-content-between align-items-center"><div><a href="${urls.downloadDocument}?taiLieuId=${encodeURIComponent(x.id)}" class="fw-semibold text-decoration-none"><i class="fa-solid fa-file-arrow-down me-2"></i>${esc(x.ten)}</a><div class="small text-muted">${esc(x.loai)} • ${esc(x.ngayDang)}${x.moTa ? ' • ' + esc(x.moTa) : ''}</div></div><button type="button" class="btn btn-sm btn-outline-danger btn-delete-document" data-id="${x.id}"><i class="fa-solid fa-trash"></i></button></div>`));
+                }).fail(() => $('#documentList').html('<div class="text-danger text-center py-3">Không tải được danh sách tài liệu.</div>'));
+            }
+
+            $(document).on('click', '.btn-course-documents', function () {
+                const row = $(this).closest('tr');
+                $('#documentCourseName').text(row.data('name') || '');
+                $('#formDocument')[0].reset();
+                documentModal.show();
+                loadDocuments(row.data('id'));
+            });
+
+            $('#formDocument').submit(function (event) {
+                event.preventDefault();
+                const data = new FormData();
+                data.append('khoaHocId', currentDocumentCourseId);
+                data.append('file', $('#documentFile')[0].files[0]);
+                data.append('moTa', $('#documentDescription').val());
+                $.ajax({ url: urls.uploadDocument, type: 'POST', data, processData: false, contentType: false, headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() } })
+                    .done(res => { if (!res.success) return Swal.fire('Lỗi', res.message, 'error'); $('#formDocument')[0].reset(); loadDocuments(currentDocumentCourseId); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 1500 }); })
+                    .fail(xhr => Swal.fire('Lỗi', xhr.responseJSON?.message || 'Không thể tải tài liệu lên.', 'error'));
+            });
+
+            $(document).on('click', '.btn-delete-document', function () {
+                const id = $(this).data('id');
+                Swal.fire({ title: 'Xóa tài liệu?', text: 'Tài liệu sẽ được chuyển vào thùng rác.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa', cancelButtonText: 'Hủy' }).then(result => {
+                    if (!result.isConfirmed) return;
+                    $.ajax({ url: urls.removeDocument + '?taiLieuId=' + encodeURIComponent(id), type: 'POST', headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() } }).done(res => { if (!res.success) return Swal.fire('Lỗi', res.message, 'error'); loadDocuments(currentDocumentCourseId); });
+                });
+            });
+
+            function esc(value) {
+                return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                })[ch]);
+            }
+
+            function loadCourses(page = 1) {
+                currentPage = page;
+                $('#courseTableBody').html('<tr><td colspan="8" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>');
+                $.getJSON(urls.list, {
+                    keyword: $('#searchCourseKw').val().trim(),
+                    trinhDo: $('#filterCourseLevel').val(),
+                    trangThai: $('#filterCourseStatus').val(),
+                    page: currentPage,
+                    pageSize: 10
+                }).done(res => {
+                    if (!res.success) {
+                        $('#courseTableBody').html('<tr><td colspan="8" class="text-center text-danger py-4">Không tải được dữ liệu.</td></tr>');
+                        return Swal.fire('Lỗi', res.message || 'Không tải được danh sách khóa học.', 'error');
+                    }
+                    currentPage = res.page;
+                    totalPages = res.totalPages;
+                    const body = $('#courseTableBody').empty();
+                    if (!res.items.length) body.append('<tr><td colspan="8" class="text-center text-muted py-4">Không có khóa học phù hợp.</td></tr>');
+                    res.items.forEach(x => {
+                        const displayStatus = x.trangThai === 'Đang mở' ? 'Đang tuyển sinh' : x.trangThai;
+                        const badge = x.trangThai === 'Đang mở' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary';
+                        body.append(`<tr data-id="${x.id}" data-code="${esc(x.maKhoaHoc)}" data-name="${esc(x.tenKhoaHoc)}" data-level="${esc(x.trinhDo)}" data-lessons="${x.soBuoi}" data-fee="${x.hocPhi}" data-desc="${esc(x.moTa)}" data-status="${esc(displayStatus)}">
+                            <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold">${esc(x.maKhoaHoc)}</span></td>
+                            <td><div class="fw-bold text-dark course-title">${esc(x.tenKhoaHoc)}</div><small class="text-muted">Đang mở ${x.soLop} lớp</small></td>
+                            <td><span class="badge bg-info-subtle text-info border course-level">${esc(x.trinhDo || 'Chưa xác định')}</span></td>
+                            <td class="course-duration"><span class="fw-semibold">${x.soBuoi} buổi</span></td>
+                            <td class="fw-bold text-dark course-fee">${Number(x.hocPhi).toLocaleString('vi-VN')} đ</td>
+                            <td><small class="text-muted text-truncate d-inline-block course-desc" style="max-width: 250px;">${esc(x.moTa || 'Chưa có mô tả')}</small></td>
+                            <td><span class="badge ${badge} border status-badge">${esc(displayStatus)}</span></td>
+                            <td class="text-end pe-3 text-nowrap"><button type="button" class="btn btn-sm btn-outline-info me-1 btn-course-documents" title="Quản lý tài liệu"><i class="fa-solid fa-folder-open"></i></button><a href="/LopHoc" class="btn btn-sm btn-outline-success me-1" title="Xem lớp học"><i class="fa-solid fa-chalkboard-user"></i></a><button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit-course" title="Sửa khóa học"><i class="fa-solid fa-pen"></i></button>
+                        </tr>`);
+                    });
+                    $('#statTotalCourses').text(res.stats.total);
+                    $('#statEnrollingCourses').text(res.stats.enrolling);
+                    $('#statActiveClasses').text(res.stats.activeClasses);
+                    $('#statTotalLessons').text(res.stats.totalLessons);
+                    $('#coursePageInfo').text(`Tổng ${res.total} khóa học • Trang ${currentPage}/${totalPages || 1}`);
+                    $('#btnPrevCourse').prop('disabled', currentPage <= 1);
+                    $('#btnNextCourse').prop('disabled', currentPage >= totalPages);
+                }).fail(xhr => {
+                    $('#courseTableBody').html('<tr><td colspan="8" class="text-center text-danger py-4">Không thể kết nối máy chủ.</td></tr>');
+                    Swal.fire('Lỗi kết nối', xhr.responseJSON?.message || 'Không thể tải danh sách khóa học.', 'error');
+                });
+            }
 
             // 1. Mở modal Tạo mới (Click nút Tạo Khóa Học Mới)
             $('#btnOpenCreateCourse').click(function () {
                 currentEditRow = null;
                 $('#hiddenCourseId').val('0');
                 $('#formCourse')[0].reset();
-                $('#txtCourseLessons').val(24);
-                $('#txtCourseFee').val(5000000);
+                $('#txtCourseLessons').val(1);
+                $('#txtCourseFee').val(0);
                 $('#selectCourseStatus').val('Đang tuyển sinh');
                 $('#modalCourseTitle').html('<i class="fa-solid fa-book-open me-2 text-primary"></i>Tạo Khóa Học Đào Tạo Mới');
                 courseModal.show();
@@ -301,8 +361,8 @@
                     Swal.fire('Lỗi thời lượng', 'Số buổi học phải từ 1 đến 120 buổi!', 'warning');
                     return;
                 }
-                if (fee <= 0) {
-                    Swal.fire('Lỗi học phí', 'Học phí niêm yết phải lớn hơn 0 đồng!', 'warning');
+                if (fee < 0) {
+                    Swal.fire('Lỗi học phí', 'Học phí niêm yết không được âm!', 'warning');
                     return;
                 }
 
@@ -321,11 +381,14 @@
                     url: '/KhoaHoc/LuuKhoaHoc',
                     type: 'POST',
                     contentType: 'application/json',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
                     data: JSON.stringify(payload),
                     success: function (res) {
                         if (res.success) {
                             courseModal.hide();
                             Swal.fire('Thành công!', res.message, 'success');
+                            loadCourses(currentPage);
+                            return;
 
                             const statusBadge = status === 'Đang tuyển sinh'
                                 ? 'bg-success-subtle text-success border-success-subtle'
@@ -354,7 +417,7 @@
                                 setTimeout(() => currentEditRow.removeClass("table-warning"), 600);
                             } else {
                                 // Thêm dòng mới lên đầu bảng
-                                const randomId = Math.floor(Math.random() * 800) + 10;
+                                const randomId = res.id;
                                 const newTr = `
                                     <tr id="row_course_${randomId}" data-id="${randomId}" data-code="${code}" data-name="${name}" data-level="${level}" data-lessons="${lessons}" data-fee="${fee}" data-desc="${desc}" data-status="${status}">
                                         <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold">${code}</span></td>
@@ -408,47 +471,31 @@
                     cancelButtonText: 'Hủy'
                 }).then((r) => {
                     if (r.isConfirmed) {
-                        tr.fadeOut(250, function () {
-                            $(this).remove();
-                            $('#statTotalCourses').text($('#courseTableBody tr').length);
-                            Swal.fire({
-                                toast: true,
-                                position: 'top-end',
-                                icon: 'success',
-                                title: 'Đã ngưng phát hành khóa học thành công',
-                                showConfirmButton: false,
-                                timer: 1500
-                            });
-                        });
+                        $.ajax({
+                            url: urls.remove + '?khoaHocId=' + encodeURIComponent(courseId),
+                            type: 'POST',
+                            headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() }
+                        }).done(res => {
+                            if (!res.success) return Swal.fire('Lỗi', res.message || 'Không thể xóa khóa học.', 'error');
+                            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 1500 });
+                            loadCourses(currentPage);
+                        }).fail(xhr => Swal.fire('Lỗi', xhr.responseJSON?.message || 'Không thể xóa khóa học.', 'error'));
                     }
                 });
             });
 
             // 5. Bộ lọc tìm kiếm
-            $('#btnFilterCourse').click(function () {
-                const kw = $('#searchCourseKw').val().toLowerCase().trim();
-                const level = $('#filterCourseLevel').val();
-                const status = $('#filterCourseStatus').val();
-
-                $('#courseTableBody tr').each(function () {
-                    const text = $(this).text().toLowerCase();
-                    const rowLevel = $(this).find('.course-level').text().trim();
-                    const rowStatus = $(this).find('.status-badge').text().trim();
-
-                    const matchKw = kw === '' || text.includes(kw);
-                    const matchLevel = level === '' || rowLevel === level;
-                    const matchStatus = status === '' || rowStatus === status;
-
-                    $(this).toggle(matchKw && matchLevel && matchStatus);
-                });
-            });
-
-            $('#btnResetCourseFilter').click(function () {
+            $('#btnFilterCourse').click(() => loadCourses(1));
+            $('#btnResetCourseFilter').click(() => {
                 $('#searchCourseKw').val('');
                 $('#filterCourseLevel').val('');
                 $('#filterCourseStatus').val('');
-                $('#courseTableBody tr').show();
+                loadCourses(1);
             });
+            $('#btnPrevCourse').click(() => loadCourses(currentPage - 1));
+            $('#btnNextCourse').click(() => loadCourses(currentPage + 1));
+            $('#searchCourseKw').on('keydown', e => { if (e.key === 'Enter') loadCourses(1); });
+            loadCourses();
         });
     </script>
 }

@@ -15,8 +15,11 @@
         ?? User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
         ?? string.Empty;
     bool isAdminOrManager = (userRole == "Admin" || userRole == "Quản lý" || userRole == "Nhân viên");
+    bool isTeacher = ViewBag.IsTeacher ?? userRole == "Giáo viên";
+    var taiLieuChung = ViewBag.TaiLieuChung as List<QuanLyTrungTamNgoaiNgu.Models.TaiLieu> ?? new();
 }
 
+@Html.AntiForgeryToken()
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <div>
         <!-- Đổi tiêu đề tự động tùy theo quyền -->
@@ -62,6 +65,28 @@
         }
     </div>
 </div>
+
+@if (isTeacher)
+{
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-semibold"><i class="fa-solid fa-folder-open text-primary me-2"></i>Tài liệu dùng chung theo khóa học</div>
+        <div class="card-body">
+            @if (taiLieuChung.Any())
+            {
+                <div class="row g-2">
+                    @foreach (var taiLieu in taiLieuChung)
+                    {
+                        <div class="col-md-6 col-lg-4"><a class="d-flex align-items-center gap-2 border rounded p-2 text-decoration-none" href="@taiLieu.DuongDan" target="_blank" rel="noopener"><i class="fa-solid fa-file-lines text-secondary"></i><span><strong class="d-block text-dark">@taiLieu.TenTaiLieu</strong><small class="text-muted">@taiLieu.LoaiTaiLieu</small></span></a></div>
+                    }
+                </div>
+            }
+            else
+            {
+                <span class="text-muted small">Chưa có tài liệu dùng chung cho các khóa học được phân công.</span>
+            }
+        </div>
+    </div>
+}
 
 <!-- Lưới thời khóa biểu (Timetable Grid) động từ SQL -->
 <div class="card shadow-sm border-0">
@@ -346,6 +371,7 @@
                             url: '/LichHoc/XoaLich',
                             type: 'POST',
                             contentType: 'application/json',
+                            headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
                             data: JSON.stringify({ lichHocId: parseInt(lichId) }),
                             success: function(res) {
                                 if (res.success) {
@@ -402,6 +428,7 @@
                     url: '/LichHoc/XepLich',
                     type: 'POST',
                     contentType: 'application/json',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
                     data: JSON.stringify(payload),
                     success: function(res) {
                         if (res.success) {

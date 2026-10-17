@@ -6,9 +6,12 @@ using QuanLyTrungTamNgoaiNgu.Models;
 using System;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
+    [Authorize(Roles = "Admin,QuanLy,Quản lý,Nhân viên,Học viên")]
     public class HoaDonController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -38,10 +41,18 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
             var query = _context.HoaDons
                 .Include(h => h.HocVien)
+                .Include(h => h.DangKy!).ThenInclude(d => d!.LopHoc)
                 .Include(h => h.ThanhToans)
                 .AsQueryable();
 
-            // 2. Phân quyền Lọc dữ liệu theo đối tượng đăng nhập
+            // 2. Phân quyền và phạm vi dữ liệu theo tài khoản đăng nhập
+            if (User.IsInRole("Nhân viên"))
+            {
+                var branchId = await CurrentStaffBranchIdAsync();
+                query = branchId.HasValue
+                    ? query.Where(h => h.DangKy != null && h.DangKy.LopHoc != null && h.DangKy.LopHoc.CoSoID == branchId.Value)
+                    : query.Where(h => false);
+            }
             if (isHocVien)
             {
                 // Tìm Học Viên tương ứng với tài khoản đăng nhập
@@ -95,24 +106,25 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             // Lấy danh sách học viên đổ vào Modal lập hóa đơn (Chỉ dành cho Admin / Nhân viên)
             if (!isHocVien)
             {
-                ViewBag.DanhSachHocVien = await _context.HocViens
-                    .OrderBy(hv => hv.HoTen)
-                    .ToListAsync();
+                var invoiceBranchId = await CurrentStaffBranchIdAsync();
+                ViewBag.DanhSachHocVien = await _context.DangKys
+                .AsNoTracking().Include(d => d.HocVien).Include(d => d.LopHoc)
+                .Where(d => !d.IsDeleted && d.TrangThai == "Đang học" && d.HocVien != null && d.LopHoc != null)
+                .Where(d => !User.IsInRole("Nhân viên") || d.LopHoc!.CoSoID == invoiceBranchId)
+                .OrderBy(d => d.HocVien!.HoTen)
+                .Select(d => new HoaDonStudentOptionDto { HocVienId = d.HocVienID, HoTen = d.HocVien!.HoTen, SoDienThoai = d.HocVien.SoDienThoai, LopHoc = d.LopHoc!.TenLop, HocPhi = d.HocPhiApDung, DangKyId = d.DangKyID })
+                .ToListAsync();
             }
 
             return View(listHoaDon);
         }
 
         // POST: /HoaDon/LapHoaDon (Lập hóa đơn mới - Chặn Học viên)
-        [HttpPost]
-        public IActionResult LapHoaDon([FromBody] HoaDonRequestDto model)
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> LapHoaDon([FromBody] HoaDonRequestDto? model)
         {
-            var role = HttpContext.Session.GetString("UserRole") ?? HttpContext.Session.GetString("Role") ?? "";
-            string normalizedRole = role.Trim().ToLower();
-            if (normalizedRole.Contains("học viên") || normalizedRole.Contains("hocvien") || normalizedRole.Contains("student"))
-            {
-                return Json(new { success = false, message = "Học viên không có quyền phát hành hóa đơn!" });
-            }
+            if (User.IsInRole("Học viên"))
+                return Forbid();
 
             if (model == null || model.HocVienId <= 0)
             {
@@ -124,6 +136,11 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 return Json(new { success = false, message = "Số tiền giảm giá không hợp lệ (phải từ 0 đến tổng tiền)!" });
             }
 
+            var staffId = await CurrentStaffIdAsync();
+            if (!staffId.HasValue) return Forbid();
+            var registration = model.DangKyId.HasValue ? await _context.DangKys.Include(d => d.LopHoc).FirstOrDefaultAsync(d => d.DangKyID == model.DangKyId && !d.IsDeleted && d.HocVienID == model.HocVienId) : null;
+            if (registration == null) return BadRequest(new { success = false, message = "Hóa đơn phải gắn với một đăng ký đang tồn tại." });
+            if (User.IsInRole("Nhân viên") && (await CurrentStaffBranchIdAsync()) != registration.LopHoc!.CoSoID) return Forbid();
             try
             {
                 decimal tongPhaiTra = model.TongTien - model.GiamGia;
@@ -132,7 +149,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 {
                     HocVienID = model.HocVienId,
                     DangKyID = model.DangKyId > 0 ? model.DangKyId : (int?)null,
-                    NhanSuLapID = 1,
+                    NhanSuLapID = staffId.Value,
                     NgayLap = DateTime.Now,
                     TongTien = model.TongTien,
                     GiamGia = model.GiamGia,
@@ -168,15 +185,11 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         }
 
         // POST: /HoaDon/ThuTien (Ghi nhận đợt thanh toán - Chặn Học viên)
-        [HttpPost]
-        public IActionResult ThuTien([FromBody] ThanhToanRequestDto model)
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> ThuTien([FromBody] ThanhToanRequestDto? model)
         {
-            var role = HttpContext.Session.GetString("UserRole") ?? HttpContext.Session.GetString("Role") ?? "";
-            string normalizedRole = role.Trim().ToLower();
-            if (normalizedRole.Contains("học viên") || normalizedRole.Contains("hocvien") || normalizedRole.Contains("student"))
-            {
-                return Json(new { success = false, message = "Học viên không có quyền thực hiện chức năng thu tiền!" });
-            }
+            if (User.IsInRole("Học viên"))
+                return Forbid();
 
             if (model == null || model.HoaDonId <= 0)
             {
@@ -188,6 +201,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 return Json(new { success = false, message = "Số tiền thanh toán phải lớn hơn 0 đồng!" });
             }
 
+            var staffId = await CurrentStaffIdAsync();
+            if (!staffId.HasValue) return Forbid();
             try
             {
                 var hoaDon = _context.HoaDons
@@ -211,7 +226,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 var thanhToanMoi = new ThanhToan
                 {
                     HoaDonID = model.HoaDonId,
-                    NhanSuID = 1,
+                    NhanSuID = staffId.Value,
                     NgayThanhToan = DateTime.Now,
                     SoTien = model.SoTien,
                     PhuongThuc = model.PhuongThuc ?? "Chuyển khoản QR",
@@ -245,6 +260,20 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 return Json(new { success = false, message = "Lỗi SQL: " + errMessage });
             }
         }
+
+        private async Task<int?> CurrentStaffIdAsync()
+        {
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return null;
+            return await _context.NhanSus.Where(x => x.NguoiDungID == userId && !x.IsDeleted && x.TrangThai == "Đang làm").Select(x => (int?)x.NhanSuID).FirstOrDefaultAsync();
+        }
+
+        private async Task<int?> CurrentStaffBranchIdAsync()
+        {
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return null;
+            return await _context.NhanSus.Where(x => x.NguoiDungID == userId && !x.IsDeleted).Select(x => (int?)x.CoSoID).FirstOrDefaultAsync();
+        }
+
+        public sealed class HoaDonStudentOptionDto { public int HocVienId { get; set; } public int DangKyId { get; set; } public string HoTen { get; set; } = ""; public string? SoDienThoai { get; set; } public string LopHoc { get; set; } = ""; public decimal HocPhi { get; set; } }
 
         public class HoaDonRequestDto
         {

@@ -3,8 +3,8 @@
     var currentPath = Context.Request.Path.Value?.ToLowerInvariant() ?? "/";
     var menuGroups = new List<(string Title, (string Label, string Icon, string Url, bool Available)[] Items)>();
 
-    (string Label, string Icon, string Url, bool Available) Item(string label, string icon, string url, bool available = true)
-        => (label, icon, url, available);
+    (string Label, string Icon, string Url, bool Available) Item(string label, string icon, string url)
+        => (label, icon, url, true);
 
     void AddGroup(string title, params (string Label, string Icon, string Url, bool Available)[] items)
         => menuGroups.Add((title, items));
@@ -14,16 +14,13 @@
         case "Nhân viên":
             AddGroup("VẬN HÀNH HỌC VIÊN",
                 Item("Hồ sơ Học viên", "fa-user-graduate", "/HocVien"),
-                Item("Khảo thí đầu vào & Xếp lớp", "fa-file-signature", "/DangKy"),
-                Item("Ghi nhận Học lại miễn phí", "fa-rotate-left", "#", false));
+                Item("Khảo thí đầu vào & Xếp lớp", "fa-file-signature", "/DangKy"));
             AddGroup("VẬN HÀNH ĐÀO TẠO",
                 Item("Danh sách Lớp học", "fa-chalkboard-user", "/LopHoc"),
                 Item("Lịch học & Phòng học", "fa-calendar-days", "/LichHoc"));
             AddGroup("TÀI CHÍNH & HỌC PHÍ",
                 Item("Quản lý Hóa đơn", "fa-receipt", "/HoaDon"),
                 Item("Phiếu thu & Thanh toán", "fa-money-check-dollar", "/HoaDon"));
-            AddGroup("TRA CỨU & BÁO CÁO",
-                Item("Tra cứu thông tin", "fa-magnifying-glass", "#", false));
             break;
 
         case "Giáo viên":
@@ -32,7 +29,6 @@
                 Item("Lớp học phụ trách", "fa-chalkboard-user", "/LopHoc"),
                 Item("Điểm danh học viên", "fa-clipboard-check", "/DiemDanh"));
             AddGroup("HỌC THUẬT & ĐÁNH GIÁ",
-                Item("Quản lý Tài liệu", "fa-folder-open", "#", false),
                 Item("Bài tập & Chấm thi", "fa-file-pen", "/BaiTap/NopBai"),
                 Item("Quản lý Cam kết & Đề xuất điểm", "fa-award", "/CamKet/Index"));
             break;
@@ -40,7 +36,6 @@
         case "Học viên":
             AddGroup("GÓC HỌC TẬP",
                 Item("Lịch học của tôi", "fa-calendar-days", "/LichHoc"),
-                Item("Tài liệu khóa học", "fa-folder-open", "#", false),
                 Item("Bài tập & Nộp bài", "fa-file-arrow-up", "/BaiTap/NopBai"));
             AddGroup("THÔNG TIN CÁ NHÂN",
                 Item("Điểm danh & Kết quả", "fa-clipboard-check", "/DiemDanh"),
@@ -107,21 +102,10 @@
                         ? currentPath == "/"
                         : currentPath.StartsWith(item.Url.ToLowerInvariant()));
 
-                    if (item.Available)
-                    {
-                        <a href="@item.Url" class="sidebar-link@(isActive ? " active" : "")" aria-current="@(isActive ? "page" : null)">
-                            <i class="fa-solid @item.Icon" aria-hidden="true"></i>
-                            <span>@item.Label</span>
-                        </a>
-                    }
-                    else
-                    {
-                        <span class="sidebar-link sidebar-link-disabled" aria-disabled="true" title="Chưa triển khai trong solution hiện tại">
-                            <i class="fa-solid @item.Icon" aria-hidden="true"></i>
-                            <span>@item.Label</span>
-                            <small class="sidebar-coming-soon">Chưa triển khai</small>
-                        </span>
-                    }
+                    <a href="@item.Url" class="sidebar-link@(isActive ? " active" : "")" aria-current="@(isActive ? "page" : null)">
+                        <i class="fa-solid @item.Icon" aria-hidden="true"></i>
+                        <span>@item.Label</span>
+                    </a>
                 }
             </div>
         }

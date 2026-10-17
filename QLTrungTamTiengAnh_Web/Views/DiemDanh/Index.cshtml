@@ -16,6 +16,8 @@
     int statLate = ViewBag.StatLate ?? 0;
 }
 
+@Html.AntiForgeryToken()
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="mb-1 text-dark fw-bold">
@@ -333,6 +335,7 @@
                     url: '/DiemDanh/UpdateAttendance',
                     type: 'POST',
                     contentType: 'application/json',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
                     data: JSON.stringify(payload),
                     success: function(res) {
                         if (res.success) {
