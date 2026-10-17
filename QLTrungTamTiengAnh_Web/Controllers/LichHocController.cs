@@ -26,8 +26,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 var role = HttpContext.Session.GetString("UserRole") ?? "";
                 var username = HttpContext.Session.GetString("UserName") ?? "";
 
-                // Mốc Thứ 2 gốc (Thứ 2 ngày 05/10/2026)
-                DateTime baseMonday = new DateTime(2026, 10, 5);
+                var today = DateTime.Today;
+                DateTime baseMonday = today.AddDays(-(int)today.DayOfWeek + (today.DayOfWeek == DayOfWeek.Sunday ? -6 : 1));
                 DateTime startMonday = baseMonday.AddDays(weekOffset * 7);
                 DateTime endSunday = startMonday.AddDays(6);
 
@@ -173,7 +173,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
             try
             {
-                DateTime baseMonday = new DateTime(2026, 10, 5);
+                var today = DateTime.Today;
+                DateTime baseMonday = today.AddDays(-(int)today.DayOfWeek + (today.DayOfWeek == DayOfWeek.Sunday ? -6 : 1));
                 DateTime startMonday = baseMonday.AddDays(model.WeekOffset * 7);
                 DateTime ngayHoc = GetDateByDayOfWeek(model.ThuTrongTuan, startMonday);
 

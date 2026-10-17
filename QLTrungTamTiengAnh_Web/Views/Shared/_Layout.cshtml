@@ -27,12 +27,14 @@
                 <div class="d-flex align-items-center gap-3">
                     <div class="dropdown">
                         <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" id="userMenu" data-bs-toggle="dropdown">
-                            <!-- Đọc vai trò và tên người dùng từ Session đã lưu lúc Login -->
-                            <span class="badge bg-primary me-2">@(Context.Session.GetString("UserRole") ?? "Admin")</span>
-                            <span class="fw-semibold">@(Context.Session.GetString("UserFullName") ?? "Ban Quản Trị")</span>
+                            <span class="badge bg-primary me-2">@(Context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "")</span>
+                            <span class="fw-semibold">@(Context.User.Identity?.Name ?? "Người dùng")</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
-                            <li><a class="dropdown-item" href="/Account"><i class="fa-solid fa-user-shield me-2"></i> Phân quyền</a></li>
+                            @if (Context.User.IsInRole("Admin") || Context.User.IsInRole("QuanLy") || Context.User.IsInRole("Quản lý"))
+                            {
+                                <li><a class="dropdown-item" href="/Account"><i class="fa-solid fa-user-shield me-2"></i> Phân quyền</a></li>
+                            }
                             <li><a class="dropdown-item" href="/Account/DoiMatKhau"><i class="fa-solid fa-key text-warning me-2"></i> Đổi mật khẩu</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <!-- Đường dẫn xử lý đăng xuất xóa Session -->

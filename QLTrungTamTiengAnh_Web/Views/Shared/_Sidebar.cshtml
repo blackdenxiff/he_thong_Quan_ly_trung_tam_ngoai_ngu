@@ -1,5 +1,5 @@
 @{
-    var role = Context.Session.GetString("UserRole") ?? "Admin";
+    var role = Context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? string.Empty;
     var currentPath = Context.Request.Path.Value?.ToLowerInvariant() ?? "/";
     var menuGroups = new List<(string Title, (string Label, string Icon, string Url, bool Available)[] Items)>();
 
@@ -50,8 +50,9 @@
             break;
 
         case "Admin":
+        case "QuanLy":
         case "Quản lý":
-        default:
+
             AddGroup("QUẢN TRỊ HỆ THỐNG",
                 Item("Tài khoản & Phân quyền", "fa-user-shield", "/Account"),
                 Item("Cơ sở & Phòng học", "fa-building", "/CoSo"));
@@ -78,8 +79,8 @@
 }
 
 @{
-    var currentRole = Context.Session.GetString("UserRole") ?? "Admin";
-    var shouldShowSubtitle = currentRole == "Admin" || currentRole == "Quản lý";
+    var currentRole = Context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? string.Empty;
+    var shouldShowSubtitle = currentRole == "Admin" || currentRole == "QuanLy" || currentRole == "Quản lý";
 }
 <aside id="sidebar-wrapper" aria-label="Điều hướng chính">
     <div class="sidebar-heading">

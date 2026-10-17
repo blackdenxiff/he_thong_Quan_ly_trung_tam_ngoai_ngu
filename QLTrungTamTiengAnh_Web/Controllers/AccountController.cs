@@ -29,8 +29,12 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         // ==========================================
 
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult Login()
         {
+            if (User.Identity?.IsAuthenticated == true)
+                return RedirectToAction("Index", "Home");
+
             if (Request.Cookies.TryGetValue("RememberedUser", out var rememberedUser))
             {
                 ViewBag.RememberedUser = rememberedUser;
@@ -121,6 +125,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 new Claim(ClaimTypes.Name, fullName),
                 new Claim(ClaimTypes.Role, role)
             };
+            if (role == "Quản lý")
+                claims.Add(new Claim(ClaimTypes.Role, "QuanLy"));
 
             var principal = new ClaimsPrincipal(
                 new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));

@@ -4,12 +4,16 @@
     var danhSachLop = ViewBag.DanhSachLop as List<QuanLyTrungTamNgoaiNgu.Models.LopHoc> ?? new();
     var danhSachPhong = ViewBag.DanhSachPhong as List<QuanLyTrungTamNgoaiNgu.Models.PhongHoc> ?? new();
 
-    DateTime startMonday = ViewBag.StartMonday ?? new DateTime(2026, 10, 5);
+    var today = DateTime.Today;
+    DateTime currentMonday = today.AddDays(-(int)today.DayOfWeek + (today.DayOfWeek == DayOfWeek.Sunday ? -6 : 1));
+    DateTime startMonday = ViewBag.StartMonday ?? currentMonday;
     DateTime endSunday = ViewBag.EndSunday ?? startMonday.AddDays(6);
     int weekOffset = ViewBag.WeekOffset ?? 0;
 
     // Kiểm tra quyền của người dùng hiện tại
-    var userRole = ViewBag.UserRole as string ?? "Admin";
+    var userRole = ViewBag.UserRole as string
+        ?? User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+        ?? string.Empty;
     bool isAdminOrManager = (userRole == "Admin" || userRole == "Quản lý" || userRole == "Nhân viên");
 }
 

@@ -322,7 +322,11 @@
                 return $.getJSON(urls.branches, {
                     page, pageSize: 10, keyword: $('#searchBranch').val().trim()
                 }).done(res => {
-                    if (!res.success) return Swal.fire('Lỗi', res.message || 'Không tải được cơ sở.', 'error');
+                    if (!res.success) {
+                        $('#branchTableBody').html('<tr><td colspan="7" class="text-center text-danger py-4">Không tải được dữ liệu cơ sở.</td></tr>');
+                        Swal.fire('Lỗi', res.message || 'Không tải được cơ sở.', 'error');
+                        return;
+                    }
                     branches = res.data || [];
                     branchPage = res.page;
                     branchTotalPages = res.totalPages;
@@ -424,7 +428,11 @@
                 $('#trashBranchTableBody').html('<tr><td colspan="6" class="text-center text-muted py-4">Đang tải thùng rác...</td></tr>');
                 return $.getJSON(urls.trash, { page, pageSize: 10, keyword: $('#searchTrashBranch').val().trim() })
                     .done(res => {
-                        if (!res.success) return Swal.fire('Lỗi', res.message || 'Không tải được thùng rác.', 'error');
+                        if (!res.success) {
+                            $('#trashBranchTableBody').html('<tr><td colspan="6" class="text-center text-danger py-4">Không tải được thùng rác.</td></tr>');
+                            Swal.fire('Lỗi', res.message || 'Không tải được thùng rác.', 'error');
+                            return;
+                        }
                         trashBranches = res.data || [];
                         trashPage = res.page;
                         trashTotalPages = res.totalPages;
@@ -557,7 +565,11 @@
             function loadHistory(page = 1) {
                 $('#transferTableBody').html('<tr><td colspan="8" class="text-center text-muted py-4">Đang tải lịch sử...</td></tr>');
                 $.getJSON(urls.history, { page, pageSize: 10 }).done(res => {
-                    if (!res.success) return Swal.fire('Lỗi', res.message || 'Không thể tải lịch sử.', 'error');
+                    if (!res.success) {
+                        $('#transferTableBody').html('<tr><td colspan="8" class="text-center text-danger py-4">Không tải được lịch sử.</td></tr>');
+                        Swal.fire('Lỗi', res.message || 'Không thể tải lịch sử.', 'error');
+                        return;
+                    }
                     transferPage = res.page;
                     transferTotalPages = res.totalPages;
                     historyLoaded = true;

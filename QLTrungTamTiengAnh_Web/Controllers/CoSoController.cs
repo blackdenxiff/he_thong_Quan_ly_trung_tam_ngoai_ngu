@@ -8,7 +8,7 @@ using System.Security.Claims;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
-    [Authorize(Roles = "Admin,QuanLy")]
+    [Authorize(Roles = "Admin,QuanLy,Quản lý")]
     public class CoSoController : Controller
     {
         private readonly ApplicationDbContext _db;
