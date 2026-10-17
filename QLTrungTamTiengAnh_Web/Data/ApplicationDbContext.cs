@@ -55,18 +55,7 @@ namespace QuanLyTrungTamNgoaiNgu.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-<<<<<<< HEAD
-<<<<<<< HEAD
 
-            modelBuilder.Entity<NguoiDung>().ToTable("NguoiDung");
-            modelBuilder.Entity<VaiTro>().ToTable("VaiTro");
-            modelBuilder.Entity<HocVien>().ToTable("HocVien");
-            modelBuilder.Entity<NhanSu>().ToTable("NhanSu");
-
-=======
-=======
-
->>>>>>> sang
             modelBuilder.Entity<LopHoc>().ToTable("LopHoc");
             modelBuilder.Entity<LichHoc>().ToTable("LichHoc");
             modelBuilder.Entity<BangLuong>().ToTable("BangLuong");
@@ -78,9 +67,6 @@ namespace QuanLyTrungTamNgoaiNgu.Data
             modelBuilder.Entity<HocVien>().ToTable("HocVien");
             modelBuilder.Entity<HoaDon>().ToTable("HoaDon");
             modelBuilder.Entity<ThanhToan>().ToTable("ThanhToan");
-<<<<<<< HEAD
->>>>>>> sang
-=======
 
 
             modelBuilder.Entity<NguoiDung>().ToTable("NguoiDung");
@@ -89,7 +75,6 @@ namespace QuanLyTrungTamNgoaiNgu.Data
             modelBuilder.Entity<NhanSu>().ToTable("NhanSu");
 
 
->>>>>>> sang
             // CoSoCuID -> CoSo
             modelBuilder.Entity<LichSuDieuChuyen>()
                 .HasOne(x => x.CoSoCu)
