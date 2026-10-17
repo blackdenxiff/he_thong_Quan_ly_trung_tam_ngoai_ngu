@@ -238,8 +238,33 @@
 @section Scripts {
     <script>
         $(function() {
-            const branchModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBranch'));
-            const transferModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalTransfer'));
+            function createModal(id) {
+                const element = document.getElementById(id);
+                if (window.bootstrap?.Modal) {
+                    return window.bootstrap.Modal.getOrCreateInstance(element);
+                }
+
+                return {
+                    show() {
+                        element.style.display = 'block';
+                        element.classList.add('show');
+                        element.removeAttribute('aria-hidden');
+                    },
+                    hide() {
+                        element.style.display = 'none';
+                        element.classList.remove('show');
+                        element.setAttribute('aria-hidden', 'true');
+                    }
+                };
+            }
+
+            const branchModal = createModal('modalBranch');
+            const transferModal = createModal('modalTransfer');
+            if (!window.bootstrap?.Modal) {
+                $('.modal').on('click', '[data-bs-dismiss="modal"]', function() {
+                    $(this).closest('.modal').css('display', 'none').removeClass('show').attr('aria-hidden', 'true');
+                });
+            }
             const urls = {
                 branches: '@Url.Action("DanhSachCoSo", "CoSo")',
                 options: '@Url.Action("DanhSachCoSoLuaChon", "CoSo")',
@@ -267,7 +292,7 @@
 
             function esc(value) {
                 return String(value ?? '').replace(/[&<>"']/g, ch => ({
-                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
                 })[ch]);
             }
             function errorMessage(xhr) {
@@ -304,17 +329,17 @@
                         ? '<button type="button" class="btn btn-sm btn-outline-danger btn-status-branch" title="Tạm ngưng"><i class="fa-solid fa-ban"></i></button>'
                         : '<button type="button" class="btn btn-sm btn-outline-success btn-status-branch" title="Kích hoạt"><i class="fa-solid fa-rotate-left"></i></button>';
                     tbody.append(`<tr data-id="${b.coSoId}">
-                            <td class="ps-3"><span class="badge bg-light text-primary border border-primary">${esc(b.maCoSo)}</span></td>
-                            <td><span class="fw-bold text-dark">${esc(b.tenCoSo)}</span></td>
-                            <td>${esc(b.diaChi)}</td>
-                            <td>${esc(b.soDienThoai || '—')}</td>
-                            <td><span class="badge bg-info-subtle text-info border">${b.soPhong} phòng • ${b.soNhanSu} nhân sự</span></td>
-                            <td>${status}</td>
-                            <td class="text-end pe-3 text-nowrap">
-                                <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit-branch" title="Sửa thông tin"><i class="fa-solid fa-pen"></i></button>
-                                ${action}
-                                <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-branch" title="Xóa mềm (chuyển vào thùng rác)"><i class="fa-solid fa-trash-can"></i></button>
-                            </td></tr>`);
+                                    <td class="ps-3"><span class="badge bg-light text-primary border border-primary">${esc(b.maCoSo)}</span></td>
+                                    <td><span class="fw-bold text-dark">${esc(b.tenCoSo)}</span></td>
+                                    <td>${esc(b.diaChi)}</td>
+                                    <td>${esc(b.soDienThoai || '—')}</td>
+                                    <td><span class="badge bg-info-subtle text-info border">${b.soPhong} phòng • ${b.soNhanSu} nhân sự</span></td>
+                                    <td>${status}</td>
+                                    <td class="text-end pe-3 text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit-branch" title="Sửa thông tin"><i class="fa-solid fa-pen"></i></button>
+                                        ${action}
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-branch" title="Xóa mềm (chuyển vào thùng rác)"><i class="fa-solid fa-trash-can"></i></button>
+                                    </td></tr>`);
                 });
             }
             function loadBranches(page = branchPage) {
@@ -443,13 +468,13 @@
                         }
                         trashBranches.forEach(b => {
                             tbody.append(`<tr data-id="${b.coSoId}">
-                                    <td class="ps-3"><span class="badge bg-light text-secondary border">${esc(b.maCoSo)}</span></td>
-                                    <td><span class="fw-semibold">${esc(b.tenCoSo)}</span></td>
-                                    <td>${esc(b.diaChi)}</td>
-                                    <td>${esc(b.soDienThoai || '—')}</td>
-                                    <td>${esc(dateText(b.deletedAt))}</td>
-                                    <td class="text-end pe-3"><button type="button" class="btn btn-sm btn-outline-success btn-restore-branch"><i class="fa-solid fa-rotate-left me-1"></i>Khôi phục</button></td>
-                                    </tr>`);
+                                            <td class="ps-3"><span class="badge bg-light text-secondary border">${esc(b.maCoSo)}</span></td>
+                                            <td><span class="fw-semibold">${esc(b.tenCoSo)}</span></td>
+                                            <td>${esc(b.diaChi)}</td>
+                                            <td>${esc(b.soDienThoai || '—')}</td>
+                                            <td>${esc(dateText(b.deletedAt))}</td>
+                                            <td class="text-end pe-3"><button type="button" class="btn btn-sm btn-outline-success btn-restore-branch"><i class="fa-solid fa-rotate-left me-1"></i>Khôi phục</button></td>
+                                            </tr>`);
                         });
                         $('#trashBranchPageInfo').text(`Tổng ${res.total} cơ sở đã xóa • Trang ${trashPage}/${trashTotalPages || 1}`);
                         $('#btnPrevTrashBranch').prop('disabled', trashPage <= 1);
@@ -557,7 +582,14 @@
                         loadBranches(branchPage);
                         transferPage = 1;
                         loadHistory(1);
-                        bootstrap.Tab.getOrCreateInstance(document.getElementById('pills-transfer-tab')).show();
+                        if (window.bootstrap?.Tab) {
+                            window.bootstrap.Tab.getOrCreateInstance(document.getElementById('pills-transfer-tab')).show();
+                        } else {
+                            $('#pills-branch-tab, #pills-trash-tab').removeClass('active');
+                            $('#pills-transfer-tab').addClass('active');
+                            $('.tab-pane').removeClass('show active');
+                            $('#pills-transfer').addClass('show active');
+                        }
                         Swal.fire('Đã phê duyệt', res.message, 'success');
                     }).fail(fail).always(() => btn.prop('disabled', false));
             });
@@ -577,13 +609,13 @@
                     if (!res.data.length) tbody.append('<tr><td colspan="8" class="text-center text-muted py-4">Chưa có lịch sử điều chuyển.</td></tr>');
                     res.data.forEach(x => {
                         tbody.append(`<tr>
-                                <td class="ps-3"><span class="badge bg-light text-dark border">DC-${String(x.dieuChuyenId).padStart(4, '0')}</span></td>
-                                <td><div class="fw-bold text-dark">${esc(x.hoTen)}</div><small class="text-muted">NS-${x.nhanSuId} • ${esc(x.loaiNhanSu)}</small></td>
-                                <td>${esc(x.coSoCu)}</td><td>${esc(x.coSoMoi)}</td>
-                                <td><small>${esc(x.lyDo)}</small></td><td>${esc(x.nguoiDuyet)}</td>
-                                <td><small>${esc(dateText(x.ngayHieuLuc || x.ngayDeXuat))}</small></td>
-                                <td><span class="badge ${x.trangThai === 'Đã phê duyệt' ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-dark'} border">${esc(x.trangThai)}</span></td>
-                            </tr>`);
+                                        <td class="ps-3"><span class="badge bg-light text-dark border">DC-${String(x.dieuChuyenId).padStart(4, '0')}</span></td>
+                                        <td><div class="fw-bold text-dark">${esc(x.hoTen)}</div><small class="text-muted">NS-${x.nhanSuId} • ${esc(x.loaiNhanSu)}</small></td>
+                                        <td>${esc(x.coSoCu)}</td><td>${esc(x.coSoMoi)}</td>
+                                        <td><small>${esc(x.lyDo)}</small></td><td>${esc(x.nguoiDuyet)}</td>
+                                        <td><small>${esc(dateText(x.ngayHieuLuc || x.ngayDeXuat))}</small></td>
+                                        <td><span class="badge ${x.trangThai === 'Đã phê duyệt' ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-dark'} border">${esc(x.trangThai)}</span></td>
+                                    </tr>`);
                     });
                     $('#transferPageInfo').text(`Tổng ${res.total} bản ghi • Trang ${transferPage}/${transferTotalPages || 1}`);
                     $('#btnPrevTransfer').prop('disabled', transferPage <= 1);
