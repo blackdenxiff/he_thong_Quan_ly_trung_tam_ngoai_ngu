@@ -3,31 +3,59 @@
     var danhSachLich = ViewBag.DanhSachLich as List<QuanLyTrungTamNgoaiNgu.Models.LichHoc> ?? new();
     var danhSachLop = ViewBag.DanhSachLop as List<QuanLyTrungTamNgoaiNgu.Models.LopHoc> ?? new();
     var danhSachPhong = ViewBag.DanhSachPhong as List<QuanLyTrungTamNgoaiNgu.Models.PhongHoc> ?? new();
+
+    DateTime startMonday = ViewBag.StartMonday ?? new DateTime(2026, 10, 5);
+    DateTime endSunday = ViewBag.EndSunday ?? startMonday.AddDays(6);
+    int weekOffset = ViewBag.WeekOffset ?? 0;
+
+    // Kiểm tra quyền của người dùng hiện tại
+    var userRole = ViewBag.UserRole as string ?? "Admin";
+    bool isAdminOrManager = (userRole == "Admin" || userRole == "Quản lý" || userRole == "Nhân viên");
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <div>
-        <h4 class="mb-1 text-dark fw-bold">Thời Khóa Biểu & Quản Lý Phòng Học</h4>
-        <p class="text-muted small mb-0">Theo dõi lịch đào tạo theo tuần từ SQL Server, điều phối phòng học và chống trùng ca</p>
+        <!-- Đổi tiêu đề tự động tùy theo quyền -->
+        <h4 class="mb-1 text-dark fw-bold">
+            @(isAdminOrManager ? "Thời Khóa Biểu & Quản Lý Phòng Học" : "Lịch Học Của Tôi")
+        </h4>
+        <p class="text-muted small mb-0">Theo dõi lịch đào tạo theo tuần từ SQL Server</p>
     </div>
 
-    <!-- Bộ lọc tìm lịch theo lớp học & Các nút điều hướng -->
+    <!-- Bộ lọc tìm lịch theo lớp học & Các nút điều hướng chuyển tuần -->
     <div class="d-flex align-items-center gap-2 flex-wrap">
-        <div class="input-group input-group-sm" style="width: 240px;">
-            <select class="form-select form-select-sm" id="filterClass">
-                <option value="0">-- Tất cả các lớp --</option>
-                @foreach (var lop in danhSachLop)
-                {
-                    <option value="@lop.TenLop">Lớp: @lop.TenLop</option>
-                }
-            </select>
-        </div>
-        <button class="btn btn-outline-secondary btn-sm" id="btnPrevWeek"><i class="fa-solid fa-chevron-left"></i></button>
-        <button class="btn btn-outline-secondary btn-sm fw-semibold" id="btnCurrentWeek">Tuần (05/10 - 11/10)</button>
-        <button class="btn btn-outline-secondary btn-sm" id="btnNextWeek"><i class="fa-solid fa-chevron-right"></i></button>
-        <button class="btn btn-primary btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#modalSchedule">
-            <i class="fa-solid fa-calendar-plus me-1"></i> Xếp Lịch Học Mới
-        </button>
+
+        <!-- CHỈ ADMIN MỚI THẤY COMBOBOX TÌM KIẾM LỚP -->
+        @if (isAdminOrManager)
+        {
+            <div class="input-group input-group-sm" style="width: 240px;">
+                <select class="form-select form-select-sm" id="filterClass">
+                    <option value="0">-- Tất cả các lớp --</option>
+                    @foreach (var lop in danhSachLop)
+                    {
+                        <option value="@lop.TenLop">Lớp: @lop.TenLop</option>
+                    }
+                </select>
+            </div>
+        }
+
+        <a href="/LichHoc?weekOffset=@(weekOffset - 1)" class="btn btn-outline-secondary btn-sm" id="btnPrevWeek" title="Tuần trước">
+            <i class="fa-solid fa-chevron-left"></i>
+        </a>
+        <a href="/LichHoc?weekOffset=0" class="btn btn-outline-secondary btn-sm fw-semibold" id="btnCurrentWeek" title="Về tuần hiện tại">
+            Tuần (@startMonday.ToString("dd/MM") - @endSunday.ToString("dd/MM"))
+        </a>
+        <a href="/LichHoc?weekOffset=@(weekOffset + 1)" class="btn btn-outline-secondary btn-sm" id="btnNextWeek" title="Tuần sau">
+            <i class="fa-solid fa-chevron-right"></i>
+        </a>
+
+        <!-- CHỈ ADMIN MỚI THẤY NÚT XẾP LỊCH HỌC MỚI -->
+        @if (isAdminOrManager)
+        {
+            <button class="btn btn-primary btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#modalSchedule">
+                <i class="fa-solid fa-calendar-plus me-1"></i> Xếp Lịch Học Mới
+            </button>
+        }
     </div>
 </div>
 
@@ -39,20 +67,18 @@
                 <thead class="bg-light">
                     <tr>
                         <th style="width: 130px;" class="py-3">KHUNG GIỜ</th>
-                        <th>Thứ 2<br /><small class="text-muted fw-normal">05/10</small></th>
-                        <th>Thứ 3<br /><small class="text-muted fw-normal">06/10</small></th>
-                        <th>Thứ 4<br /><small class="text-muted fw-normal">07/10</small></th>
-                        <th>Thứ 5<br /><small class="text-muted fw-normal">08/10</small></th>
-                        <th>Thứ 6<br /><small class="text-muted fw-normal">09/10</small></th>
-                        <th>Thứ 7<br /><small class="text-muted fw-normal">10/10</small></th>
-                        <th>Chủ Nhật<br /><small class="text-muted fw-normal">11/10</small></th>
+                        @for (int i = 0; i < 7; i++)
+                        {
+                            var date = startMonday.AddDays(i);
+                            string thuTen = i == 6 ? "Chủ Nhật" : $"Thứ {i + 2}";
+                            <th>@thuTen<br /><small class="text-muted fw-normal">@date.ToString("dd/MM")</small></th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
                     @{
                         string[] cacCa = { "Ca Sáng", "Ca Chiều", "Ca Tối" };
                         string[] khungGioArr = { "Ca sáng (08:00 - 10:00)", "Ca chiều (14:00 - 16:00)", "Ca tối (18:00 - 20:00)" };
-                        string[] thuArr = { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật" };
                     }
 
                     @for (int i = 0; i < cacCa.Length; i++)
@@ -67,32 +93,23 @@
                                 <small class="text-muted fw-normal">@gioHienThi</small>
                             </td>
 
-                            @foreach (var thu in thuArr)
+                            @for (int dayIdx = 0; dayIdx < 7; dayIdx++)
                             {
+                                var targetDate = startMonday.AddDays(dayIdx);
+                                string thu = dayIdx == 6 ? "Chủ Nhật" : $"Thứ {dayIdx + 2}";
+
                                 <td class="cell-slot" data-day="@thu" data-time="@khungGio">
                                     @{
                                         var listLichCell = danhSachLich.Where(l =>
                                         {
-                                            string thuCuaLich = l.NgayHoc.DayOfWeek switch
-                                            {
-                                                DayOfWeek.Monday => "Thứ 2",
-                                                DayOfWeek.Tuesday => "Thứ 3",
-                                                DayOfWeek.Wednesday => "Thứ 4",
-                                                DayOfWeek.Thursday => "Thứ 5",
-                                                DayOfWeek.Friday => "Thứ 6",
-                                                DayOfWeek.Saturday => "Thứ 7",
-                                                DayOfWeek.Sunday => "Chủ Nhật",
-                                                _ => ""
-                                            };
-                                            bool matchThu = (thuCuaLich == thu);
+                                            bool matchNgay = l.NgayHoc.Date == targetDate.Date;
 
-                                            // Khớp chính xác giờ bắt đầu với ca học tương ứng
                                             bool matchGio = false;
                                             if (tenCa == "Ca Sáng") { matchGio = l.GioBatDau.Hours == 8; }
                                             else if (tenCa == "Ca Chiều") { matchGio = l.GioBatDau.Hours == 14; }
                                             else if (tenCa == "Ca Tối") { matchGio = l.GioBatDau.Hours >= 18; }
 
-                                            return matchThu && matchGio;
+                                            return matchNgay && matchGio;
                                         }).ToList();
                                     }
 
@@ -250,9 +267,13 @@
                 </ul>
             </div>
             <div class="modal-footer d-flex justify-content-between">
-                <button type="button" class="btn btn-outline-danger" id="btnDeleteSchedule">
-                    <i class="fa-solid fa-trash me-1"></i> Xóa Lịch Học Này
-                </button>
+                <!-- CHỈ ADMIN MỚI THẤY NÚT XÓA LỊCH HỌC -->
+                @if (isAdminOrManager)
+                {
+                    <button type="button" class="btn btn-outline-danger" id="btnDeleteSchedule">
+                        <i class="fa-solid fa-trash me-1"></i> Xóa Lịch Học Này
+                    </button>
+                }
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
@@ -271,7 +292,7 @@
                     if (selectedClass === "0" || cardClassName === selectedClass) {
                         $(this).show();
                         if (selectedClass !== "0") {
-                            $(this).addClass('border-danger shadow'); // Làm nổi bật lớp được tìm
+                            $(this).addClass('border-danger shadow');
                         } else {
                             $(this).removeClass('border-danger shadow');
                         }
@@ -369,8 +390,9 @@
                     thuTrongTuan: day,
                     khungGio: time,
                     phongHoc: room,
-                    ghiChu: note
-                };
+                    ghiChu: note,
+                    weekOffset: @weekOffset
+                        };
 
                 $.ajax({
                     url: '/LichHoc/XepLich',

@@ -1,7 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema; // 1. Thêm using này nếu chưa có
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
+    // 2. Thêm thuộc tính này để ánh xạ đúng bảng trong SQL Server
+    [Table("ChiTietNopBai")]
     public class ChiTietNopBai : BaseEntity
     {
         [Key]

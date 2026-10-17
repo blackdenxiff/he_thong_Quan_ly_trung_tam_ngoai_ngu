@@ -1,7 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema; // Cần thêm dòng này
 
 namespace QuanLyTrungTamNgoaiNgu.Models
 {
+    // Ép EF Core ánh xạ đúng vào bảng "BaiTap" (không có chữ 's') trong CSDL
+    [Table("BaiTap")]
     public class BaiTap : BaseEntity
     {
         [Key]

@@ -1,51 +1,69 @@
-﻿@{
+﻿@model IEnumerable<QuanLyTrungTamNgoaiNgu.Models.ChiTietNopBai>
+
+@{
     ViewData["Title"] = "Cổng Nộp Bài Tập";
+
+    var hocVien = ViewBag.HocVienCurrent as QuanLyTrungTamNgoaiNgu.Models.HocVien;
+    var baiTap = ViewBag.BaiTapCurrent as QuanLyTrungTamNgoaiNgu.Models.BaiTap;
+
+    int baiTapId = baiTap?.BaiTapID ?? 1;
+    int hocVienId = hocVien?.HocVienID ?? 1;
+
+    string tenLop = baiTap?.LopHoc?.TenLop ?? "TOEIC500-K01";
+    string tenHocVien = hocVien?.HoTen ?? "Lê Văn Học Viên";
+    string maHocVien = "HV-00" + hocVienId;
+
+    string hanNopStr = (baiTap != null && baiTap.HanNop.HasValue)
+        ? baiTap.HanNop.Value.ToString("HH:mm - dd/MM/yyyy")
+        : "23:59 - 08/10/2026";
+
+    string ngayGiaoStr = baiTap != null
+        ? baiTap.NgayGiao.ToString("dd/MM/yyyy")
+        : "05/10/2026";
+
+    string tenBaiTap = baiTap?.TieuDe ?? "Bài tập Reading Part 5 - Buổi 1";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="mb-1 text-dark fw-bold">Chi Tiết & Nộp Bài Tập</h4>
-        <p class="text-muted small mb-0">Lớp: TOEIC500-K01 | Học viên: Lê Văn Học Viên (HV-001)</p>
+        <p class="text-muted small mb-0">Lớp: <strong>@tenLop</strong> | Học viên: <strong>@tenHocVien (@maHocVien)</strong></p>
     </div>
     <span class="badge bg-warning text-dark px-3 py-2 fs-6">
-        <i class="fa-regular fa-clock me-1"></i> Hạn chót: 23:59 - 08/10/2026
+        <i class="fa-regular fa-clock me-1"></i> Hạn chót: @hanNopStr
     </span>
 </div>
 
 <div class="row g-4">
-    <!-- Cột trái: Đề bài và Tài liệu tham khảo -->
+    <!-- Cột trái: Đề bài và Lịch sử nộp -->
     <div class="col-lg-7">
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white py-3">
                 <h5 class="mb-0 fw-bold text-primary">
-                    <i class="fa-solid fa-file-lines me-2"></i>Đề bài: Bài tập Reading Part 5 - Buổi 1
+                    <i class="fa-solid fa-file-lines me-2"></i>Đề bài: @tenBaiTap
                 </h5>
             </div>
             <div class="card-body">
                 <div class="mb-3 text-muted small">
-                    <span><i class="fa-solid fa-user-tie me-1"></i> Giảng viên: Trần Thị Giảng Viên</span> •
-                    <span class="ms-2"><i class="fa-solid fa-calendar me-1"></i> Ngày giao: 05/10/2026</span>
+                    <span><i class="fa-solid fa-user-tie me-1"></i> Giảng viên bộ môn</span> •
+                    <span class="ms-2"><i class="fa-solid fa-calendar me-1"></i> Ngày giao: @ngayGiaoStr</span>
                 </div>
                 <div class="border-top pt-3">
                     <p class="fw-semibold">Yêu cầu từ giảng viên:</p>
                     <div class="p-3 bg-light rounded text-secondary mb-3">
-                        <p class="mb-2">1. Hoàn thành 30 câu hỏi trắc nghiệm ngữ pháp đại từ và từ vựng trong file đính kèm bên dưới.</p>
-                        <p class="mb-2">2. Giải thích ngắn gọn lý do chọn đáp án đối với các câu từ 115 đến 125.</p>
-                        <p class="mb-0">3. Xuất file làm bài dưới định dạng <strong>.PDF</strong> hoặc <strong>.DOCX</strong> và đặt tên theo cú pháp: <code>HoTen_Buoi1.pdf</code>.</p>
+                        <p class="mb-2">1. Hoàn thành bài tập trắc nghiệm ngữ pháp và từ vựng trong file đính kèm.</p>
+                        <p class="mb-2">2. Giải thích ngắn gọn lý do chọn đáp án đối với các câu nâng cao.</p>
+                        <p class="mb-0">3. Xuất file làm bài dưới định dạng <strong>.PDF</strong>, <strong>.DOCX</strong>, <strong>.ZIP</strong> hoặc <strong>.RAR</strong>.</p>
                     </div>
-
-                    <p class="fw-semibold mb-2">Tài liệu đề bài đính kèm:</p>
-                    <a href="#" class="btn btn-outline-secondary btn-sm">
-                        <i class="fa-solid fa-paperclip text-danger me-1"></i> De_Bai_Part5_Reading_Buoi1.pdf (1.2 MB)
-                    </a>
                 </div>
             </div>
         </div>
 
-        <!-- Lịch sử các lần nộp và kết quả chấm điểm -->
+        <!-- Lịch sử nộp bài -->
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                 <h6 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-clock-rotate-left me-2"></i>Lịch Sử Nộp & Chấm Điểm</h6>
+                <span class="badge bg-light text-dark border">Tổng số lần nộp: @(Model?.Count() ?? 0)</span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -60,17 +78,39 @@
                             </tr>
                         </thead>
                         <tbody id="historyBody">
-                            <tr>
-                                <td class="ps-3 fw-bold">Lần 1</td>
-                                <td><small class="text-muted">07/10/2026 19:30</small></td>
-                                <td>
-                                    <a href="/uploads/baitap/hv1_buoi1.pdf" target="_blank" class="text-decoration-none">
-                                        <i class="fa-solid fa-file-pdf text-danger me-1"></i> hv1_buoi1.pdf
-                                    </a>
-                                </td>
-                                <td><span class="badge bg-success fs-6">85 / 100</span></td>
-                                <td><small class="text-secondary">Nắm chắc ngữ pháp danh từ và đại từ.</small></td>
-                            </tr>
+                            @if (Model != null && Model.Any())
+                            {
+                                foreach (var item in Model)
+                                {
+                                    string filename = !string.IsNullOrEmpty(item.DuongDan) ? System.IO.Path.GetFileName(item.DuongDan) : "Tệp bài làm";
+                                    <tr id="row_nop_@item.ChiTietNopBaiID">
+                                        <td class="ps-3 fw-bold text-primary">Lần @item.LanNop</td>
+                                        <td><small class="text-muted">@item.ThoiGianNop.ToString("dd/MM/yyyy HH:mm")</small></td>
+                                        <td>
+                                            <a href="@item.DuongDan" target="_blank" class="text-decoration-none fw-semibold">
+                                                <i class="fa-solid fa-file-pdf text-danger me-1"></i> @filename
+                                            </a>
+                                        </td>
+                                        <td>
+                                            @if (item.Diem.HasValue)
+                                            {
+                                                <span class="badge bg-success fs-6">@item.Diem.Value / 100</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary fs-6">Chờ chấm</span>
+                                            }
+                                        </td>
+                                        <td><small class="text-secondary">@(string.IsNullOrEmpty(item.NhanXet) ? "Chưa có nhận xét" : item.NhanXet)</small></td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr id="rowEmpty">
+                                    <td colspan="5" class="text-center py-4 text-muted">Bạn chưa từng nộp bài tập này. Vui lòng chọn tệp ở khung bên phải để nộp.</td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -86,22 +126,22 @@
             </div>
             <div class="card-body">
                 <form id="formUpload" enctype="multipart/form-data">
-                    <input type="hidden" id="baiTapId" value="1" />
-                    <input type="hidden" id="hocVienId" value="1" />
+                    <input type="hidden" id="baiTapId" value="@baiTapId" />
+                    <input type="hidden" id="hocVienId" value="@hocVienId" />
 
-                    <!-- Khung Dropzone tùy biến -->
+                    <!-- Khung Dropzone -->
                     <div class="border border-2 border-dashed rounded-3 p-4 text-center bg-light" id="dropArea" style="cursor: pointer;">
                         <i class="fa-solid fa-file-arrow-up fs-1 text-primary mb-3"></i>
                         <h6 class="fw-bold mb-1">Kéo và thả tệp tin vào đây</h6>
                         <p class="text-muted small mb-3">hoặc nhấp để chọn tệp từ máy tính</p>
 
                         <input type="file" id="inputFile" name="fileNop" class="d-none" accept=".pdf,.doc,.docx,.zip,.rar" />
-                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="$('#inputFile').click()">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="$('#inputFile').click(); event.stopPropagation();">
                             <i class="fa-solid fa-folder-open me-1"></i> Duyệt tệp
                         </button>
                     </div>
 
-                    <!-- Vùng hiển thị thông tin tệp đã chọn -->
+                    <!-- Thông tin file đã chọn -->
                     <div id="fileInfoBox" class="mt-3 p-3 border rounded bg-white d-none">
                         <div class="d-flex align-items-center justify-content-between">
                             <div class="d-flex align-items-center overflow-hidden">
@@ -116,7 +156,7 @@
                             </button>
                         </div>
 
-                        <!-- Thanh tiến trình Upload -->
+                        <!-- Progress Bar -->
                         <div class="progress mt-2 d-none" id="uploadProgress" style="height: 6px;">
                             <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
                         </div>
@@ -154,7 +194,16 @@
             const btnSubmit = $('#btnSubmitFile');
             const btnRemove = $('#btnRemoveFile');
 
-            // Xử lý kéo thả tệp (Drag and Drop)
+            // Click vào khung Dropzone để chọn file
+            dropArea.on('click', function(e) {
+                inputFile.trigger('click');
+            });
+
+            inputFile.on('click', function(e) {
+                e.stopPropagation();
+            });
+
+            // Kéo thả file
             dropArea.on('dragover', function(e) {
                 e.preventDefault();
                 $(this).addClass('border-primary bg-white');
@@ -170,22 +219,21 @@
                 $(this).removeClass('border-primary bg-white');
                 const files = e.originalEvent.dataTransfer.files;
                 if (files.length > 0) {
+                    inputFile[0].files = files;
                     validateAndDisplayFile(files[0]);
                 }
             });
 
-            // Khi người dùng chọn file qua nút duyệt
             inputFile.on('change', function() {
                 if (this.files.length > 0) {
                     validateAndDisplayFile(this.files[0]);
                 }
             });
 
-            // Hàm kiểm tra định dạng và kích thước ngay trên Frontend
             function validateAndDisplayFile(file) {
                 const allowedExts = ['pdf', 'doc', 'docx', 'zip', 'rar'];
                 const ext = file.name.split('.').pop().toLowerCase();
-                const maxSize = 15 * 1024 * 1024; // 15MB
+                const maxSize = 15 * 1024 * 1024;
 
                 if (!allowedExts.includes(ext)) {
                     Swal.fire('Lỗi định dạng', 'Chỉ chấp nhận tệp định dạng: PDF, Word (.docx, .doc), Zip, Rar', 'error');
@@ -199,15 +247,14 @@
                     return;
                 }
 
-                // Hiển thị thông tin tệp đã chọn
                 fileNameDisplay.text(file.name);
                 fileSizeDisplay.text((file.size / (1024 * 1024)).toFixed(2) + ' MB');
                 fileInfoBox.removeClass('d-none');
                 btnSubmit.prop('disabled', false);
             }
 
-            // Nút hủy bỏ chọn file
-            btnRemove.click(function() {
+            btnRemove.click(function(e) {
+                e.stopPropagation();
                 resetFileInput();
             });
 
@@ -219,7 +266,7 @@
                 $('.progress-bar').css('width', '0%');
             }
 
-            // Gửi dữ liệu và tệp lên Server qua AJAX
+            // Upload Ajax
             $('#formUpload').submit(function(e) {
                 e.preventDefault();
 
@@ -238,11 +285,10 @@
                     url: '/BaiTap/UploadBaiTap',
                     type: 'POST',
                     data: formData,
-                    processData: false, // Bắt buộc khi dùng FormData
-                    contentType: false, // Bắt buộc khi dùng FormData
+                    processData: false,
+                    contentType: false,
                     xhr: function() {
                         const xhr = new window.XMLHttpRequest();
-                        // Theo dõi tiến trình tải lên để chạy thanh Progress Bar
                         xhr.upload.addEventListener("progress", function(evt) {
                             if (evt.lengthComputable) {
                                 const percentComplete = Math.round((evt.loaded / evt.total) * 100);
@@ -257,25 +303,12 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Thành công!',
-                                text: res.message
+                                text: res.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload();
                             });
-
-                            // Thêm ngay dòng mới vào bảng lịch sử nộp bài trên giao diện
-                            const newRow = `
-                                        <tr>
-                                            <td class="ps-3 fw-bold text-primary">Lần 2</td>
-                                            <td><small class="text-muted">${res.submitTime}</small></td>
-                                            <td>
-                                                <a href="${res.fileUrl}" target="_blank" class="text-decoration-none">
-                                                    <i class="fa-solid fa-file-arrow-down text-primary me-1"></i> ${res.fileName}
-                                                </a>
-                                            </td>
-                                            <td><span class="badge bg-secondary fs-6">Chờ chấm</span></td>
-                                            <td><small class="text-muted">Chưa có nhận xét</small></td>
-                                        </tr>
-                                    `;
-                            $('#historyBody').append(newRow);
-                            resetFileInput();
                         } else {
                             Swal.fire('Lỗi nộp bài', res.message, 'error');
                         }

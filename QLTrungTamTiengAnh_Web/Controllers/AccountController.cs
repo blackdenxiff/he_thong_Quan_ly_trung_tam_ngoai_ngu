@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,13 +24,17 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             _context = context;
         }
 
-        // ========================= LOGIN / LOGOUT =========================
+        // ==========================================
+        // PHẦN F01: ĐĂNG NHẬP / ĐĂNG XUẤT (AUTHENTICATION)
+        // ==========================================
 
         [HttpGet]
         public IActionResult Login()
         {
             if (Request.Cookies.TryGetValue("RememberedUser", out var rememberedUser))
+            {
                 ViewBag.RememberedUser = rememberedUser;
+            }
 
             return View();
         }
@@ -80,8 +85,12 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             var role = user.VaiTro?.TenVaiTro ?? "User";
             var fullName = user.HocVien?.HoTen ?? user.NhanSu?.HoTen ?? user.TenDangNhap;
 
+            // Đầy đủ key Session để đảm bảo tương thích tuyệt đối với các Controller khác
             HttpContext.Session.SetString("Username", user.TenDangNhap);
+            HttpContext.Session.SetString("UserName", user.TenDangNhap);
+            HttpContext.Session.SetString("TenDangNhap", user.TenDangNhap);
             HttpContext.Session.SetString("UserRole", role);
+            HttpContext.Session.SetString("Role", role);
             HttpContext.Session.SetString("UserFullName", fullName);
             HttpContext.Session.SetInt32("NguoiDungID", user.NguoiDungID);
 
@@ -138,7 +147,9 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return RedirectToAction(nameof(Login));
         }
 
-        // ========================= ACCOUNT MANAGEMENT =========================
+        // ==========================================
+        // QUẢN LÝ TÀI KHOẢN (ACCOUNT MANAGEMENT)
+        // ==========================================
 
         [HttpGet]
         [Authorize(Roles = "Admin,QuanLy")]
@@ -157,17 +168,13 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return View();
         }
 
+        // Lấy danh sách tài khoản có phân trang
         [HttpGet]
         [Authorize(Roles = "Admin,QuanLy")]
-        public async Task<IActionResult> GetAccounts(
-            string keyword = "",
-            string role = "",
-            string trangThai = "",
-            int page = 1,
-            int pageSize = 10)
+        public async Task<IActionResult> GetAccounts(string keyword = "", string role = "", string trangThai = "", int page = 1, int pageSize = 10)
         {
             page = Math.Clamp(page, 1, 1000000);
-            pageSize = 10; // Cố định 10 tài khoản/trang, không cho client tăng.
+            pageSize = 10;
             keyword = (keyword ?? "").Trim();
             role = (role ?? "").Trim();
             trangThai = (trangThai ?? "").Trim();
@@ -240,7 +247,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             });
         }
 
-        // Chỉ tải 10 hồ sơ chưa có tài khoản theo từ khóa và trang.
+        // Lấy danh sách hồ sơ chưa được cấp tài khoản
         [HttpGet]
         [Authorize(Roles = "Admin,QuanLy")]
         public async Task<IActionResult> GetUnlinkedPersons(string loai, string keyword = "", int page = 1)
@@ -272,8 +279,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                             });
                         query = query.Where(h => h.HocVienID == hocVienId);
                     }
-                    else query = query.Where(h => h.HoTen.Contains(keyword) ||
-                        h.HocVienID.ToString().Contains(keyword));
+                    else query = query.Where(h => h.HoTen.Contains(keyword) || h.HocVienID.ToString().Contains(keyword));
                 }
 
                 var totalItems = await query.CountAsync();
@@ -283,6 +289,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                     .Skip((page - 1) * pageSize).Take(pageSize)
                     .Select(h => new { id = h.HocVienID, hoTen = h.HoTen, ngaySinh = h.NgaySinh })
                     .ToListAsync();
+
                 return Json(new
                 {
                     success = true,
@@ -322,8 +329,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                             });
                         query = query.Where(n => n.NhanSuID == nhanSuId);
                     }
-                    else query = query.Where(n => n.HoTen.Contains(keyword) ||
-                        n.NhanSuID.ToString().Contains(keyword));
+                    else query = query.Where(n => n.HoTen.Contains(keyword) || n.NhanSuID.ToString().Contains(keyword));
                 }
 
                 var totalItems = await query.CountAsync();
@@ -333,6 +339,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                     .Skip((page - 1) * pageSize).Take(pageSize)
                     .Select(n => new { id = n.NhanSuID, hoTen = n.HoTen, ngaySinh = n.NgaySinh })
                     .ToListAsync();
+
                 return Json(new
                 {
                     success = true,
@@ -353,7 +360,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return BadRequest(new { success = false, message = "Loại đối tượng không hợp lệ." });
         }
 
-        // Thống kê dùng COUNT tại SQL Server, không tải toàn bộ tài khoản về trình duyệt.
+        // Thống kê tài khoản tổng quan
         [HttpGet]
         [Authorize(Roles = "Admin,QuanLy")]
         public async Task<IActionResult> GetAccountStats()
@@ -361,14 +368,14 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             var accounts = _context.NguoiDungs.AsNoTracking();
             var totalAccounts = await accounts.CountAsync();
             var adminManagers = await accounts.CountAsync(u => u.VaiTro != null &&
-                (u.VaiTro.TenVaiTro == "Admin" || u.VaiTro.TenVaiTro == "QuanLy" ||
-                 u.VaiTro.TenVaiTro == "Quản lý"));
+                (u.VaiTro.TenVaiTro == "Admin" || u.VaiTro.TenVaiTro == "QuanLy" || u.VaiTro.TenVaiTro == "Quản lý"));
             var staffAccounts = await accounts.CountAsync(u => u.NhanSu != null);
             var lockedAccounts = await accounts.CountAsync(u => !u.TrangThai);
 
             return Json(new { success = true, totalAccounts, adminManagers, staffAccounts, lockedAccounts });
         }
 
+        // Cấp tài khoản đơn lẻ
         [HttpPost]
         [Authorize(Roles = "Admin,QuanLy")]
         public async Task<IActionResult> CapTaiKhoanDonLe([FromBody] CapTaiKhoanDonLeDto model)
@@ -457,6 +464,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             }
         }
 
+        // Cấp tài khoản hàng loạt
         [HttpPost]
         [Authorize(Roles = "Admin,QuanLy")]
         public async Task<IActionResult> CapTaiKhoanHangLoat([FromBody] CapTaiKhoanHangLoatDto model)
@@ -544,6 +552,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             }
         }
 
+        // Khóa / Mở khóa tài khoản
         [HttpPost]
         [Authorize(Roles = "Admin,QuanLy")]
         public async Task<IActionResult> DoiTrangThaiKhoa(int id, bool khoa)
@@ -571,6 +580,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             });
         }
 
+        // Xóa mềm tài khoản (chuyển vào thùng rác)
         [HttpPost]
         [Authorize(Roles = "Admin,QuanLy")]
         public async Task<IActionResult> SoftDelete([FromBody] int id)
@@ -594,6 +604,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return Json(new { success = true, message = "Đã chuyển tài khoản vào thùng rác.", nguoiDungId = id });
         }
 
+        // Cập nhật vai trò / quyền
         [HttpPost]
         [Authorize(Roles = "Admin,QuanLy")]
         public async Task<IActionResult> CapNhatQuyen(int id, int vaiTroMoi)
@@ -620,7 +631,9 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return Json(new { success = true, message = "Cập nhật vai trò thành công.", vaiTro = roleName, vaiTroId = vaiTroMoi });
         }
 
-        // ========================= PASSWORD CHANGE =========================
+        // ==========================================
+        // ĐỔI MẬT KHẨU (PASSWORD CHANGE)
+        // ==========================================
 
         [HttpGet]
         [Authorize]
@@ -664,7 +677,9 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return Json(new { success = true, message = "Đổi mật khẩu thành công." });
         }
 
-        // ========================= RECYCLE BIN =========================
+        // ==========================================
+        // THÙNG RÁC (RECYCLE BIN & RESTORE)
+        // ==========================================
 
         [HttpGet]
         [Authorize(Roles = "Admin,QuanLy")]
@@ -700,6 +715,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return Json(new { success = true, items, currentPage = page, totalPages, totalItems });
         }
 
+        // Khôi phục tài khoản từ thùng rác
         [HttpPost]
         [Authorize(Roles = "Admin,QuanLy")]
         public async Task<IActionResult> Restore(int id)
@@ -719,7 +735,23 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return Json(new { success = true, message = "Khôi phục tài khoản thành công." });
         }
 
+        // Xóa vĩnh viễn tài khoản khỏi CSDL
+        [HttpPost]
+        [Authorize(Roles = "Admin,QuanLy")]
+        public async Task<IActionResult> HardDelete(int id)
+        {
+            var user = await _context.NguoiDungs.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.NguoiDungID == id && u.IsDeleted);
+            if (user == null) return Json(new { success = false, message = "Tài khoản không tồn tại trong thùng rác." });
+
+            _context.NguoiDungs.Remove(user);
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "Đã xóa vĩnh viễn tài khoản thành công." });
+        }
     }
+
+    // ==========================================
+    // DTO CLASSES
+    // ==========================================
 
     public class LoginRequestDto
     {
