@@ -1,12 +1,24 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
     public class HomeController : Controller
     {
-        [Authorize(Roles = "Admin,QuanLy,Quản lý")]
-        public IActionResult Index() => RedirectToAction("Index", "BaoCao");
+        [Authorize]
+        public IActionResult Index()
+        {
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            return role switch
+            {
+                "Admin" or "QuanLy" or "Quản lý" => RedirectToAction("Index", "BaoCao"),
+                "Giáo viên" or "GiaoVien" or "Giảng viên" => RedirectToAction("Index", "LichHoc"),
+                "Nhân viên" => RedirectToAction("Index", "HocVien"),
+                "Học viên" => RedirectToAction("Index", "LichHoc"),
+                _ => Forbid()
+            };
+        }
 
         // Action trả về dữ liệu biểu đồ qua AJAX (đáp ứng tiêu chí xử lý AJAX đề cương)
         [HttpGet]

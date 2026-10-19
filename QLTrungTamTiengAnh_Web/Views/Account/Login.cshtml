@@ -146,7 +146,8 @@
                     const payload = {
                         username: username,
                         password: password,
-                        rememberMe: rememberMe
+                        rememberMe: rememberMe,
+                        returnUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ReturnUrl as string))
                     };
 
                     $.ajax({

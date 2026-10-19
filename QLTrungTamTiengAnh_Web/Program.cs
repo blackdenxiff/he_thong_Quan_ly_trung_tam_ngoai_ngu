@@ -23,6 +23,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IBaoCaoService, BaoCaoService>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 // Register cookie authentication so [Authorize] and role claims work
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

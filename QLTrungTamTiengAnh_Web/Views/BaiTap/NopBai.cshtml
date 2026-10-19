@@ -6,23 +6,24 @@
     var hocVien = ViewBag.HocVienCurrent as QuanLyTrungTamNgoaiNgu.Models.HocVien;
     var baiTap = ViewBag.BaiTapCurrent as QuanLyTrungTamNgoaiNgu.Models.BaiTap;
 
-    int baiTapId = baiTap?.BaiTapID ?? 1;
-    int hocVienId = hocVien?.HocVienID ?? 1;
+    int baiTapId = baiTap?.BaiTapID ?? 0;
+    int hocVienId = hocVien?.HocVienID ?? 0;
 
-    string tenLop = baiTap?.LopHoc?.TenLop ?? "TOEIC500-K01";
-    string tenHocVien = hocVien?.HoTen ?? "Lê Văn Học Viên";
-    string maHocVien = "HV-00" + hocVienId;
+    string tenLop = baiTap?.LopHoc?.TenLop ?? "Chưa có lớp";
+    string tenHocVien = hocVien?.HoTen ?? "Chưa xác định";
+    string maHocVien = $"HV-{hocVienId:D3}";
 
     string hanNopStr = (baiTap != null && baiTap.HanNop.HasValue)
         ? baiTap.HanNop.Value.ToString("HH:mm - dd/MM/yyyy")
-        : "23:59 - 08/10/2026";
+        : "Chưa có hạn nộp";
 
     string ngayGiaoStr = baiTap != null
         ? baiTap.NgayGiao.ToString("dd/MM/yyyy")
-        : "05/10/2026";
+        : "—";
 
-    string tenBaiTap = baiTap?.TieuDe ?? "Bài tập Reading Part 5 - Buổi 1";
+    string tenBaiTap = baiTap?.TieuDe ?? "Chưa có bài tập được giao";
 }
+@Html.AntiForgeryToken()
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -51,9 +52,7 @@
                 <div class="border-top pt-3">
                     <p class="fw-semibold">Yêu cầu từ giảng viên:</p>
                     <div class="p-3 bg-light rounded text-secondary mb-3">
-                        <p class="mb-2">1. Hoàn thành bài tập trắc nghiệm ngữ pháp và từ vựng trong file đính kèm.</p>
-                        <p class="mb-2">2. Giải thích ngắn gọn lý do chọn đáp án đối với các câu nâng cao.</p>
-                        <p class="mb-0">3. Xuất file làm bài dưới định dạng <strong>.PDF</strong>, <strong>.DOCX</strong>, <strong>.ZIP</strong> hoặc <strong>.RAR</strong>.</p>
+                        @(baiTap?.MoTa ?? "Chưa có mô tả bài tập.")
                     </div>
                 </div>
             </div>
@@ -87,7 +86,7 @@
                                         <td class="ps-3 fw-bold text-primary">Lần @item.LanNop</td>
                                         <td><small class="text-muted">@item.ThoiGianNop.ToString("dd/MM/yyyy HH:mm")</small></td>
                                         <td>
-                                            <a href="@item.DuongDan" target="_blank" class="text-decoration-none fw-semibold">
+                                            <a asp-action="TaiBaiNop" asp-route-id="@item.ChiTietNopBaiID" class="text-decoration-none fw-semibold">
                                                 <i class="fa-solid fa-file-pdf text-danger me-1"></i> @filename
                                             </a>
                                         </td>
@@ -250,7 +249,7 @@
                 fileNameDisplay.text(file.name);
                 fileSizeDisplay.text((file.size / (1024 * 1024)).toFixed(2) + ' MB');
                 fileInfoBox.removeClass('d-none');
-                btnSubmit.prop('disabled', false);
+                btnSubmit.prop('disabled', @(baiTapId == 0 ? "true" : "false"));
             }
 
             btnRemove.click(function(e) {
@@ -276,7 +275,6 @@
                 const formData = new FormData();
                 formData.append('fileNop', file);
                 formData.append('baiTapId', $('#baiTapId').val());
-                formData.append('hocVienId', $('#hocVienId').val());
 
                 $('#uploadProgress').removeClass('d-none');
                 btnSubmit.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Đang tải lên...');
@@ -287,6 +285,7 @@
                     data: formData,
                     processData: false,
                     contentType: false,
+                    headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value },
                     xhr: function() {
                         const xhr = new window.XMLHttpRequest();
                         xhr.upload.addEventListener("progress", function(evt) {
@@ -313,9 +312,9 @@
                             Swal.fire('Lỗi nộp bài', res.message, 'error');
                         }
                     },
-                    error: function() {
+                    error: function(xhr) {
                         btnSubmit.prop('disabled', false).html('<i class="fa-solid fa-paper-plane me-1"></i> Xác Nhận Nộp Bài');
-                        Swal.fire('Lỗi kết nối', 'Không thể tải file lên server. Vui lòng kiểm tra lại!', 'error');
+                        Swal.fire('Không thể nộp bài', xhr.responseJSON?.message || 'Không thể tải file lên server.', 'error');
                     }
                 });
             });

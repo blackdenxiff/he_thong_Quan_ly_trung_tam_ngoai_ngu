@@ -1,0 +1,146 @@
+@model QLTrungTamTiengAnh_Web.Controllers.ChamBaiViewModel
+@{
+    ViewData["Title"] = "Chấm bài học viên";
+    string QueryPage(int page) => Url.Action("ChamBai", "BaiTap", new
+    {
+        lopHocId = Model.LopHocId,
+        baiTapId = Model.BaiTapId,
+        hocVienId = Model.HocVienId,
+        trangThai = Model.TrangThai,
+        page
+    }) ?? "#";
+}
+@Html.AntiForgeryToken()
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h4 class="mb-1 fw-bold">Bài tập &amp; Chấm thi</h4>
+        <p class="text-muted small mb-0">Chấm đúng từng lần nộp của học viên trong các lớp được phân công.</p>
+    </div>
+    <span class="badge bg-primary-subtle text-primary border">@Model.TotalItems bài nộp</span>
+</div>
+
+<form method="get" class="card border-0 shadow-sm mb-4">
+    <div class="card-body row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Lớp</label>
+            <select class="form-select" name="lopHocId">
+                <option value="">Tất cả lớp được phân công</option>
+                @foreach (var item in Model.Classes)
+                {
+                    <option value="@item.Id" selected="@(Model.LopHocId == item.Id ? "selected" : null)">@item.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Bài tập</label>
+            <select class="form-select" name="baiTapId">
+                <option value="">Tất cả bài tập</option>
+                @foreach (var item in Model.Assignments)
+                {
+                    <option value="@item.Id" selected="@(Model.BaiTapId == item.Id ? "selected" : null)">@item.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Học viên</label>
+            <select class="form-select" name="hocVienId">
+                <option value="">Tất cả học viên</option>
+                @foreach (var item in Model.Students)
+                {
+                    <option value="@item.Id" selected="@(Model.HocVienId == item.Id ? "selected" : null)">@item.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Kết quả</label>
+            <select class="form-select" name="trangThai">
+                <option value="">Tất cả</option>
+                <option value="chua-cham" selected="@(Model.TrangThai == "chua-cham" ? "selected" : null)">Chưa chấm</option>
+                <option value="da-cham" selected="@(Model.TrangThai == "da-cham" ? "selected" : null)">Đã chấm</option>
+            </select>
+        </div>
+        <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Lọc</button></div>
+    </div>
+</form>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th>Học viên</th><th>Bài tập / Lớp</th><th>Lần nộp</th><th>File</th><th>Kết quả</th><th class="text-end">Thao tác</th></tr></thead>
+            <tbody>
+            @if (Model.Items.Count == 0)
+            {
+                <tr><td colspan="6" class="text-center text-muted py-5">Không có bài nộp phù hợp bộ lọc.</td></tr>
+            }
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td><strong>@item.MaHocVien</strong><div>@item.HocVien</div></td>
+                    <td><strong>@item.BaiTap</strong><div class="small text-muted">@item.LopHoc</div></td>
+                    <td>Lần @item.LanNop<div class="small text-muted">@item.ThoiGianNop.ToString("dd/MM/yyyy HH:mm")</div></td>
+                    <td><a class="btn btn-sm btn-outline-secondary" asp-action="TaiBaiNop" asp-route-id="@item.ChiTietNopBaiId"><i class="fa-solid fa-download me-1"></i>@item.TenFile</a></td>
+                    <td>
+                        @if (item.Diem.HasValue)
+                        {
+                            <strong>@item.Diem.Value.ToString("0.##")/100</strong>
+                            <div class="small text-muted">@item.NhanXet</div>
+                            <div class="small text-muted">@(item.NguoiCham ?? "Chưa xác định") • @item.NgayCham?.ToString("dd/MM/yyyy HH:mm")</div>
+                        }
+                        else { <span class="badge bg-warning text-dark">Chưa chấm</span> }
+                    </td>
+                    <td class="text-end"><button type="button" class="btn btn-sm btn-primary btn-grade" data-id="@item.ChiTietNopBaiId" data-student="@item.HocVien" data-score="@item.Diem" data-comment="@item.NhanXet">Chấm bài</button></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (Model.TotalPages > 1)
+{
+    <nav class="mt-3"><ul class="pagination justify-content-center">
+        <li class="page-item @(Model.Page <= 1 ? "disabled" : "")"><a class="page-link" href="@QueryPage(Model.Page - 1)">Trước</a></li>
+        <li class="page-item disabled"><span class="page-link">Trang @Model.Page / @Model.TotalPages</span></li>
+        <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")"><a class="page-link" href="@QueryPage(Model.Page + 1)">Sau</a></li>
+    </ul></nav>
+}
+
+<div class="modal fade" id="gradeModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Chấm bài: <span id="gradeStudent"></span></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <input type="hidden" id="gradeSubmissionId" />
+        <label class="form-label fw-semibold" for="gradeScore">Điểm (0–100)</label>
+        <input class="form-control mb-3" id="gradeScore" type="number" min="0" max="100" step="0.01" required />
+        <label class="form-label fw-semibold" for="gradeComment">Nhận xét</label>
+        <textarea class="form-control" id="gradeComment" maxlength="500" rows="4"></textarea>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button><button class="btn btn-primary" id="saveGrade">Lưu kết quả</button></div>
+</div></div></div>
+
+@section Scripts {
+<script>
+(() => {
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('gradeModal'));
+    document.querySelectorAll('.btn-grade').forEach(button => button.addEventListener('click', () => {
+        document.getElementById('gradeSubmissionId').value = button.dataset.id;
+        document.getElementById('gradeStudent').textContent = button.dataset.student;
+        document.getElementById('gradeScore').value = button.dataset.score || '';
+        document.getElementById('gradeComment').value = button.dataset.comment || '';
+        modal.show();
+    }));
+    document.getElementById('saveGrade').addEventListener('click', async () => {
+        const score = Number(document.getElementById('gradeScore').value);
+        if (!Number.isFinite(score) || score < 0 || score > 100) return Swal.fire('Điểm không hợp lệ', 'Điểm phải từ 0 đến 100.', 'warning');
+        const response = await fetch('@Url.Action("LuuDiem", "BaiTap")', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value },
+            body: JSON.stringify({ chiTietNopBaiId: Number(document.getElementById('gradeSubmissionId').value), diem: score, nhanXet: document.getElementById('gradeComment').value })
+        });
+        let data = {}; try { data = await response.json(); } catch {}
+        if (!response.ok || data.success === false) return Swal.fire('Không thể lưu', data.message || 'Bạn không có quyền hoặc dữ liệu không hợp lệ.', 'error');
+        modal.hide(); await Swal.fire('Đã lưu', data.message, 'success'); window.location.reload();
+    });
+})();
+</script>
+}

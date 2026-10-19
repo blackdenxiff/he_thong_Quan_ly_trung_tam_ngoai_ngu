@@ -2,6 +2,7 @@
     ViewData["Title"] = "Quản Lý Cam Kết & Kết Quả";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+@Html.AntiForgeryToken()
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -22,11 +23,10 @@
                 <div class="col-md-3">
                     <label class="form-label small fw-semibold text-muted">TRẠNG THÁI</label>
                     <select class="form-select" name="trangThai">
-                        <option value="">-- Tất cả --</option>
-                        
-<option value="Chờ duyệt" selected="@(ViewBag.FilterTrangThai == "Chờ duyệt")">Chờ duyệt</option>
-<option value="Đã duyệt" selected="@(ViewBag.FilterTrangThai == "Đã duyệt")">Đã duyệt</option>
-<option value="Từ chối" selected="@(ViewBag.FilterTrangThai == "Từ chối")">Từ chối</option>
+                        <option value="" selected="@(string.IsNullOrEmpty(ViewBag.FilterTrangThai as string) ? "selected" : null)">-- Tất cả trạng thái --</option>
+                        <option value="Chờ duyệt" selected="@((ViewBag.FilterTrangThai as string) == "Chờ duyệt" ? "selected" : null)">Chờ duyệt</option>
+                        <option value="Đã duyệt" selected="@((ViewBag.FilterTrangThai as string) == "Đã duyệt" ? "selected" : null)">Đã duyệt</option>
+                        <option value="Từ chối" selected="@((ViewBag.FilterTrangThai as string) == "Từ chối" ? "selected" : null)">Từ chối</option>
 
                     </select>
                 </div>
@@ -75,7 +75,7 @@
                                 <td>
                                     <span class="badge bg-info text-white">@camKet.KhoaHoc?.TenKhoaHoc</span>
                                 </td>
-                                <td>@camKet.DangKy?.LopHoc?.TenLop</td>
+                                <td>@(camKet.DangKy?.LopHoc?.TenLop ?? "Chưa liên kết lớp")</td>
                                 <td>
                                     @if (camKet.TrangThai == "Chờ duyệt")
                                     {
@@ -102,19 +102,20 @@
                                         <i class="fa-solid fa-eye"></i>
                                     </a>
                                     @{
-                                        var userRole = Context.Session.GetString("UserRole");
-                                        if ((userRole == "Admin" || userRole == "Quản lý") && camKet.TrangThai == "Chờ duyệt")
+                                        var userRole = ViewBag.UserRole as string;
+                                        var studentName = camKet.HocVien?.HoTen ?? "Học viên";
+                                        if ((userRole == "Admin" || userRole == "Quản lý" || userRole == "QuanLy") && camKet.TrangThai == "Chờ duyệt")
                                         {
-                                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#mdlDuyet" onclick="loadCamKetForApproval(@camKet.CamKetID, '@camKet.HocVien.HoTen')" title="Duyệt">
+                                            <button class="btn btn-sm btn-success action-approve" data-id="@camKet.CamKetID" data-name="@studentName" data-bs-toggle="modal" data-bs-target="#mdlDuyet" title="Duyệt">
                                                 <i class="fa-solid fa-check"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#mdlTuChoi" onclick="loadCamKetForReject(@camKet.CamKetID, '@camKet.HocVien.HoTen')" title="Từ chối">
+                                            <button class="btn btn-sm btn-danger action-reject" data-id="@camKet.CamKetID" data-name="@studentName" data-bs-toggle="modal" data-bs-target="#mdlTuChoi" title="Từ chối">
                                                 <i class="fa-solid fa-xmark"></i>
                                             </button>
                                         }
-                                        if (userRole == "Giáo viên" && camKet.TrangThai == "Chờ duyệt" && camKet.DiemCuoiKhoa == null)
+                                        if ((userRole == "Giáo viên" || userRole == "GiaoVien" || userRole == "Giảng viên") && camKet.TrangThai == "Chờ duyệt" && camKet.DiemCuoiKhoa == null)
                                         {
-                                            <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#mdlDeXuat" onclick="loadCamKetForProposal(@camKet.CamKetID, '@camKet.HocVien.HoTen')" title="Đề xuất điểm">
+                                            <button class="btn btn-sm btn-info action-propose" data-id="@camKet.CamKetID" data-name="@studentName" data-bs-toggle="modal" data-bs-target="#mdlDeXuat" title="Đề xuất điểm">
                                                 <i class="fa-solid fa-pencil"></i>
                                             </button>
                                         }
@@ -128,7 +129,7 @@
                         <tr>
                             <td colspan="7" class="text-center py-4 text-muted">
                                 <i class="fa-solid fa-inbox fs-2 mb-2 d-block"></i>
-                                Không có cam kết nào
+                                @(ViewBag.HasFilter == true ? "Không có cam kết phù hợp bộ lọc" : "Chưa có cam kết trong phạm vi được phép xem")
                             </td>
                         </tr>
                     }
@@ -268,22 +269,37 @@
 
 @section Scripts {
     <script>
+        document.querySelectorAll('.action-approve').forEach(button => button.addEventListener('click', () => loadCamKetForApproval(button.dataset.id, button.dataset.name)));
+        document.querySelectorAll('.action-reject').forEach(button => button.addEventListener('click', () => loadCamKetForReject(button.dataset.id, button.dataset.name)));
+        document.querySelectorAll('.action-propose').forEach(button => button.addEventListener('click', () => loadCamKetForProposal(button.dataset.id, button.dataset.name)));
         function loadCamKetForApproval(camKetId, hoTen) {
             document.getElementById('camKetIdDuyet').value = camKetId;
             document.getElementById('tokenDuyet').value = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            document.getElementById('camKetInfoDuyet').innerHTML = '<p>Học viên: <strong>' + hoTen + '</strong></p>';
+            document.getElementById('camKetInfoDuyet').textContent = 'Học viên: ' + hoTen;
         }
 
         function loadCamKetForReject(camKetId, hoTen) {
             document.getElementById('camKetIdTuChoi').value = camKetId;
             document.getElementById('tokenTuChoi').value = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            document.getElementById('camKetInfoTuChoi').innerHTML = '<p>Học viên: <strong>' + hoTen + '</strong></p>';
+            document.getElementById('camKetInfoTuChoi').textContent = 'Học viên: ' + hoTen;
         }
 
         function loadCamKetForProposal(camKetId, hoTen) {
             document.getElementById('camKetIdDeXuat').value = camKetId;
             document.getElementById('tokenDeXuat').value = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            document.getElementById('camKetInfoDeXuat').innerHTML = '<p>Học viên: <strong>' + hoTen + '</strong></p>';
+            document.getElementById('camKetInfoDeXuat').textContent = 'Học viên: ' + hoTen;
         }
+
+        ['formDuyet', 'formTuChoi', 'formDeXuat'].forEach(id => {
+            document.getElementById(id).addEventListener('submit', async event => {
+                event.preventDefault();
+                const form = event.currentTarget;
+                const response = await fetch(form.action, { method: 'POST', credentials: 'same-origin', body: new FormData(form) });
+                let data = {}; try { data = await response.json(); } catch {}
+                if (!response.ok || data.success === false) return Swal.fire('Không thể xử lý', data.message || 'Yêu cầu không hợp lệ hoặc bạn không có quyền.', 'error');
+                await Swal.fire('Thành công', data.message, 'success');
+                window.location.reload();
+            });
+        });
     </script>
 }

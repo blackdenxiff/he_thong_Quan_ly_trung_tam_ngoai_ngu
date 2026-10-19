@@ -24,7 +24,7 @@
     </div>
     <div class="col-6 col-md-3">
         <div class="card border-0 bg-white shadow-sm p-3">
-            <span class="text-primary small fw-semibold">ĐANG TUYỂN SINH</span>
+            <span class="text-primary small fw-semibold">ĐANG MỞ</span>
             <h4 class="fw-bold mb-0 text-primary" id="statEnrollingCourses">0</h4>
         </div>
     </div>
@@ -60,7 +60,7 @@
             <div class="col-md-2">
                 <select class="form-select" id="filterCourseStatus">
                     <option value="">-- Tất cả trạng thái --</option>
-                    <option value="Đang tuyển sinh">Đang tuyển sinh</option>
+                    <option value="Đang mở">Đang mở</option>
                     <option value="Tạm ngưng">Tạm ngưng</option>
                 </select>
             </div>
@@ -177,7 +177,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Trạng Thái Tuyển Sinh</label>
                             <select class="form-select" id="selectCourseStatus">
-                                <option value="Đang tuyển sinh">Đang tuyển sinh</option>
+                                <option value="Đang mở">Đang mở</option>
                                 <option value="Tạm ngưng">Tạm ngưng</option>
                             </select>
                         </div>
@@ -259,6 +259,20 @@
                 })[ch]);
             }
 
+            function statusBadgeClass(status) {
+                if (status === 'Đang mở') return 'bg-success-subtle text-success border-success-subtle';
+                if (status === 'Tạm ngưng') return 'bg-warning-subtle text-warning border-warning-subtle';
+                return 'bg-secondary-subtle text-secondary border-secondary-subtle';
+            }
+
+            function syncStatusOptions(statuses) {
+                const filter = $('#filterCourseStatus');
+                const currentFilter = filter.val();
+                filter.find('option:not(:first)').remove();
+                (statuses || []).forEach(status => filter.append(new Option(status, status)));
+                filter.val(currentFilter || '');
+            }
+
             function loadCourses(page = 1) {
                 currentPage = page;
                 $('#courseTableBody').html('<tr><td colspan="8" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>');
@@ -275,12 +289,13 @@
                     }
                     currentPage = res.page;
                     totalPages = res.totalPages;
+                    syncStatusOptions(res.statuses);
                     const body = $('#courseTableBody').empty();
                     if (!res.items.length) body.append('<tr><td colspan="8" class="text-center text-muted py-4">Không có khóa học phù hợp.</td></tr>');
                     res.items.forEach(x => {
-                        const displayStatus = x.trangThai === 'Đang mở' ? 'Đang tuyển sinh' : x.trangThai;
-                        const badge = x.trangThai === 'Đang mở' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary';
-                        body.append(`<tr data-id="${x.id}" data-code="${esc(x.maKhoaHoc)}" data-name="${esc(x.tenKhoaHoc)}" data-level="${esc(x.trinhDo)}" data-lessons="${x.soBuoi}" data-fee="${x.hocPhi}" data-desc="${esc(x.moTa)}" data-status="${esc(displayStatus)}">
+                        const displayStatus = x.trangThai || 'Chưa xác định';
+                        const badge = statusBadgeClass(x.trangThai);
+                        body.append(`<tr data-id="${x.id}" data-code="${esc(x.maKhoaHoc)}" data-name="${esc(x.tenKhoaHoc)}" data-level="${esc(x.trinhDo)}" data-lessons="${x.soBuoi}" data-fee="${x.hocPhi}" data-desc="${esc(x.moTa)}" data-status="${esc(x.trangThai)}">
                             <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold">${esc(x.maKhoaHoc)}</span></td>
                             <td><div class="fw-bold text-dark course-title">${esc(x.tenKhoaHoc)}</div><small class="text-muted">Đang mở ${x.soLop} lớp</small></td>
                             <td><span class="badge bg-info-subtle text-info border course-level">${esc(x.trinhDo || 'Chưa xác định')}</span></td>
@@ -311,7 +326,7 @@
                 $('#formCourse')[0].reset();
                 $('#txtCourseLessons').val(1);
                 $('#txtCourseFee').val(0);
-                $('#selectCourseStatus').val('Đang tuyển sinh');
+                $('#selectCourseStatus').val('Đang mở');
                 $('#modalCourseTitle').html('<i class="fa-solid fa-book-open me-2 text-primary"></i>Tạo Khóa Học Đào Tạo Mới');
                 courseModal.show();
             });
@@ -328,6 +343,10 @@
                 const fee = currentEditRow.data('fee') || 4500000;
                 const desc = currentEditRow.data('desc') || currentEditRow.find('.course-desc').text().trim();
                 const status = currentEditRow.data('status') || currentEditRow.find('.status-badge').text().trim();
+
+                if (status && !$('#selectCourseStatus option').filter((_, option) => option.value === status).length) {
+                    $('#selectCourseStatus').append(new Option(status, status));
+                }
 
                 $('#hiddenCourseId').val(id);
                 $('#txtCourseCode').val(code);
@@ -390,9 +409,7 @@
                             loadCourses(currentPage);
                             return;
 
-                            const statusBadge = status === 'Đang tuyển sinh'
-                                ? 'bg-success-subtle text-success border-success-subtle'
-                                : 'bg-secondary-subtle text-secondary border-secondary-subtle';
+                            const statusBadge = statusBadgeClass(status);
 
                             if (currentEditRow && currentEditRow.length > 0) {
                                 // Cập nhật lại data attribute của dòng

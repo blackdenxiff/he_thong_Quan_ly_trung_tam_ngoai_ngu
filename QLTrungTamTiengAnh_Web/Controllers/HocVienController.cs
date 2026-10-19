@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyTrungTamNgoaiNgu.Data;
 using QuanLyTrungTamNgoaiNgu.Models;
+using QLTrungTamTiengAnh_Web.Services;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
@@ -10,7 +11,12 @@ namespace QLTrungTamTiengAnh_Web.Controllers
     public class HocVienController : Controller
     {
         private readonly ApplicationDbContext _context;
-        public HocVienController(ApplicationDbContext context) => _context = context;
+        private readonly IEnrollmentService _enrollmentService;
+        public HocVienController(ApplicationDbContext context, IEnrollmentService enrollmentService)
+        {
+            _context = context;
+            _enrollmentService = enrollmentService;
+        }
 
         [HttpGet]
         public IActionResult Index() => View();
@@ -29,7 +35,24 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             var totalPages = (int)Math.Ceiling(total / 10d);
             page = totalPages == 0 ? 1 : Math.Min(page, totalPages);
             var items = await query.OrderByDescending(x => x.HocVienID).Skip((page - 1) * 10).Take(10)
-                .Select(x => new { id = x.HocVienID, ma = $"HV-{x.HocVienID:D3}", hoTen = x.HoTen, dienThoai = x.SoDienThoai, email = x.Email, trinhDo = x.TrinhDoDauVao, diem = x.DiemDauVao, nhanXet = x.NhanXetDauVao, trangThai = x.TrangThai, soDangKy = x.DangKys!.Count(d => !d.IsDeleted && d.TrangThai == "Đang học") }).ToListAsync();
+                .Select(x => new
+                {
+                    id = x.HocVienID,
+                    ma = $"HV-{x.HocVienID:D3}",
+                    hoTen = x.HoTen,
+                    dienThoai = x.SoDienThoai,
+                    email = x.Email,
+                    trinhDo = x.TrinhDoDauVao,
+                    diem = x.DiemDauVao,
+                    nhanXet = x.NhanXetDauVao,
+                    trangThai = x.TrangThai,
+                    soDangKy = x.DangKys!.Count(d => !d.IsDeleted && d.TrangThai == "Đang học"),
+                    lopHienTai = x.DangKys!.Where(d => !d.IsDeleted && d.TrangThai == "Đang học")
+                        .OrderByDescending(d => d.NgayDangKy).ThenByDescending(d => d.DangKyID)
+                        .Select(d => d.LopHoc != null ? d.LopHoc.TenLop : null).FirstOrDefault(),
+                    coCamKet = x.CamKets!.Any(c => !c.IsDeleted && c.DangKyID != null &&
+                        c.DangKy != null && !c.DangKy.IsDeleted && c.DangKy.TrangThai == "Đang học")
+                }).ToListAsync();
             return Json(new { success = true, items, page, total, totalPages });
         }
 
@@ -61,15 +84,63 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> DangKyLop([FromBody] DangKyLopDto? model)
         {
-            if (model == null || model.HocVienId <= 0 || model.LopHocId <= 0) return BadRequest(new { success = false, message = "Dữ liệu đăng ký không hợp lệ." });
-            var lop = await _context.LopHocs.Include(x => x.KhoaHoc).FirstOrDefaultAsync(x => x.LopHocID == model.LopHocId && !x.IsDeleted);
-            if (lop == null || lop.TrangThai is "Đã kết thúc" or "Đã hủy") return BadRequest(new { success = false, message = "Lớp không còn nhận đăng ký." });
-            if (await _context.DangKys.AnyAsync(x => x.HocVienID == model.HocVienId && x.LopHocID == model.LopHocId && !x.IsDeleted && x.TrangThai == "Đang học")) return Conflict(new { success = false, message = "Học viên đã đăng ký lớp này." });
-            var count = await _context.DangKys.CountAsync(x => x.LopHocID == model.LopHocId && !x.IsDeleted && x.TrangThai == "Đang học");
-            if (count >= lop.SiSoToiDa) return Conflict(new { success = false, message = "Lớp đã đủ sĩ số." });
-            _context.DangKys.Add(new DangKy { HocVienID = model.HocVienId, LopHocID = model.LopHocId, HocPhiApDung = lop.KhoaHoc?.HocPhi ?? 0, GhiChu = model.GhiChu, NgayDangKy = DateTime.Now, TrangThai = "Đang học" });
-            await _context.SaveChangesAsync();
-            return Json(new { success = true, message = "Đã đăng ký lớp thành công." });
+            if (model == null)
+                return BadRequest(new { success = false, message = "Dữ liệu đăng ký không hợp lệ." });
+            try
+            {
+                var result = await _enrollmentService.EnrollAsync(new EnrollmentRequest(
+                    model.HocVienId, model.LopHocId, model.CoCamKet, model.GhiChu), HttpContext.RequestAborted);
+                return Json(new
+                {
+                    success = true,
+                    message = result.CommitmentCreated
+                        ? "Đã xếp lớp và tạo cam kết ở trạng thái Chờ duyệt."
+                        : "Đã xếp lớp thành công.",
+                    dangKyId = result.DangKyId,
+                    hocPhi = result.Tuition,
+                    siSo = result.ClassSize,
+                    coCamKet = result.CommitmentCreated
+                });
+            }
+            catch (EnrollmentException ex)
+            {
+                return StatusCode(ex.StatusCode, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DanhSachLopCoTheXep(int hocVienId)
+        {
+            if (hocVienId <= 0 || !await _context.HocViens.AsNoTracking().AnyAsync(x => x.HocVienID == hocVienId && !x.IsDeleted))
+                return NotFound(new { success = false, message = "Không tìm thấy học viên." });
+
+            string[] closedStatuses = ["Đã kết thúc", "Đã hủy", "Đã huỷ", "Hủy", "Huỷ"];
+            var now = DateTime.Now;
+            var classes = await _context.LopHocs.AsNoTracking()
+                .Where(x => !x.IsDeleted && !closedStatuses.Contains(x.TrangThai) &&
+                    !x.DangKys!.Any(d => d.HocVienID == hocVienId && !d.IsDeleted && d.TrangThai == "Đang học") &&
+                    x.DangKys!.Count(d => !d.IsDeleted && d.TrangThai == "Đang học") < x.SiSoToiDa)
+                .OrderBy(x => x.NgayBatDau).ThenBy(x => x.TenLop)
+                .Select(x => new
+                {
+                    id = x.LopHocID,
+                    tenLop = x.TenLop,
+                    khoaHocId = x.KhoaHocID,
+                    khoaHoc = x.KhoaHoc != null ? x.KhoaHoc.TenKhoaHoc : "Chưa liên kết khóa học",
+                    hocPhi = x.KhoaHoc != null ? x.KhoaHoc.HocPhi : 0,
+                    khaiGiang = x.NgayBatDau,
+                    coSo = x.CoSo != null ? x.CoSo.TenCoSo : "Chưa xác định cơ sở",
+                    siSo = x.DangKys!.Count(d => !d.IsDeleted && d.TrangThai == "Đang học"),
+                    siSoToiDa = x.SiSoToiDa,
+                    phong = x.LichHocs!
+                        .Where(l => !l.IsDeleted)
+                        .OrderBy(l => l.NgayHoc < now ? 1 : 0)
+                        .ThenBy(l => l.NgayHoc)
+                        .Select(l => l.PhongHoc != null ? l.PhongHoc.TenPhong : null)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+            return Json(new { success = true, items = classes });
         }
     }
 

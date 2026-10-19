@@ -75,84 +75,14 @@
                     </tr>
                 </thead>
                 <tbody id="studentTableBody">
-                    <!-- Bản ghi 1 khớp CSDL HocVien và DangKy -->
-                    <tr>
-                        <td class="ps-3"><span class="badge bg-light text-dark border">HV-001</span></td>
-                        <td>
-                            <div class="fw-bold text-dark">Lê Văn Học Viên</div>
-                            <small class="text-muted"><i class="fa-solid fa-mars text-primary me-1"></i> Nam • 10/05/2005</small>
-                        </td>
-                        <td>
-                            <div>0900000003</div>
-                            <small class="text-muted">hocvien@example.com</small>
-                        </td>
-                        <td>
-                            <span class="badge bg-info text-dark">A2 - 65 đ</span>
-                            <div class="small text-muted text-truncate" style="max-width: 150px;">Đạt chuẩn đầu vào TOEIC 500</div>
-                        </td>
-                        <td>
-                            <span class="fw-semibold text-primary">TOEIC500-K01</span>
-                            <div class="small text-muted">P.101 (T2-T4-T6)</div>
-                        </td>
-                        <td><span class="badge bg-success"><i class="fa-solid fa-shield-check me-1"></i>Có cam kết</span></td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle">Đang học</span></td>
-                        <td class="text-end pe-3">
-                            <button class="btn btn-sm btn-outline-success me-1" title="Đăng ký lớp mới" onclick="openEnrollModal(1, 'Lê Văn Học Viên', this)">
-                                <i class="fa-solid fa-graduation-cap"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary me-1" title="Sửa hồ sơ">
-                                <i class="fa-solid fa-user-pen"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="confirmDelete(this, 1)">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    <!-- Bản ghi 2 -->
-                    <tr>
-                        <td class="ps-3"><span class="badge bg-light text-dark border">HV-002</span></td>
-                        <td>
-                            <div class="fw-bold text-dark">Trần Thị Mai Phương</div>
-                            <small class="text-muted"><i class="fa-solid fa-venus text-danger me-1"></i> Nữ • 15/08/2004</small>
-                        </td>
-                        <td>
-                            <div>0900000012</div>
-                            <small class="text-muted">maiphuong@example.com</small>
-                        </td>
-                        <td>
-                            <span class="badge bg-info text-dark">B1 - 70 đ</span>
-                            <div class="small text-muted">Nghe tốt, yếu từ vựng</div>
-                        </td>
-                        <td>
-                            <span class="fw-semibold text-primary">TOEIC500-K01</span>
-                            <div class="small text-muted">P.101 (T2-T4-T6)</div>
-                        </td>
-                        <td><span class="badge bg-secondary">Không</span></td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle">Đang học</span></td>
-                        <td class="text-end pe-3">
-                            <button class="btn btn-sm btn-outline-success me-1" title="Đăng ký lớp mới" onclick="openEnrollModal(2, 'Trần Thị Mai Phương', this)">
-                                <i class="fa-solid fa-graduation-cap"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary me-1" title="Sửa hồ sơ">
-                                <i class="fa-solid fa-user-pen"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="confirmDelete(this, 2)">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">Đang tải dữ liệu học viên...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
     <!-- Phân trang Paging -->
     <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
-        <small class="text-muted">Hiển thị 1 - 2 trong tổng số 2 học viên</small>
-        <ul class="pagination pagination-sm mb-0">
-            <li class="page-item disabled"><a class="page-link" href="#">Trước</a></li>
-            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-            <li class="page-item disabled"><a class="page-link" href="#">Sau</a></li>
-        </ul>
+        <small class="text-muted">Đang tải...</small>
     </div>
 </div>
 
@@ -240,20 +170,20 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Chọn lớp học đang mở <span class="text-danger">*</span></label>
                         <select class="form-select" id="selectClassEnroll" required>
-                            <option value="1" data-fee="4500000">TOEIC500-K01 (Khai giảng 01/10/2026 - P.101)</option>
-                            <option value="2" data-fee="7500000">IELTS6.5-K02 (Khai giảng 15/10/2026 - P.102)</option>
+                            <option value="">-- Chọn lớp học --</option>
                         </select>
+                        <div class="small text-muted mt-2" id="enrollClassInfo"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Học phí áp dụng (VNĐ)</label>
-                        <input type="number" class="form-control fw-bold text-primary" id="txtTuitionFee" value="4500000" readonly />
+                        <input type="number" class="form-control fw-bold text-primary" id="txtTuitionFee" value="0" readonly />
                     </div>
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="chkCommitment" checked>
                         <label class="form-check-label fw-semibold" for="chkCommitment">
                             Áp dụng chính sách Cam kết chuẩn đầu ra (F18)
                         </label>
-                        <div class="small text-muted">Được học lại miễn phí nếu thi không đạt chuẩn quy định[cite: 1, 2].</div>
+                        <div class="small text-muted">Cam kết được tạo ở trạng thái Chờ duyệt và liên kết với đăng ký lớp vừa tạo.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Ghi chú đăng ký</label>
@@ -280,7 +210,7 @@
                         if (!res.success) return Swal.fire('Lỗi', res.message || 'Không tải được học viên.', 'error');
                         const body = $('#studentTableBody').empty();
                         if (!res.items.length) body.append('<tr><td colspan="8" class="text-center text-muted py-4">Không có học viên phù hợp.</td></tr>');
-                        res.items.forEach(x => body.append(`<tr><td class="ps-3"><span class="badge bg-light text-dark border">${x.ma}</span></td><td><div class="fw-bold text-dark">${$('<div>').text(x.hoTen).html()}</div><small class="text-muted">${x.trinhDo || 'Chưa khảo thí'}</small></td><td><div>${x.dienThoai || ''}</div><small class="text-muted">${x.email || ''}</small></td><td><span class="badge bg-info text-dark">${x.diem == null ? 'Chưa thi' : x.diem + ' điểm'}</span></td><td><span class="text-muted">${x.soDangKy ? x.soDangKy + ' đăng ký' : 'Chưa xếp lớp'}</span></td><td><span class="badge bg-secondary">Chưa xét</span></td><td><span class="badge bg-success-subtle text-success border">${x.trangThai}</span></td><td class="text-end pe-3"><button class="btn btn-sm btn-outline-success" title="Xếp lớp" onclick="openEnrollModal(${x.id}, '${String(x.hoTen).replace(/'/g, "\\'")}', this)"><i class="fa-solid fa-graduation-cap"></i></button><button class="btn btn-sm btn-outline-danger ms-1" title="Xóa" onclick="confirmDelete(this, ${x.id})"><i class="fa-solid fa-trash"></i></button></td></tr>`));
+                        res.items.forEach(x => body.append(`<tr><td class="ps-3"><span class="badge bg-light text-dark border">${x.ma}</span></td><td><div class="fw-bold text-dark">${$('<div>').text(x.hoTen).html()}</div><small class="text-muted">${x.trinhDo || 'Chưa khảo thí'}</small></td><td><div>${x.dienThoai || ''}</div><small class="text-muted">${x.email || ''}</small></td><td><span class="badge bg-info text-dark">${x.diem == null ? 'Chưa thi' : x.diem + ' điểm'}</span></td><td><span class="${x.lopHienTai ? 'fw-semibold text-primary' : 'text-muted'}">${x.lopHienTai || 'Chưa xếp lớp'}</span>${x.soDangKy > 1 ? `<div class="small text-muted">${x.soDangKy} đăng ký đang học</div>` : ''}</td><td>${x.coCamKet ? '<span class="badge bg-success"><i class="fa-solid fa-shield-check me-1"></i>Có cam kết</span>' : '<span class="badge bg-secondary">Không</span>'}</td><td><span class="badge bg-success-subtle text-success border">${x.trangThai}</span></td><td class="text-end pe-3"><button class="btn btn-sm btn-outline-success" title="Xếp lớp" onclick="openEnrollModal(${x.id}, '${String(x.hoTen).replace(/'/g, "\\'")}', this)"><i class="fa-solid fa-graduation-cap"></i></button><button class="btn btn-sm btn-outline-danger ms-1" title="Xóa" onclick="confirmDelete(this, ${x.id})"><i class="fa-solid fa-trash"></i></button></td></tr>`));
                         $('.card-footer small').first().text(`Tổng ${res.total} học viên • Trang ${res.page}/${res.totalPages || 1}`);
                     }).fail(() => Swal.fire('Lỗi kết nối', 'Không thể tải danh sách học viên.', 'error'));
             }
@@ -293,16 +223,43 @@
                 currentRowTarget = $(element).closest("tr");
                 $('#enrollStudentId').val(studentId);
                 $('#enrollStudentName').val(studentName);
+                $('#selectClassEnroll').prop('disabled', true).html('<option value="">Đang tải lớp học...</option>');
+                $('#txtTuitionFee').val(0);
+                $('#enrollClassInfo').text('Đang lấy dữ liệu lớp học từ hệ thống...');
                 $('#modalEnroll').modal('show');
+                $.getJSON('/HocVien/DanhSachLopCoTheXep', { hocVienId: studentId })
+                    .done(res => {
+                        if (!res.success) throw new Error(res.message || 'Không tải được lớp học.');
+                        const select = $('#selectClassEnroll').empty().append(new Option('-- Chọn lớp học --', ''));
+                        res.items.forEach(item => {
+                            const room = item.phong || 'Chưa phân phòng';
+                            const text = `${item.tenLop} — ${item.khoaHoc} — ${item.coSo}`;
+                            const option = new Option(text, item.id);
+                            $(option).data({ fee: item.hocPhi, course: item.khoaHoc, start: item.khaiGiang, branch: item.coSo, room, count: item.siSo, max: item.siSoToiDa });
+                            select.append(option);
+                        });
+                        select.prop('disabled', false);
+                        $('#enrollClassInfo').text(res.items.length ? 'Chọn một lớp để xem chi tiết.' : 'Không có lớp còn chỗ và phù hợp để xếp.');
+                    })
+                    .fail(xhr => {
+                        $('#selectClassEnroll').html('<option value="">Không tải được lớp học</option>').prop('disabled', true);
+                        $('#enrollClassInfo').text(xhr.responseJSON?.message || 'Không tải được danh sách lớp từ máy chủ.');
+                    });
             };
 
             // 2. Tự động tính học phí khi chọn lớp
             $('#selectClassEnroll').change(function() {
-                const fee = $(this).find(':selected').data('fee'); $('#txtTuitionFee').val(fee);
+                const option = $(this).find(':selected');
+                const fee = option.data('fee') || 0;
+                $('#txtTuitionFee').val(fee);
+                if (!option.val()) return $('#enrollClassInfo').text('Chọn một lớp để xem chi tiết.');
+                const start = new Date(option.data('start')).toLocaleDateString('vi-VN');
+                $('#enrollClassInfo').text(`Khóa học: ${option.data('course')} • Khai giảng: ${start} • Cơ sở: ${option.data('branch')} • Phòng: ${option.data('room')} • Sĩ số: ${option.data('count')}/${option.data('max')}`);
             });
 
             // 3. Xử lý Đăng ký xếp lớp qua AJAX & cập nhật giao diện
             $('#btnConfirmEnroll').click(function() {
+                if (!$('#selectClassEnroll').val()) return Swal.fire('Chưa chọn lớp', 'Vui lòng chọn một lớp học hợp lệ.', 'warning');
                 const selectedClassText = $('#selectClassEnroll option:selected').text().split('(')[0].trim();
                 const hasCommitment = $('#chkCommitment').is(':checked');
 
@@ -321,39 +278,16 @@
                     headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
                     data: JSON.stringify(payload),
                     success: function(res) {
-                        $('#modalEnroll').modal('hide');
-
                         if (res.success) {
+                            $('#modalEnroll').modal('hide');
+                            loadStudents(studentPage);
                             Swal.fire('Hoàn tất!', res.message, 'success');
-
-                            if (currentRowTarget && currentRowTarget.length > 0) {
-                                // Cập nhật Lớp học (Cột 5)
-                                currentRowTarget.find("td:nth-child(5)").html(`
-                                            <span class="fw-semibold text-primary">${selectedClassText}</span>
-                                            <div class="small text-muted">Vừa xếp lớp</div>
-                                        `);
-
-                                // Cập nhật Cam kết (Cột 6)
-                                if (hasCommitment) {
-                                    currentRowTarget.find("td:nth-child(6)").html('<span class="badge bg-success"><i class="fa-solid fa-shield-check me-1"></i>Có cam kết</span>');
-                                } else {
-                                    currentRowTarget.find("td:nth-child(6)").html('<span class="badge bg-secondary">Không</span>');
-                                }
-
-                                // Cập nhật Trạng thái (Cột 7)
-                                currentRowTarget.find("td:nth-child(7)").html('<span class="badge bg-success-subtle text-success border border-success-subtle">Đang học</span>');
-
-                                currentRowTarget.addClass("table-warning");
-                                setTimeout(() => {
-                                    currentRowTarget.removeClass("table-warning");
-                                }, 800);
-                            }
                         } else {
                             Swal.fire('Lỗi', res.message, 'error');
                         }
                     },
-                    error: function() {
-                        Swal.fire('Lỗi kết nối', 'Không thể gửi dữ liệu xếp lớp', 'error');
+                    error: function(xhr) {
+                        Swal.fire('Không thể xếp lớp', xhr.responseJSON?.message || 'Không thể gửi dữ liệu xếp lớp.', 'error');
                     }
                 });
             });

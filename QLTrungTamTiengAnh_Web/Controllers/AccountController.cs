@@ -30,7 +30,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult Login()
+        public IActionResult Login(string? returnUrl = null)
         {
             if (User.Identity?.IsAuthenticated == true)
                 return RedirectToAction("Index", "Home");
@@ -39,6 +39,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             {
                 ViewBag.RememberedUser = rememberedUser;
             }
+
+            ViewBag.ReturnUrl = IsLocalUrl(returnUrl) ? returnUrl : null;
 
             return View();
         }
@@ -86,8 +88,13 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             if (verify == PasswordVerificationResult.Failed)
                 return Json(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác." });
 
-            var role = user.VaiTro?.TenVaiTro ?? "User";
+            var role = NormalizeRole(user.VaiTro?.TenVaiTro);
             var fullName = user.HocVien?.HoTen ?? user.NhanSu?.HoTen ?? user.TenDangNhap;
+
+            if (role == "Giáo viên" && user.NhanSu == null)
+                return Json(new { success = false, message = "Tài khoản giáo viên chưa được liên kết với hồ sơ nhân sự. Vui lòng liên hệ quản trị viên." });
+            if (role == "Học viên" && user.HocVien == null)
+                return Json(new { success = false, message = "Tài khoản học viên chưa được liên kết với hồ sơ học viên. Vui lòng liên hệ quản trị viên." });
 
             // Đầy đủ key Session để đảm bảo tương thích tuyệt đối với các Controller khác
             HttpContext.Session.SetString("Username", user.TenDangNhap);
@@ -127,6 +134,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             };
             if (role == "Quản lý")
                 claims.Add(new Claim(ClaimTypes.Role, "QuanLy"));
+            if (role == "Giáo viên")
+                claims.Add(new Claim(ClaimTypes.Role, "GiaoVien"));
 
             var principal = new ClaimsPrincipal(
                 new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
@@ -136,13 +145,62 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 principal,
                 new AuthenticationProperties { IsPersistent = model.RememberMe });
 
+            var landingUrl = GetLandingUrl(role);
+            if (IsAllowedReturnUrl(model.ReturnUrl, role))
+                landingUrl = model.ReturnUrl!;
+
             return Json(new
             {
                 success = true,
                 message = $"Đăng nhập thành công. Xin chào {fullName}.",
                 role,
-                redirectUrl = user.DoiMatKhauLanDau ? "/Account/DoiMatKhau" : "/"
+                redirectUrl = user.DoiMatKhauLanDau ? "/Account/DoiMatKhau" : landingUrl
             });
+        }
+
+        private static string NormalizeRole(string? role) => role?.Trim() switch
+        {
+            "QuanLy" or "Quản lý" => "Quản lý",
+            "GiaoVien" or "Giảng viên" or "Giáo viên" => "Giáo viên",
+            "Admin" => "Admin",
+            "Nhân viên" => "Nhân viên",
+            "Học viên" => "Học viên",
+            _ => role?.Trim() ?? "User"
+        };
+
+        private static string GetLandingUrl(string role) => role switch
+        {
+            "Admin" or "Quản lý" => "/BaoCao",
+            "Giáo viên" => "/LichHoc",
+            "Nhân viên" => "/HocVien",
+            "Học viên" => "/LichHoc",
+            _ => "/Account/AccessDenied"
+        };
+
+        private bool IsAllowedReturnUrl(string? returnUrl, string role)
+        {
+            if (!IsLocalUrl(returnUrl) || string.IsNullOrWhiteSpace(returnUrl))
+                return false;
+            if (role is "Admin" or "Quản lý")
+                return true;
+
+            var path = returnUrl.Split('?', '#')[0].TrimEnd('/');
+            var allowedPrefixes = role switch
+            {
+                "Giáo viên" => new[] { "/LichHoc", "/LopHoc", "/DiemDanh", "/BaiTap", "/CamKet", "/Account/DoiMatKhau" },
+                "Nhân viên" => new[] { "/HocVien", "/DangKy", "/LopHoc", "/LichHoc", "/HoaDon", "/Account/DoiMatKhau" },
+                "Học viên" => new[] { "/LichHoc", "/DiemDanh", "/BaiTap", "/CamKet", "/HoaDon", "/Account/DoiMatKhau" },
+                _ => Array.Empty<string>()
+            };
+            return allowedPrefixes.Any(prefix => path.Equals(prefix, StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsLocalUrl(string? url)
+        {
+            if (string.IsNullOrEmpty(url)) return false;
+            return url[0] == '/' && (url.Length == 1 || (url[1] != '/' && url[1] != '\\'))
+                || url.Length > 1 && url[0] == '~' && url[1] == '/';
         }
 
         [HttpGet]
@@ -764,6 +822,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
         public string Username { get; set; } = "";
         public string Password { get; set; } = "";
         public bool RememberMe { get; set; }
+        public string? ReturnUrl { get; set; }
     }
 
     public class CapTaiKhoanDonLeDto

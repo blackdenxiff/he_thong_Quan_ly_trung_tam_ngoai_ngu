@@ -1,5 +1,6 @@
 @{
     var role = Context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? string.Empty;
+    role = role is "GiaoVien" or "Giảng viên" ? "Giáo viên" : role;
     var currentPath = Context.Request.Path.Value?.ToLowerInvariant() ?? "/";
     var menuGroups = new List<(string Title, (string Label, string Icon, string Url, bool Available)[] Items)>();
 
@@ -29,7 +30,7 @@
                 Item("Lớp học phụ trách", "fa-chalkboard-user", "/LopHoc"),
                 Item("Điểm danh học viên", "fa-clipboard-check", "/DiemDanh"));
             AddGroup("HỌC THUẬT & ĐÁNH GIÁ",
-                Item("Bài tập & Chấm thi", "fa-file-pen", "/BaiTap/NopBai"),
+                Item("Bài tập & Chấm thi", "fa-file-pen", "/BaiTap/ChamBai"),
                 Item("Quản lý Cam kết & Đề xuất điểm", "fa-award", "/CamKet/Index"));
             break;
 

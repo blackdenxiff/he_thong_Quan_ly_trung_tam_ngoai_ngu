@@ -9,6 +9,10 @@ namespace QLTrungTamTiengAnh_Web.Controllers
     [Authorize(Roles = "Admin,QuanLy,Quản lý")]
     public class KhoaHocController : Controller
     {
+        private static readonly HashSet<string> EditableStatuses = new(StringComparer.Ordinal)
+        {
+            "Đang mở", "Tạm ngưng"
+        };
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
 
@@ -44,7 +48,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             pageSize = 10;
             keyword = (keyword ?? string.Empty).Trim();
             trinhDo = (trinhDo ?? string.Empty).Trim();
-            trangThai = NormalizeStatus(trangThai);
+            trangThai = trangThai?.Trim() ?? string.Empty;
             if (keyword.Length > 100)
                 return BadRequest(new { success = false, message = "Từ khóa không được vượt quá 100 ký tự." });
 
@@ -75,6 +79,11 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                     soLop = x.LopHocs!.Count(l => !l.IsDeleted && l.TrangThai != "Đã kết thúc")
                 }).ToListAsync();
 
+            var statuses = await _context.KhoaHocs.AsNoTracking()
+                .Select(x => x.TrangThai)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
             var stats = new
             {
                 total = await _context.KhoaHocs.CountAsync(),
@@ -82,7 +91,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 activeClasses = await _context.LopHocs.CountAsync(x => !x.IsDeleted && x.TrangThai != "Đã kết thúc"),
                 totalLessons = await _context.KhoaHocs.SumAsync(x => (int?)x.SoBuoi) ?? 0
             };
-            return Json(new { success = true, items, page, pageSize, total, totalPages, stats });
+            return Json(new { success = true, items, page, pageSize, total, totalPages, statuses, stats });
         }
 
         [HttpPost]
@@ -94,14 +103,14 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             var name = model.TenKhoaHoc?.Trim() ?? string.Empty;
             var level = model.CapDo?.Trim() ?? string.Empty;
             var description = model.MoTa?.Trim() ?? string.Empty;
-            var status = NormalizeStatus(model.TrangThai);
+            var status = model.TrangThai?.Trim() ?? string.Empty;
             if (name.Length == 0 || name.Length > 100 || level.Length > 50 || description.Length > 500)
                 return BadRequest(new { success = false, message = "Tên, trình độ hoặc mô tả khóa học không hợp lệ." });
             if (model.SoBuoiHoc < 1 || model.SoBuoiHoc > 120)
                 return BadRequest(new { success = false, message = "Số buổi học phải từ 1 đến 120." });
             if (model.HocPhiNiemYet < 0)
                 return BadRequest(new { success = false, message = "Học phí niêm yết không được âm." });
-            if (status.Length == 0)
+            if (status.Length == 0 || status.Length > 20)
                 return BadRequest(new { success = false, message = "Trạng thái khóa học không hợp lệ." });
 
             var entity = model.KhoaHocId == 0
@@ -109,6 +118,8 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 : await _context.KhoaHocs.FirstOrDefaultAsync(x => x.KhoaHocID == model.KhoaHocId && !x.IsDeleted);
             if (entity == null)
                 return NotFound(new { success = false, message = "Không tìm thấy khóa học." });
+            if (!EditableStatuses.Contains(status) && (entity.KhoaHocID == 0 || entity.TrangThai != status))
+                return BadRequest(new { success = false, message = "Trạng thái khóa học không thuộc danh mục được phép chỉnh sửa." });
             entity.TenKhoaHoc = name;
             entity.TrinhDo = string.IsNullOrWhiteSpace(level) ? null : level;
             entity.SoBuoi = model.SoBuoiHoc;
@@ -258,14 +269,6 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return AllowedDocumentTypes.TryGetValue(key, out var type) ? type : "application/octet-stream";
         }
 
-        private static string NormalizeStatus(string? value)
-            => value?.Trim() switch
-            {
-                "Đang tuyển sinh" => "Đang mở",
-                "Đang mở" => "Đang mở",
-                "Tạm ngưng" => "Tạm ngưng",
-                _ => string.Empty
-            };
     }
 
     public sealed class KhoaHocDto
