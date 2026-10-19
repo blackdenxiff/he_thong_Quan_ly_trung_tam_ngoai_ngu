@@ -3,10 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyTrungTamNgoaiNgu.Data;
 using QuanLyTrungTamNgoaiNgu.Models;
+using System.Security.Claims;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
-    [Authorize(Roles = "Admin,QuanLy,Quản lý")]
+    [Authorize] // Yêu cầu đăng nhập chung cho tất cả các hàm trong Controller này
     public class KhoaHocController : Controller
     {
         private static readonly HashSet<string> EditableStatuses = new(StringComparer.Ordinal)
@@ -37,10 +38,16 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             _environment = environment;
         }
 
+        // =======================================================
+        // PHẦN 1: CÁC HÀM DÀNH CHO ADMIN VÀ QUẢN LÝ
+        // =======================================================
+
         [HttpGet]
+        [Authorize(Roles = "Admin,QuanLy,Quản lý")]
         public IActionResult Index() => View();
 
         [HttpGet]
+        [Authorize(Roles = "Admin,QuanLy,Quản lý")]
         public async Task<IActionResult> DanhSach(string? keyword = null, string? trinhDo = null,
             string? trangThai = null, int page = 1, int pageSize = 10)
         {
@@ -96,6 +103,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,QuanLy,Quản lý")]
         public async Task<IActionResult> LuuKhoaHoc([FromBody] KhoaHocDto? model)
         {
             if (model == null || model.KhoaHocId < 0)
@@ -135,6 +143,7 @@ namespace QLTrungTamTiengAnh_Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,QuanLy,Quản lý")]
         public async Task<IActionResult> XoaKhoaHoc(int khoaHocId)
         {
             var entity = await _context.KhoaHocs.FirstOrDefaultAsync(x => x.KhoaHocID == khoaHocId && !x.IsDeleted);
@@ -152,29 +161,9 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return Json(new { success = true, message = "Đã chuyển khóa học vào thùng rác." });
         }
 
-        [HttpGet]
-        public async Task<IActionResult> DanhSachTaiLieu(int khoaHocId)
-        {
-            if (!await _context.KhoaHocs.AsNoTracking().AnyAsync(x => x.KhoaHocID == khoaHocId && !x.IsDeleted))
-                return NotFound(new { success = false, message = "Không tìm thấy khóa học." });
-
-            var items = await _context.TaiLieus.AsNoTracking()
-                .Where(x => x.KhoaHocID == khoaHocId && !x.IsDeleted)
-                .OrderByDescending(x => x.NgayDang)
-                .Select(x => new
-                {
-                    id = x.TaiLieuID,
-                    ten = x.TenTaiLieu,
-                    loai = x.LoaiTaiLieu ?? string.Empty,
-                    moTa = x.MoTa ?? string.Empty,
-                    ngayDang = x.NgayDang.ToString("dd/MM/yyyy HH:mm")
-                }).ToListAsync();
-
-            return Json(new { success = true, items });
-        }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,QuanLy,Quản lý")]
         public async Task<IActionResult> UploadTaiLieu(int khoaHocId, IFormFile? file, string? moTa)
         {
             if (!await _context.KhoaHocs.AsNoTracking().AnyAsync(x => x.KhoaHocID == khoaHocId && !x.IsDeleted))
@@ -230,7 +219,52 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             }
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,QuanLy,Quản lý")]
+        public async Task<IActionResult> XoaTaiLieu(int taiLieuId)
+        {
+            var entity = await _context.TaiLieus.FirstOrDefaultAsync(x => x.TaiLieuID == taiLieuId && !x.IsDeleted);
+            if (entity == null)
+                return NotFound(new { success = false, message = "Không tìm thấy tài liệu." });
+
+            entity.IsDeleted = true;
+            entity.DeletedAt = DateTime.Now;
+            entity.UpdatedAt = DateTime.Now;
+            entity.TrangThai = "Đã xóa";
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "Đã chuyển tài liệu vào thùng rác." });
+        }
+
+
+        // =======================================================
+        // PHẦN 2: CÁC HÀM DÙNG CHUNG CHO CẢ ADMIN VÀ HỌC VIÊN
+        // =======================================================
+
         [HttpGet]
+        [Authorize(Roles = "Admin,QuanLy,Quản lý,HocVien,Học viên")]
+        public async Task<IActionResult> DanhSachTaiLieu(int khoaHocId)
+        {
+            if (!await _context.KhoaHocs.AsNoTracking().AnyAsync(x => x.KhoaHocID == khoaHocId && !x.IsDeleted))
+                return NotFound(new { success = false, message = "Không tìm thấy khóa học." });
+
+            var items = await _context.TaiLieus.AsNoTracking()
+                .Where(x => x.KhoaHocID == khoaHocId && !x.IsDeleted)
+                .OrderByDescending(x => x.NgayDang)
+                .Select(x => new
+                {
+                    id = x.TaiLieuID,
+                    ten = x.TenTaiLieu,
+                    loai = x.LoaiTaiLieu ?? string.Empty,
+                    moTa = x.MoTa ?? string.Empty,
+                    ngayDang = x.NgayDang.ToString("dd/MM/yyyy HH:mm")
+                }).ToListAsync();
+
+            return Json(new { success = true, items });
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin,QuanLy,Quản lý,HocVien,Học viên")]
         public async Task<IActionResult> TaiTaiLieu(int taiLieuId)
         {
             var entity = await _context.TaiLieus.AsNoTracking()
@@ -247,39 +281,67 @@ namespace QLTrungTamTiengAnh_Web.Controllers
             return PhysicalFile(path, GetContentType(entity.LoaiTaiLieu), entity.TenTaiLieu, enableRangeProcessing: true);
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> XoaTaiLieu(int taiLieuId)
-        {
-            var entity = await _context.TaiLieus.FirstOrDefaultAsync(x => x.TaiLieuID == taiLieuId && !x.IsDeleted);
-            if (entity == null)
-                return NotFound(new { success = false, message = "Không tìm thấy tài liệu." });
-
-            entity.IsDeleted = true;
-            entity.DeletedAt = DateTime.Now;
-            entity.UpdatedAt = DateTime.Now;
-            entity.TrangThai = "Đã xóa";
-            await _context.SaveChangesAsync();
-            return Json(new { success = true, message = "Đã chuyển tài liệu vào thùng rác." });
-        }
-
         private static string GetContentType(string? extension)
         {
             var key = extension?.StartsWith(".") == true ? extension : "." + extension;
             return AllowedDocumentTypes.TryGetValue(key, out var type) ? type : "application/octet-stream";
         }
 
-    }
 
-    public sealed class KhoaHocDto
-    {
-        public int KhoaHocId { get; set; }
-        public string? MaKhoaHoc { get; set; }
-        public string? TenKhoaHoc { get; set; }
-        public string? CapDo { get; set; }
-        public int SoBuoiHoc { get; set; }
-        public decimal HocPhiNiemYet { get; set; }
-        public string? MoTa { get; set; }
-        public string? TrangThai { get; set; }
+        // =======================================================
+        // PHẦN 3: CÁC HÀM CHỈ DÀNH RIÊNG CHO HỌC VIÊN
+        // =======================================================
+
+        [HttpGet]
+        [Authorize(Roles = "HocVien,Học viên")]
+        public IActionResult CuaToi() => View();
+
+        [HttpGet]
+        [Authorize(Roles = "HocVien,Học viên")]
+        public async Task<IActionResult> DanhSachKhoaHocCuaToi()
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdString, out int userId)) return Unauthorized();
+
+            // 1. Tìm HocVienID dựa vào NguoiDungID của tài khoản đang đăng nhập
+            var hocVien = await _context.HocViens.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.NguoiDungID == userId && !x.IsDeleted);
+
+            if (hocVien == null)
+            {
+                return Json(new { success = true, items = new List<object>() });
+            }
+
+            // 2. Lấy danh sách khóa học thông qua HocVienID chính xác
+            var items = await _context.DangKys.AsNoTracking()
+                .Where(x => x.HocVienID == hocVien.HocVienID && !x.IsDeleted && x.TrangThai == "Đang học" && x.LopHoc != null && !x.LopHoc.IsDeleted)
+                .Select(x => x.LopHoc!.KhoaHoc)
+                .Where(k => k != null && !k.IsDeleted)
+                .Distinct()
+                .Select(x => new
+                {
+                    id = x!.KhoaHocID,
+                    maKhoaHoc = $"KH-{x.KhoaHocID:D3}",
+                    tenKhoaHoc = x.TenKhoaHoc,
+                    trinhDo = x.TrinhDo ?? string.Empty,
+                    soBuoi = x.SoBuoi,
+                    moTa = x.MoTa ?? string.Empty
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, items });
+        }
+
+        public sealed class KhoaHocDto
+        {
+            public int KhoaHocId { get; set; }
+            public string? MaKhoaHoc { get; set; }
+            public string? TenKhoaHoc { get; set; }
+            public string? CapDo { get; set; }
+            public int SoBuoiHoc { get; set; }
+            public decimal HocPhiNiemYet { get; set; }
+            public string? MoTa { get; set; }
+            public string? TrangThai { get; set; }
+        }
     }
 }

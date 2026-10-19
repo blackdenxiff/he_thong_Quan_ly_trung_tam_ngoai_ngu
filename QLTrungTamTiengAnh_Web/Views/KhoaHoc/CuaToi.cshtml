@@ -1,0 +1,142 @@
+﻿@{
+    ViewData["Title"] = "Tài liệu học tập của tôi";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 text-dark fw-bold">Khóa Học & Tài Liệu Của Tôi</h4>
+        <p class="text-muted small mb-0">Danh sách các chương trình bạn đang theo học và tài liệu kèm theo</p>
+    </div>
+</div>
+
+<!-- Bảng danh sách khóa học của Học viên -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">MÃ KHÓA</th>
+                        <th>TÊN CHƯƠNG TRÌNH ĐÀO TẠO</th>
+                        <th>CHUẨN ĐẦU RA</th>
+                        <th>THỜI LƯỢNG</th>
+                        <th>LỘ TRÌNH TÓM TẮT</th>
+                        <th class="text-end pe-3">THAO TÁC</th>
+                    </tr>
+                </thead>
+                <tbody id="courseTableBody">
+                    <tr><td colspan="6" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Xem danh sách tài liệu -->
+<div class="modal fade" id="modalDocuments" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-folder-open me-2 text-primary"></i>Tài liệu khóa học: <span id="documentCourseName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Danh sách tài liệu (Sinh viên chỉ có nút Tải về, không có Form Upload) -->
+                <div id="documentList" class="list-group">
+                    <div class="text-muted text-center py-3">Đang tải...</div>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-end">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const urls = {
+                list: '@Url.Action("DanhSachKhoaHocCuaToi", "KhoaHoc")',
+                documents: '@Url.Action("DanhSachTaiLieu", "KhoaHoc")',
+                downloadDocument: '@Url.Action("TaiTaiLieu", "KhoaHoc")'
+            };
+            const documentModal = new bootstrap.Modal(document.getElementById('modalDocuments'));
+
+            function esc(value) {
+                return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                })[ch]);
+            }
+
+            // Gọi AJAX lấy danh sách khóa học mà sinh viên này đang học
+            function loadCourses() {
+                $('#courseTableBody').html('<tr><td colspan="6" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>');
+                $.getJSON(urls.list).done(res => {
+                    if (!res.success) {
+                        $('#courseTableBody').html('<tr><td colspan="6" class="text-center text-danger py-4">Không tải được dữ liệu.</td></tr>');
+                        return;
+                    }
+                    const body = $('#courseTableBody').empty();
+                    if (!res.items.length) {
+                        body.append('<tr><td colspan="6" class="text-center text-muted py-4">Bạn chưa đăng ký khóa học nào.</td></tr>');
+                        return;
+                    }
+
+                    res.items.forEach(x => {
+                        body.append(`<tr data-id="${x.id}" data-name="${esc(x.tenKhoaHoc)}">
+                                    <td class="ps-3"><span class="badge bg-light text-primary border border-primary fw-bold">${esc(x.maKhoaHoc)}</span></td>
+                                    <td><div class="fw-bold text-dark">${esc(x.tenKhoaHoc)}</div></td>
+                                    <td><span class="badge bg-info-subtle text-info border">${esc(x.trinhDo || 'Chưa xác định')}</span></td>
+                                    <td><span class="fw-semibold">${x.soBuoi} buổi</span></td>
+                                    <td><small class="text-muted text-truncate d-inline-block" style="max-width: 250px;">${esc(x.moTa || 'Chưa có mô tả')}</small></td>
+                                    <td class="text-end pe-3">
+                                        <button type="button" class="btn btn-sm btn-primary btn-course-documents" title="Xem tài liệu">
+                                            <i class="fa-solid fa-folder-open me-1"></i> Xem tài liệu
+                                        </button>
+                                    </td>
+                                </tr>`);
+                    });
+                }).fail(() => {
+                    $('#courseTableBody').html('<tr><td colspan="6" class="text-center text-danger py-4">Không thể kết nối máy chủ.</td></tr>');
+                });
+            }
+
+            // Gọi AJAX lấy danh sách file thuộc khóa học
+            function loadDocuments(courseId) {
+                $('#documentList').html('<div class="text-muted text-center py-3">Đang tải...</div>');
+                $.getJSON(urls.documents, { khoaHocId: courseId }).done(res => {
+                    const list = $('#documentList').empty();
+                    if (!res.success || !res.items.length) {
+                        list.html('<div class="text-muted text-center py-3">Khóa học này chưa có tài liệu nào.</div>');
+                        return;
+                    }
+                    res.items.forEach(x => list.append(`
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <a href="${urls.downloadDocument}?taiLieuId=${encodeURIComponent(x.id)}" class="fw-semibold text-decoration-none">
+                                            <i class="fa-solid fa-file-arrow-down me-2"></i>${esc(x.ten)}
+                                        </a>
+                                        <div class="small text-muted mt-1">Loại: ${esc(x.loai)} • Đăng lúc: ${esc(x.ngayDang)}${x.moTa ? ' • ' + esc(x.moTa) : ''}</div>
+                                    </div>
+                                    <a href="${urls.downloadDocument}?taiLieuId=${encodeURIComponent(x.id)}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fa-solid fa-download"></i> Tải về
+                                    </a>
+                                </div>`));
+                }).fail(() => $('#documentList').html('<div class="text-danger text-center py-3">Không tải được danh sách tài liệu.</div>'));
+            }
+
+            // Mở Modal xem tài liệu
+            $(document).on('click', '.btn-course-documents', function() {
+                const row = $(this).closest('tr'); $('#documentCourseName').text(row.data('name') || '');
+                documentModal.show();
+                loadDocuments(row.data('id'));
+            });
+
+            // Init
+            loadCourses();
+        });
+    </script>
+}

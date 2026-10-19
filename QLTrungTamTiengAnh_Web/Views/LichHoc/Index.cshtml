@@ -14,8 +14,8 @@
     var userRole = ViewBag.UserRole as string
         ?? User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
         ?? string.Empty;
-    bool isAdminOrManager = (userRole == "Admin" || userRole == "Quản lý" || userRole == "Nhân viên");
-    bool isTeacher = ViewBag.IsTeacher ?? userRole == "Giáo viên";
+    bool isAdminOrManager = (userRole == "Admin" || userRole == "Quản lý" || userRole == "Nhân viên" || userRole == "QuanLy");
+    bool isTeacher = ViewBag.IsTeacher ?? (userRole == "Giáo viên" || userRole == "GiaoVien");
     var taiLieuChung = ViewBag.TaiLieuChung as List<QuanLyTrungTamNgoaiNgu.Models.TaiLieu> ?? new();
 }
 
@@ -134,9 +134,10 @@
                                             bool matchNgay = l.NgayHoc.Date == targetDate.Date;
 
                                             bool matchGio = false;
-                                            if (tenCa == "Ca Sáng") { matchGio = l.GioBatDau.Hours == 8; }
-                                            else if (tenCa == "Ca Chiều") { matchGio = l.GioBatDau.Hours == 14; }
-                                            else if (tenCa == "Ca Tối") { matchGio = l.GioBatDau.Hours >= 18; }
+                                            int hour = l.GioBatDau.Hours;
+                                            if (tenCa == "Ca Sáng") { matchGio = hour >= 6 && hour < 12; }
+                                            else if (tenCa == "Ca Chiều") { matchGio = hour >= 12 && hour < 18; }
+                                            else if (tenCa == "Ca Tối") { matchGio = hour >= 18 && hour <= 23; }
 
                                             return matchNgay && matchGio;
                                         }).ToList();

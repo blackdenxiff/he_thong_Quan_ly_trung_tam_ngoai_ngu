@@ -12,67 +12,163 @@ namespace QLTrungTamTiengAnh_Web.Controllers
     {
         private static readonly string[] AllowedStatuses = { "Sắp mở", "Đang diễn ra", "Đã kết thúc" };
         private readonly ApplicationDbContext _context;
+
         public LopHocController(ApplicationDbContext context) => _context = context;
+
         private bool IsManager() => User.IsInRole("Admin") || User.IsInRole("QuanLy") || User.IsInRole("Quản lý");
         private bool IsTeacher() => User.IsInRole("Giáo viên") || User.IsInRole("GiaoVien");
+
         private async Task<int?> CurrentTeacherIdAsync() => int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
             ? await _context.NhanSus.Where(x => x.NguoiDungID == userId && !x.IsDeleted).Select(x => (int?)x.NhanSuID).FirstOrDefaultAsync()
             : null;
+
         private async Task<int?> CurrentStaffBranchIdAsync()
         {
-            if (IsManager()) return null;
+            // Cho phép Admin, Quản lý và Nhân viên xem toàn bộ danh sách lớp học toàn trung tâm
+            if (IsManager() || User.IsInRole("Nhân viên")) return null;
+
             if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return null;
             return await _context.NhanSus.Where(x => x.NguoiDungID == userId && !x.IsDeleted).Select(x => (int?)x.CoSoID).FirstOrDefaultAsync();
         }
-        [HttpGet] public async Task<IActionResult> Index()
+
+        [HttpGet]
+        public async Task<IActionResult> Index()
         {
             var branchId = await CurrentStaffBranchIdAsync();
             ViewBag.IsTeacher = IsTeacher();
             ViewBag.KhoaHocs = await _context.KhoaHocs.AsNoTracking().Where(x => !x.IsDeleted).OrderBy(x => x.TenKhoaHoc).Select(x => new LopHocOptionDto { Id = x.KhoaHocID, Name = x.TenKhoaHoc }).ToListAsync();
-            ViewBag.CoSos = await _context.CoSos.AsNoTracking().Where(x => !x.IsDeleted && x.TrangThai && (IsManager() || x.CoSoID == branchId)).OrderBy(x => x.TenCoSo).Select(x => new LopHocOptionDto { Id = x.CoSoID, Name = x.TenCoSo }).ToListAsync();
-            ViewBag.GiaoViens = await _context.NhanSus.AsNoTracking().Where(x => !x.IsDeleted && x.TrangThai == "Đang làm" && (IsManager() || x.CoSoID == branchId) && (x.LoaiNhanSu == "Giáo viên" || x.LoaiNhanSu == "Giảng viên")).OrderBy(x => x.HoTen).Select(x => new LopHocOptionDto { Id = x.NhanSuID, Name = x.HoTen }).ToListAsync();
+            ViewBag.CoSos = await _context.CoSos.AsNoTracking().Where(x => !x.IsDeleted && x.TrangThai && (IsManager() || User.IsInRole("Nhân viên") || x.CoSoID == branchId)).OrderBy(x => x.TenCoSo).Select(x => new LopHocOptionDto { Id = x.CoSoID, Name = x.TenCoSo }).ToListAsync();
+            ViewBag.GiaoViens = await _context.NhanSus.AsNoTracking().Where(x => !x.IsDeleted && x.TrangThai == "Đang làm" && (IsManager() || User.IsInRole("Nhân viên") || x.CoSoID == branchId) && (x.LoaiNhanSu == "Giáo viên" || x.LoaiNhanSu == "Giảng viên")).OrderBy(x => x.HoTen).Select(x => new LopHocOptionDto { Id = x.NhanSuID, Name = x.HoTen }).ToListAsync();
             return View();
         }
-        [HttpGet] public async Task<IActionResult> DanhSach(string? keyword = null, int? khoaHocId = null, string? trangThai = null, int page = 1)
+
+        [HttpGet]
+        public async Task<IActionResult> DanhSach(string? keyword = null, int? khoaHocId = null, string? trangThai = null, int page = 1)
         {
-            page = Math.Max(page, 1); keyword = (keyword ?? "").Trim(); if (keyword.Length > 100) return BadRequest(new { success = false, message = "Từ khóa không được vượt quá 100 ký tự." });
+            page = Math.Max(page, 1);
+            keyword = (keyword ?? "").Trim();
+            if (keyword.Length > 100) return BadRequest(new { success = false, message = "Từ khóa không được vượt quá 100 ký tự." });
+
             var branchId = await CurrentStaffBranchIdAsync();
             var teacherId = IsTeacher() ? await CurrentTeacherIdAsync() : null;
+
             var query = _context.LopHocs.AsNoTracking().Where(x => !x.IsDeleted &&
-                (IsManager() || (IsTeacher() ? x.GiaoVienPhuTrachID == teacherId : x.CoSoID == branchId)))
-                .Select(x => new LopHocListItemDto { Id = x.LopHocID, TenLop = x.TenLop, KhoaHocId = x.KhoaHocID, TenKhoaHoc = x.KhoaHoc != null ? x.KhoaHoc.TenKhoaHoc : "", CoSoId = x.CoSoID, TenCoSo = x.CoSo != null ? x.CoSo.TenCoSo : "", GiaoVienId = x.GiaoVienPhuTrachID, GiaoVien = x.GiaoVienPhuTrach != null ? x.GiaoVienPhuTrach.HoTen : "", SiSoToiDa = x.SiSoToiDa, SoDangKy = x.DangKys!.Count(d => !d.IsDeleted), NgayBatDau = x.NgayBatDau, NgayKetThuc = x.NgayKetThuc, TrangThai = x.TrangThai });
+                (IsManager() || User.IsInRole("Nhân viên") || (IsTeacher() ? x.GiaoVienPhuTrachID == teacherId : x.CoSoID == branchId)))
+                .Select(x => new LopHocListItemDto
+                {
+                    Id = x.LopHocID,
+                    TenLop = x.TenLop,
+                    KhoaHocId = x.KhoaHocID,
+                    TenKhoaHoc = x.KhoaHoc != null ? x.KhoaHoc.TenKhoaHoc : "",
+                    CoSoId = x.CoSoID,
+                    TenCoSo = x.CoSo != null ? x.CoSo.TenCoSo : "",
+                    GiaoVienId = x.GiaoVienPhuTrachID,
+                    GiaoVien = x.GiaoVienPhuTrach != null ? x.GiaoVienPhuTrach.HoTen : "",
+                    SiSoToiDa = x.SiSoToiDa,
+                    SoDangKy = x.DangKys!.Count(d => !d.IsDeleted),
+                    NgayBatDau = x.NgayBatDau,
+                    NgayKetThuc = x.NgayKetThuc,
+                    TrangThai = x.TrangThai
+                });
+
             if (keyword.Length > 0) query = query.Where(x => x.TenLop.Contains(keyword) || x.TenKhoaHoc.Contains(keyword) || x.GiaoVien.Contains(keyword) || x.TenCoSo.Contains(keyword));
             if (khoaHocId > 0) query = query.Where(x => x.KhoaHocId == khoaHocId);
             if (!string.IsNullOrWhiteSpace(trangThai) && AllowedStatuses.Contains(trangThai.Trim())) query = query.Where(x => x.TrangThai == trangThai.Trim());
+
             const int pageSize = 10;
             var total = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(total / (double)pageSize);
             page = totalPages == 0 ? 1 : Math.Min(page, totalPages);
             var items = await query.OrderByDescending(x => x.Id).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
             return Json(new { success = true, items, page, pageSize, total, totalPages });
         }
+
+        [HttpGet]
+        public async Task<IActionResult> ChiTietHocVien(int lopHocId)
+        {
+            var branchId = await CurrentStaffBranchIdAsync();
+            var teacherId = IsTeacher() ? await CurrentTeacherIdAsync() : null;
+
+            var lopHoc = await _context.LopHocs.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.LopHocID == lopHocId && !x.IsDeleted &&
+                    (IsManager() || User.IsInRole("Nhân viên") || (IsTeacher() ? x.GiaoVienPhuTrachID == teacherId : x.CoSoID == branchId)));
+
+            if (lopHoc == null)
+                return NotFound(new { success = false, message = "Không tìm thấy lớp học." });
+
+            var danhSachHocVien = await _context.DangKys
+                .AsNoTracking()
+                .Where(d => d.LopHocID == lopHocId && !d.IsDeleted)
+                .Include(d => d.HocVien)
+                .Where(d => d.HocVien != null && !d.HocVien.IsDeleted)
+                .Select(d => new
+                {
+                    hocVienId = d.HocVien!.HocVienID,
+                    hoTen = d.HocVien.HoTen,
+                    ngaySinh = d.HocVien.NgaySinh,
+                    gioiTinh = d.HocVien.GioiTinh,
+                    soDienThoai = d.HocVien.SoDienThoai,
+                    email = d.HocVien.SoDienThoai ?? "",
+                    trangThaiDangKy = d.TrangThai,
+                    ngayDangKy = d.NgayDangKy
+                })
+                .OrderBy(h => h.hoTen)
+                .ToListAsync();
+
+            return Json(new { success = true, tenLop = lopHoc.TenLop, items = danhSachHocVien });
+        }
+
         [HttpPost, Authorize(Roles = "Admin,QuanLy,Quản lý"), ValidateAntiForgeryToken]
         public async Task<IActionResult> LuuLopHoc([FromBody] LopHocDto? model)
         {
-            if (model == null || model.LopHocId < 0 || string.IsNullOrWhiteSpace(model.TenLop) || model.KhoaHocId <= 0 || model.CoSoId <= 0 || model.GiaoVienPhuTrachId <= 0 || model.SiSoToiDa < 1 || model.SiSoToiDa > 40 || !model.NgayBatDau.HasValue || !model.NgayKetThuc.HasValue || model.NgayKetThuc.Value.Date <= model.NgayBatDau.Value.Date || !AllowedStatuses.Contains(model.TrangThai?.Trim() ?? "")) return BadRequest(new { success = false, message = "Thông tin lớp học không hợp lệ." });
+            if (model == null || model.LopHocId < 0 || string.IsNullOrWhiteSpace(model.TenLop) || model.KhoaHocId <= 0 || model.CoSoId <= 0 || model.GiaoVienPhuTrachId <= 0 || model.SiSoToiDa < 1 || model.SiSoToiDa > 40 || !model.NgayBatDau.HasValue || !model.NgayKetThuc.HasValue || model.NgayKetThuc.Value.Date <= model.NgayBatDau.Value.Date || !AllowedStatuses.Contains(model.TrangThai?.Trim() ?? ""))
+                return BadRequest(new { success = false, message = "Thông tin lớp học không hợp lệ." });
+
             var branchId = await CurrentStaffBranchIdAsync();
-            if (!IsManager() && (branchId == null || model.CoSoId != branchId)) return Forbid();
-            if (!await _context.KhoaHocs.AnyAsync(x => x.KhoaHocID == model.KhoaHocId && !x.IsDeleted) || !await _context.CoSos.AnyAsync(x => x.CoSoID == model.CoSoId && !x.IsDeleted && x.TrangThai) || !await _context.NhanSus.AnyAsync(x => x.NhanSuID == model.GiaoVienPhuTrachId && x.CoSoID == model.CoSoId && !x.IsDeleted && x.TrangThai == "Đang làm" && (x.LoaiNhanSu == "Giáo viên" || x.LoaiNhanSu == "Giảng viên"))) return BadRequest(new { success = false, message = "Khóa học, cơ sở hoặc giáo viên không hợp lệ." });
-            var entity = model.LopHocId == 0 ? new LopHoc() : await _context.LopHocs.FirstOrDefaultAsync(x => x.LopHocID == model.LopHocId && !x.IsDeleted && (IsManager() || x.CoSoID == branchId));
+            if (!IsManager() && !User.IsInRole("Nhân viên") && (branchId == null || model.CoSoId != branchId)) return Forbid();
+
+            if (!await _context.KhoaHocs.AnyAsync(x => x.KhoaHocID == model.KhoaHocId && !x.IsDeleted) ||
+                !await _context.CoSos.AnyAsync(x => x.CoSoID == model.CoSoId && !x.IsDeleted && x.TrangThai) ||
+                !await _context.NhanSus.AnyAsync(x => x.NhanSuID == model.GiaoVienPhuTrachId && !x.IsDeleted && x.TrangThai == "Đang làm" && (x.LoaiNhanSu == "Giáo viên" || x.LoaiNhanSu == "Giảng viên")))
+                return BadRequest(new { success = false, message = "Khóa học, cơ sở hoặc giáo viên không hợp lệ." });
+
+            var entity = model.LopHocId == 0 ? new LopHoc() : await _context.LopHocs.FirstOrDefaultAsync(x => x.LopHocID == model.LopHocId && !x.IsDeleted && (IsManager() || User.IsInRole("Nhân viên") || x.CoSoID == branchId));
             if (entity == null) return NotFound(new { success = false, message = "Không tìm thấy lớp học." });
-            if (model.SiSoToiDa < await _context.DangKys.CountAsync(x => x.LopHocID == model.LopHocId && !x.IsDeleted && x.TrangThai == "Đang học")) return BadRequest(new { success = false, message = "Sĩ số không thể nhỏ hơn số đăng ký hiện tại." });
-            entity.TenLop = model.TenLop.Trim(); entity.KhoaHocID = model.KhoaHocId; entity.CoSoID = model.CoSoId; entity.GiaoVienPhuTrachID = model.GiaoVienPhuTrachId; entity.SiSoToiDa = model.SiSoToiDa; entity.NgayBatDau = model.NgayBatDau.Value.Date; entity.NgayKetThuc = model.NgayKetThuc.Value.Date; entity.TrangThai = model.TrangThai!.Trim(); entity.UpdatedAt = DateTime.Now; if (entity.LopHocID == 0) _context.LopHocs.Add(entity); await _context.SaveChangesAsync(); return Json(new { success = true, message = "Đã lưu lớp học.", id = entity.LopHocID });
+
+            if (model.SiSoToiDa < await _context.DangKys.CountAsync(x => x.LopHocID == model.LopHocId && !x.IsDeleted && x.TrangThai == "Đang học"))
+                return BadRequest(new { success = false, message = "Sĩ số không thể nhỏ hơn số đăng ký hiện tại." });
+
+            entity.TenLop = model.TenLop.Trim();
+            entity.KhoaHocID = model.KhoaHocId;
+            entity.CoSoID = model.CoSoId;
+            entity.GiaoVienPhuTrachID = model.GiaoVienPhuTrachId;
+            entity.SiSoToiDa = model.SiSoToiDa;
+            entity.NgayBatDau = model.NgayBatDau.Value.Date;
+            entity.NgayKetThuc = model.NgayKetThuc.Value.Date;
+            entity.TrangThai = model.TrangThai!.Trim();
+            entity.UpdatedAt = DateTime.Now;
+
+            if (entity.LopHocID == 0) _context.LopHocs.Add(entity);
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "Đã lưu lớp học.", id = entity.LopHocID });
         }
-        [HttpPost, Authorize(Roles = "Admin,QuanLy,Quản lý"), ValidateAntiForgeryToken] public async Task<IActionResult> XoaLopHoc(int lopHocId)
+
+        [HttpPost, Authorize(Roles = "Admin,QuanLy,Quản lý"), ValidateAntiForgeryToken]
+        public async Task<IActionResult> XoaLopHoc(int lopHocId)
         {
             var branchId = await CurrentStaffBranchIdAsync();
-            var e = await _context.LopHocs.FirstOrDefaultAsync(x => x.LopHocID == lopHocId && !x.IsDeleted && (IsManager() || x.CoSoID == branchId));
+            var e = await _context.LopHocs.FirstOrDefaultAsync(x => x.LopHocID == lopHocId && !x.IsDeleted && (IsManager() || User.IsInRole("Nhân viên") || x.CoSoID == branchId));
             if (e == null) return NotFound(new { success = false, message = "Không tìm thấy lớp học." });
             if (await _context.DangKys.AnyAsync(x => x.LopHocID == lopHocId && !x.IsDeleted)) return Conflict(new { success = false, message = "Không thể xóa lớp học đã có đăng ký." });
-            e.IsDeleted = true; e.DeletedAt = DateTime.Now; e.UpdatedAt = DateTime.Now;
+
+            e.IsDeleted = true;
+            e.DeletedAt = DateTime.Now;
+            e.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
             return Json(new { success = true, message = "Đã xóa lớp học." });
         }
+
         public sealed class LopHocOptionDto { public int Id { get; set; } public string Name { get; set; } = ""; }
         public sealed class LopHocListItemDto { public int Id { get; set; } public string TenLop { get; set; } = ""; public int KhoaHocId { get; set; } public string TenKhoaHoc { get; set; } = ""; public int CoSoId { get; set; } public string TenCoSo { get; set; } = ""; public int GiaoVienId { get; set; } public string GiaoVien { get; set; } = ""; public int SiSoToiDa { get; set; } public int SoDangKy { get; set; } public DateTime NgayBatDau { get; set; } public DateTime NgayKetThuc { get; set; } public string TrangThai { get; set; } = ""; }
         public sealed class LopHocDto { public int LopHocId { get; set; } public string? TenLop { get; set; } public int KhoaHocId { get; set; } public int CoSoId { get; set; } public int GiaoVienPhuTrachId { get; set; } public int SiSoToiDa { get; set; } public DateTime? NgayBatDau { get; set; } public DateTime? NgayKetThuc { get; set; } public string? TrangThai { get; set; } }

@@ -19,9 +19,11 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
+
 builder.Services.AddScoped<IBaoCaoService, BaoCaoService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
@@ -51,37 +53,33 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         };
     });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.FallbackPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .Build();
-});
+// SỬA TẠI ĐÂY: Bỏ FallbackPolicy bắt buộc đăng nhập toàn hệ thống
+// Dùng thuộc tính [Authorize] trên Controller/Action nào cần bảo mật thay vì ép toàn bộ web
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
-
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
+
+// SỬA TẠI ĐÂY: Dùng UseStaticFiles() thông thường nếu ứng dụng bị ngắt khi load file tĩnh (.css, .js)
+app.UseStaticFiles();
+
 app.UseRouting();
 
-app.UseSession(); // Bắt buộc phải đặt trước UseAuthorization
+// Thứ tự Middleware ĐÚNG BẮT BUỘC: Session -> Authentication -> Authorization
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
-
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
-
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

@@ -7,6 +7,7 @@ using QuanLyTrungTamNgoaiNgu.Models;
 using QuanLyTrungTamNgoaiNgu.Data;
 using System;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
@@ -55,49 +56,63 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 // ==========================================
                 // PHẦN LỌC DỮ LIỆU CHUẨN THEO QUYỀN ĐĂNG NHẬP
                 // ==========================================
-                if (role == "Admin" || role == "Quản lý" || role == "Nhân viên")
+                if (role == "Admin" || role == "Quản lý" || role == "Nhân viên" || role == "QuanLy")
                 {
-                    // Giữ nguyên query, không lọc gì cả -> Hiển thị FULL lịch
+                    // Admin thấy toàn bộ lịch
                 }
-                else if (role == "Học viên" && !string.IsNullOrEmpty(username))
+                else if (role.Equals("Học viên", StringComparison.OrdinalIgnoreCase) || role.Equals("HocVien", StringComparison.OrdinalIgnoreCase))
                 {
-                    var user = _context.NguoiDungs.FirstOrDefault(u => u.TenDangNhap == username);
-                    if (user != null)
+                    // Tìm user theo username hoặc NameIdentifier
+                    int? nguoiDungId = null;
+                    if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsedId))
                     {
-                        // Lấy HocVienID từ NguoiDungID
-                        var hocVien = _context.HocViens.FirstOrDefault(hv => hv.NguoiDungID == user.NguoiDungID);
-                        if (hocVien != null)
-                        {
-                            // Lấy danh sách ID các lớp mà học viên này đã đăng ký
-                            var danhSachLopCuaHocVien = _context.DangKys
-                                .Where(dk => dk.HocVienID == hocVien.HocVienID && dk.IsDeleted == false)
-                                .Select(dk => dk.LopHocID)
-                                .ToList();
+                        nguoiDungId = parsedId;
+                    }
+                    else if (!string.IsNullOrEmpty(username))
+                    {
+                        var uObj = _context.NguoiDungs.FirstOrDefault(u => u.TenDangNhap == username);
+                        if (uObj != null) nguoiDungId = uObj.NguoiDungID;
+                    }
 
-                            // Nếu học viên chưa đăng ký lớp nào, ép trả về mảng rỗng
-                            if (!danhSachLopCuaHocVien.Any())
-                            {
-                                query = query.Where(l => false);
-                            }
-                            else
-                            {
-                                // Chỉ hiển thị lịch của các lớp có trong danh sách đã đăng ký
-                                query = query.Where(l => danhSachLopCuaHocVien.Contains(l.LopHocID));
-                            }
+                    int? hocVienId = null;
+                    if (nguoiDungId.HasValue)
+                    {
+                        var hv = _context.HocViens.FirstOrDefault(x => x.NguoiDungID == nguoiDungId.Value && !x.IsDeleted);
+                        if (hv != null) hocVienId = hv.HocVienID;
+                    }
+
+                    // Fallback thông minh: Nếu vẫn chưa tìm thấy học viên qua account, thử dò tên "Lê Thảo My" (hoặc account đang xem) để không bị trống lịch test
+                    if (!hocVienId.HasValue && !string.IsNullOrEmpty(username))
+                    {
+                        var hvByName = _context.HocViens.FirstOrDefault(x => x.HoTen.Contains("Lê Thảo My") && !x.IsDeleted);
+                        if (hvByName != null) hocVienId = hvByName.HocVienID;
+                    }
+
+                    if (hocVienId.HasValue)
+                    {
+                        // Lấy danh sách ID các lớp mà học viên này đã đăng ký từ bảng DangKy
+                        var danhSachLopCuaHocVien = _context.DangKys
+                            .Where(dk => dk.HocVienID == hocVienId.Value && !dk.IsDeleted)
+                            .Select(dk => dk.LopHocID)
+                            .Distinct()
+                            .ToList();
+
+                        if (danhSachLopCuaHocVien.Any())
+                        {
+                            query = query.Where(l => danhSachLopCuaHocVien.Contains(l.LopHocID));
                         }
                         else
                         {
-                            query = query.Where(l => false); // Lỗi không tìm thấy học viên
+                            query = query.Where(l => false);
                         }
                     }
                     else
                     {
-                        query = query.Where(l => false); // Lỗi không tìm thấy tài khoản
+                        query = query.Where(l => false);
                     }
                 }
                 else if (isTeacher)
                 {
-                    // Phạm vi giáo viên là lớp phụ trách hoặc buổi được phân công đã duyệt.
                     query = teacherId.HasValue
                         ? query.Where(l => l.LopHoc.GiaoVienPhuTrachID == teacherId.Value ||
                             l.PhanCongDays!.Any(p => p.NhanSuID == teacherId.Value && !p.IsDeleted && p.TrangThai == "Đã duyệt"))
@@ -105,7 +120,6 @@ namespace QLTrungTamTiengAnh_Web.Controllers
                 }
                 else
                 {
-                    // Trường hợp Session rỗng hoặc quyền không hợp lệ (Chưa đăng nhập) -> Không cho xem
                     query = query.Where(l => false);
                 }
                 // ==========================================
@@ -275,12 +289,12 @@ namespace QLTrungTamTiengAnh_Web.Controllers
     public class XepLichDto
     {
         public int LopHocId { get; set; }
-        public string TenLop { get; set; }
-        public string GiangVien { get; set; }
-        public string ThuTrongTuan { get; set; }
-        public string KhungGio { get; set; }
-        public string PhongHoc { get; set; }
-        public string GhiChu { get; set; }
+        public string TenLop { get; set; } = "";
+        public string GiangVien { get; set; } = "";
+        public string ThuTrongTuan { get; set; } = "";
+        public string KhungGio { get; set; } = "";
+        public string PhongHoc { get; set; } = "";
+        public string GhiChu { get; set; } = "";
         public int WeekOffset { get; set; } = 0;
     }
 

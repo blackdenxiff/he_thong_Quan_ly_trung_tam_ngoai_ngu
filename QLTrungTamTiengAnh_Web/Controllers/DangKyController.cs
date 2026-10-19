@@ -4,20 +4,215 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyTrungTamNgoaiNgu.Data;
 using QuanLyTrungTamNgoaiNgu.Models;
 using QLTrungTamTiengAnh_Web.Services;
+
 namespace QLTrungTamTiengAnh_Web.Controllers
 {
- [Authorize(Roles="Admin,QuanLy,Quản lý,Nhân viên")]
- public class DangKyController:Controller
- {
-  const int PageSize=10; readonly ApplicationDbContext _context; readonly IEnrollmentService _enrollmentService; public DangKyController(ApplicationDbContext context,IEnrollmentService enrollmentService){_context=context;_enrollmentService=enrollmentService;}
-  [HttpGet] public IActionResult Index()=>View();
-  [HttpGet] public async Task<IActionResult> DanhSachDangKy(string? keyword,int page=1){ keyword=keyword?.Trim(); if(keyword?.Length>100)return BadRequest(new{success=false,message="Từ khóa không được vượt quá 100 ký tự."}); IQueryable<DangKy> q=_context.DangKys.AsNoTracking().Where(x=>!x.IsDeleted).Include(x=>x.HocVien).Include(x=>x.LopHoc).ThenInclude(x=>x.KhoaHoc); if(!string.IsNullOrWhiteSpace(keyword))q=q.Where(x=>x.HocVien!.HoTen.Contains(keyword)||x.LopHoc!.TenLop.Contains(keyword)||x.DangKyID.ToString().Contains(keyword)); var total=await q.CountAsync(); var pages=(int)Math.Ceiling(total/(double)PageSize); page=pages==0?1:Math.Clamp(page,1,pages); var items=await q.OrderByDescending(x=>x.NgayDangKy).ThenByDescending(x=>x.DangKyID).Skip((page-1)*PageSize).Take(PageSize).Select(x=>new{id=x.DangKyID,ma="DK-"+x.DangKyID.ToString("D4"),hocVienId=x.HocVienID,hocVien=x.HocVien!.HoTen,lop=x.LopHoc!.TenLop,lopHocId=x.LopHocID,khoaHoc=x.LopHoc.KhoaHoc!.TenKhoaHoc,ngayDangKy=x.NgayDangKy,hocPhi=x.HocPhiApDung,trangThai=x.TrangThai}).ToListAsync(); return Json(new{success=true,items,page,pageSize=PageSize,total,totalPages=pages}); }
-  [HttpGet] public async Task<IActionResult> DanhSachKhaoThi(string? keyword,string? trangThai,int page=1){ keyword=keyword?.Trim(); trangThai=trangThai?.Trim().ToLowerInvariant(); if(keyword?.Length>100)return BadRequest(new{success=false,message="Từ khóa không được vượt quá 100 ký tự."}); var q=_context.HocViens.AsNoTracking().Where(x=>!x.IsDeleted); if(!string.IsNullOrWhiteSpace(keyword))q=q.Where(x=>x.HoTen.Contains(keyword)||x.HocVienID.ToString().Contains(keyword)||(x.SoDienThoai??"").Contains(keyword)); if(trangThai=="chuathi")q=q.Where(x=>x.DiemDauVao==null); if(trangThai=="dathi")q=q.Where(x=>x.DiemDauVao!=null); var total=await q.CountAsync(); var pages=(int)Math.Ceiling(total/(double)PageSize); page=pages==0?1:Math.Clamp(page,1,pages); var items=await q.OrderByDescending(x=>x.UpdatedAt??x.CreatedAt).ThenByDescending(x=>x.HocVienID).Skip((page-1)*PageSize).Take(PageSize).Select(x=>new{id=x.HocVienID,ma="HV-"+x.HocVienID.ToString("D3"),hoTen=x.HoTen,dienThoai=x.SoDienThoai,diem=x.DiemDauVao,trinhDo=x.TrinhDoDauVao,nhanXet=x.NhanXetDauVao,ngayCapNhat=x.UpdatedAt??x.CreatedAt,daThi=x.DiemDauVao!=null}).ToListAsync(); return Json(new{success=true,items,page,pageSize=PageSize,total,totalPages=pages}); }
-  [HttpGet] public async Task<IActionResult> DuLieuNhap(){ var hv=await _context.HocViens.AsNoTracking().Where(x=>!x.IsDeleted).OrderBy(x=>x.HoTen).Select(x=>new{id=x.HocVienID,ma="HV-"+x.HocVienID.ToString("D3"),ten=x.HoTen,diem=x.DiemDauVao,trinhDo=x.TrinhDoDauVao}).ToListAsync(); var lop=await _context.LopHocs.AsNoTracking().Include(x=>x.KhoaHoc).Where(x=>!x.IsDeleted&&x.TrangThai!="Đã kết thúc"&&x.TrangThai!="Đã hủy").OrderBy(x=>x.TenLop).Select(x=>new{id=x.LopHocID,ten=x.TenLop,khoaHoc=x.KhoaHoc!.TenKhoaHoc,hocPhi=x.KhoaHoc!.HocPhi,siSo=_context.DangKys.Count(d=>d.LopHocID==x.LopHocID&&!d.IsDeleted&&d.TrangThai=="Đang học"),siSoToiDa=x.SiSoToiDa}).ToListAsync(); return Json(new{success=true,hocViens=hv,lopHocs=lop}); }
-  [HttpPost,ValidateAntiForgeryToken] public async Task<IActionResult> LuuDangKy([FromBody]DangKyDto? m){if(m==null)return BadRequest(new{success=false,message="Vui lòng chọn học viên và lớp học hợp lệ."});try{var result=await _enrollmentService.EnrollAsync(new EnrollmentRequest(m.HocVienId,m.LopHocId,m.CoCamKet,m.GhiChu),HttpContext.RequestAborted);return Json(new{success=true,message=result.CommitmentCreated?"Đã đăng ký lớp và tạo cam kết Chờ duyệt.":"Đã đăng ký lớp thành công.",id=result.DangKyId,hocPhi=result.Tuition,siSo=result.ClassSize});}catch(EnrollmentException ex){return StatusCode(ex.StatusCode,new{success=false,message=ex.Message});}}
-  [HttpPost,ValidateAntiForgeryToken] public async Task<IActionResult> LuuDiemDauVao([FromBody]DiemDauVaoDto? m){if(m==null||m.HocVienId<=0)return BadRequest(new{success=false,message="Thông tin học viên không hợp lệ."}); if(m.DiemDauVao is <0 or >100)return BadRequest(new{success=false,message="Điểm kiểm tra đầu vào phải từ 0 đến 100."}); var e=await _context.HocViens.FirstOrDefaultAsync(x=>x.HocVienID==m.HocVienId&&!x.IsDeleted); if(e==null)return NotFound(new{success=false,message="Không tìm thấy học viên."}); e.DiemDauVao=m.DiemDauVao;e.TrinhDoDauVao=string.IsNullOrWhiteSpace(m.TrinhDoDeXuat)?null:m.TrinhDoDeXuat.Trim();e.NhanXetDauVao=string.IsNullOrWhiteSpace(m.NhanXet)?null:m.NhanXet.Trim();e.UpdatedAt=DateTime.Now;await _context.SaveChangesAsync();return Json(new{success=true,message="Đã lưu kết quả khảo thí đầu vào."});}
-  [HttpPost,ValidateAntiForgeryToken] public async Task<IActionResult> HuyDangKy(int dangKyId){var e=await _context.DangKys.FirstOrDefaultAsync(x=>x.DangKyID==dangKyId&&!x.IsDeleted);if(e==null)return NotFound(new{success=false,message="Không tìm thấy đăng ký."});e.TrangThai="Đã hủy";e.UpdatedAt=DateTime.Now;await _context.SaveChangesAsync();return Json(new{success=true,message="Đã hủy đăng ký."});}
- }
- public class DangKyDto{public int HocVienId{get;set;}public int LopHocId{get;set;}public bool CoCamKet{get;set;}public string? GhiChu{get;set;}}
- public class DiemDauVaoDto{public int HocVienId{get;set;}public decimal? DiemDauVao{get;set;}public string? TrinhDoDeXuat{get;set;}public string? NhanXet{get;set;}}
+    [Authorize(Roles = "Admin,QuanLy,Quản lý,Nhân viên")]
+    public class DangKyController : Controller
+    {
+        const int PageSize = 10;
+        readonly ApplicationDbContext _context;
+        readonly IEnrollmentService _enrollmentService;
+
+        public DangKyController(ApplicationDbContext context, IEnrollmentService enrollmentService)
+        {
+            _context = context;
+            _enrollmentService = enrollmentService;
+        }
+
+        [HttpGet]
+        public IActionResult Index() => View();
+
+        [HttpGet]
+        public async Task<IActionResult> DanhSachDangKy(string? keyword, int page = 1)
+        {
+            keyword = keyword?.Trim();
+            if (keyword?.Length > 100)
+                return BadRequest(new { success = false, message = "Từ khóa không được vượt quá 100 ký tự." });
+
+            IQueryable<DangKy> q = _context.DangKys.AsNoTracking()
+                .Where(x => !x.IsDeleted)
+                .Include(x => x.HocVien)
+                .Include(x => x.LopHoc)
+                .ThenInclude(x => x.KhoaHoc);
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+                q = q.Where(x => x.HocVien!.HoTen.Contains(keyword) || x.LopHoc!.TenLop.Contains(keyword) || x.DangKyID.ToString().Contains(keyword));
+
+            var total = await q.CountAsync();
+            var pages = (int)Math.Ceiling(total / (double)PageSize);
+            page = pages == 0 ? 1 : Math.Clamp(page, 1, pages);
+
+            var items = await q.OrderByDescending(x => x.NgayDangKy)
+                .ThenByDescending(x => x.DangKyID)
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
+                .Select(x => new
+                {
+                    id = x.DangKyID,
+                    ma = "DK-" + x.DangKyID.ToString("D4"),
+                    hocVienId = x.HocVienID,
+                    hocVien = x.HocVien != null ? x.HocVien.HoTen : "Không rõ",
+                    lop = x.LopHoc != null ? x.LopHoc.TenLop : "Không rõ",
+                    lopHocId = x.LopHocID,
+                    khoaHoc = (x.LopHoc != null && x.LopHoc.KhoaHoc != null) ? x.LopHoc.KhoaHoc.TenKhoaHoc : "Không rõ",
+                    ngayDangKy = x.NgayDangKy,
+                    hocPhi = x.HocPhiApDung,
+                    trangThai = x.TrangThai
+                }).ToListAsync();
+
+            return Json(new { success = true, items, page, pageSize = PageSize, total, totalPages = pages });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DanhSachKhaoThi(string? keyword, string? trangThai, int page = 1)
+        {
+            keyword = keyword?.Trim();
+            trangThai = trangThai?.Trim().ToLowerInvariant();
+            if (keyword?.Length > 100)
+                return BadRequest(new { success = false, message = "Từ khóa không được vượt quá 100 ký tự." });
+
+            var q = _context.HocViens.AsNoTracking().Where(x => !x.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+                q = q.Where(x => x.HoTen.Contains(keyword) || x.HocVienID.ToString().Contains(keyword) || (x.SoDienThoai ?? "").Contains(keyword));
+
+            if (trangThai == "chuathi")
+                q = q.Where(x => x.DiemDauVao == null);
+            if (trangThai == "dathi")
+                q = q.Where(x => x.DiemDauVao != null);
+
+            var total = await q.CountAsync();
+            var pages = (int)Math.Ceiling(total / (double)PageSize);
+            page = pages == 0 ? 1 : Math.Clamp(page, 1, pages);
+
+            var items = await q.OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt)
+                .ThenByDescending(x => x.HocVienID)
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
+                .Select(x => new
+                {
+                    id = x.HocVienID,
+                    ma = "HV-" + x.HocVienID.ToString("D3"),
+                    hoTen = x.HoTen,
+                    dienThoai = x.SoDienThoai,
+                    diem = x.DiemDauVao,
+                    trinhDo = x.TrinhDoDauVao,
+                    nhanXet = x.NhanXetDauVao,
+                    ngayCapNhat = x.UpdatedAt ?? x.CreatedAt,
+                    daThi = x.DiemDauVao != null
+                }).ToListAsync();
+
+            return Json(new { success = true, items, page, pageSize = PageSize, total, totalPages = pages });
+        }
+
+        // ĐÂY LÀ HÀM SỔ DỮ LIỆU TỪ DATABASE CHO MODAL ĐĂNG KÝ
+        [HttpGet]
+        public async Task<IActionResult> DuLieuNhap()
+        {
+            // 1. Lấy danh sách Học viên từ SQL
+            var hv = await _context.HocViens.AsNoTracking()
+                .Where(x => !x.IsDeleted)
+                .OrderBy(x => x.HoTen)
+                .Select(x => new
+                {
+                    id = x.HocVienID,
+                    ma = "HV-" + x.HocVienID.ToString("D3"),
+                    ten = x.HoTen,
+                    diem = x.DiemDauVao,
+                    trinhDo = x.TrinhDoDauVao
+                }).ToListAsync();
+// 2. Lấy danh sách Lớp học từ SQL 
+            var lop = await _context.LopHocs.AsNoTracking()
+                .Include(x => x.KhoaHoc)
+                // Đổi lại điều kiện lọc: Bỏ đi lớp "Đã kết thúc" và "Đã hủy"
+                .Where(x => !x.IsDeleted && x.TrangThai != "Đã kết thúc" && x.TrangThai != "Đã hủy") 
+                .OrderBy(x => x.TenLop)
+                .Select(x => new
+                {
+                    id = x.LopHocID,
+                    ten = x.TenLop,
+                    khoaHoc = x.KhoaHoc != null ? x.KhoaHoc.TenKhoaHoc : "Chưa rõ",
+                    hocPhi = x.KhoaHoc != null ? x.KhoaHoc.HocPhi : 0,
+                    siSo = _context.DangKys.Count(d => d.LopHocID == x.LopHocID && !d.IsDeleted && d.TrangThai == "Đang học"),
+                    siSoToiDa = x.SiSoToiDa
+                }).ToListAsync();
+
+            return Json(new { success = true, hocViens = hv, lopHocs = lop });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> LuuDangKy([FromBody] DangKyDto? m)
+        {
+            if (m == null)
+                return BadRequest(new { success = false, message = "Vui lòng chọn học viên và lớp học hợp lệ." });
+            try
+            {
+                var result = await _enrollmentService.EnrollAsync(new EnrollmentRequest(m.HocVienId, m.LopHocId, m.CoCamKet, m.GhiChu), HttpContext.RequestAborted);
+                return Json(new
+                {
+                    success = true,
+                    message = result.CommitmentCreated ? "Đã đăng ký lớp và tạo cam kết Chờ duyệt." : "Đã đăng ký lớp thành công.",
+                    id = result.DangKyId,
+                    hocPhi = result.Tuition,
+                    siSo = result.ClassSize
+                });
+            }
+            catch (EnrollmentException ex)
+            {
+                return StatusCode(ex.StatusCode, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> LuuDiemDauVao([FromBody] DiemDauVaoDto? m)
+        {
+            if (m == null || m.HocVienId <= 0)
+                return BadRequest(new { success = false, message = "Thông tin học viên không hợp lệ." });
+            if (m.DiemDauVao is < 0 or > 100)
+                return BadRequest(new { success = false, message = "Điểm kiểm tra đầu vào phải từ 0 đến 100." });
+
+            var e = await _context.HocViens.FirstOrDefaultAsync(x => x.HocVienID == m.HocVienId && !x.IsDeleted);
+            if (e == null)
+                return NotFound(new { success = false, message = "Không tìm thấy học viên." });
+
+            e.DiemDauVao = m.DiemDauVao;
+            e.TrinhDoDauVao = string.IsNullOrWhiteSpace(m.TrinhDoDeXuat) ? null : m.TrinhDoDeXuat.Trim();
+            e.NhanXetDauVao = string.IsNullOrWhiteSpace(m.NhanXet) ? null : m.NhanXet.Trim();
+            e.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "Đã lưu kết quả khảo thí đầu vào." });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> HuyDangKy(int dangKyId)
+        {
+            var e = await _context.DangKys.FirstOrDefaultAsync(x => x.DangKyID == dangKyId && !x.IsDeleted);
+            if (e == null)
+                return NotFound(new { success = false, message = "Không tìm thấy đăng ký." });
+
+            e.TrangThai = "Đã hủy";
+            e.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "Đã hủy đăng ký." });
+        }
+    }
+
+    public class DangKyDto
+    {
+        public int HocVienId { get; set; }
+        public int LopHocId { get; set; }
+        public bool CoCamKet { get; set; }
+        public string? GhiChu { get; set; }
+    }
+
+    public class DiemDauVaoDto
+    {
+        public int HocVienId { get; set; }
+        public decimal? DiemDauVao { get; set; }
+        public string? TrinhDoDeXuat { get; set; }
+        public string? NhanXet { get; set; }
+    }
 }
