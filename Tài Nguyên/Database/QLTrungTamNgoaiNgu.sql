@@ -1,7 +1,7 @@
 ﻿
 CREATE DATABASE QLTrungTamNgoaiNgu;
 GO
-USE QLTrungTamTiengAnh;
+USE QLTrungTamNgoaiNgu;
 GO
 
 -- 1. BẢNG VAI TRO
@@ -409,8 +409,7 @@ INSERT INTO LichSuDieuChuyen(NhanSuID, CoSoCuID, CoSoMoiID, NgayDeXuat, NgayHieu
 (2, 1, 2, '2026-10-01', '2026-11-01', 1, 1, N'Đã duyệt', N'Tăng cường giảng viên chất lượng cao cho cơ sở Đống Đa');
 GO
 
-USE QLTrungTamTiengAnh;
-GO
+
 
 -- 1. Bổ sung các cột Quản lý, Xóa mềm & Đổi mật khẩu cho bảng NGUOI DUNG
 ALTER TABLE NguoiDung 
@@ -453,9 +452,6 @@ GO
 
 --------------------------------
 
-
-USE QLTrungTamNgoaiNgu;
-GO
 
 -- Danh sách các bảng cần bổ sung cột thùng rác và audit:
 -- 1. CoSo
